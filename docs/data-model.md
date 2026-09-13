@@ -51,6 +51,19 @@ User
 | WeeklyCheckIn | Member's periodic progress/risk report. | Belongs to project and author; contains completed, planned, blocker, and confidence/risk information. |
 | Report/Letter | Generated project document draft. | Belongs to project and generator; keeps source context, editable content, status, and export metadata. |
 
+## Database rules
+
+- Use stable opaque IDs or UUIDs; avoid enumerable sequential IDs where exposure is risky.
+- Verify team/project scope in every project-owned query. Never rely only on a frontend-provided project ID.
+- Store timezone-aware timestamps in UTC and convert them at the presentation boundary.
+- Use documented status values, not arbitrary UI labels.
+- Protect invariants with foreign keys, unique constraints, checks, and indexes.
+- Review every schema change as a versioned migration. Do not edit a production schema manually.
+- Use transactions for imports, status changes with activity, membership changes, and other multi-record operations.
+- Record meaningful task, assignment, import, AI decision, and permission history when explanation or auditability matters.
+
+Useful indexes include memberships by user/team/project, tasks by project/phase/status/assignee/due date/updated time, comments/activity by task and chronology, notifications by user/read state/time, jobs by status/type/next attempt/idempotency key, and import rows by job/validation state.
+
 ## Task domain
 
 The task should support the concepts named in the project sources:

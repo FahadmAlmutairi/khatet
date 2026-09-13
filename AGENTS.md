@@ -43,6 +43,31 @@ If a direct request conflicts with a source recommendation, follow the direct re
 11. Do not expose secrets, AI keys, database credentials, or authorization decisions in the browser bundle.
 12. Do not copy source code or assets from reference products without checking the current license. Rebuild reference ideas with Khatet-owned components and content.
 
+## Backend implementation rules
+
+1. Inspect existing modules, schemas, migrations, API contracts, decision records, and tests before editing.
+2. Preserve the selected backend stack unless a documented decision changes it.
+3. Keep route handlers thin; put business behavior in testable services/use cases and keep ORM details behind data-access boundaries where practical.
+4. Validate every external input and enforce team/project authorization on every protected read and write. Never trust IDs, roles, project IDs, member IDs, files, or frontend permission flags.
+5. Use stable DTOs/schemas. Do not expose database models accidentally.
+6. Use versioned migrations, relational constraints, indexes, UTC timestamps, and transactions for related writes.
+7. Use idempotency for retryable confirmations and durable job/status behavior for imports, AI, reports, notifications, and other slow work.
+8. Keep secrets and provider keys server-side. Redact sensitive data and credentials from logs and errors.
+9. Test domain rules, permission isolation, validation, failure recovery, duplicate/retry behavior, API contracts, and migrations.
+10. Provide health checks, structured logs, request IDs, safe error reporting, and reproducible local/CI/deployment behavior where relevant.
+11. Keep integrations and MCP access behind application services; never allow direct database access from the frontend, MCP layer, or provider integration.
+12. Do not add infrastructure complexity without a measured need and deployment path.
+
+## Branch and integration rules
+
+- Use one shared integration branch only: `main` is the recommended standard.
+- Do not maintain both `master` and `main` as active integration branches.
+- Every contributor, including frontend and backend contributors, works in a short-lived feature/fix/docs branch created from the integration branch.
+- Open a pull request back into the integration branch; do not push feature work directly to it.
+- Keep branches focused, rebase or merge the latest integration changes before review, and delete merged branches.
+
+The current repository was initially published with `master`. Before application development begins, the team should either rename it to `main` once or explicitly adopt `master` as the single integration branch. Do not create a second long-lived branch just for personal work.
+
 ## Required verification
 
 Use the smallest relevant set of checks for each change:
@@ -61,6 +86,7 @@ Before finishing, report files changed, user flow, states covered, API/query/mut
 This guide was derived from the supplied:
 
 - `Khatet_Frontend_Team_Handbook.pdf`
+- `Khatet_Backend_Team_Handbook.pdf`
 - `Khatet_Project_Brief.pdf`
 - Khatet UI design and animation notes
 - `Khatet_Technology_Stack_and_Architecture (1).md`

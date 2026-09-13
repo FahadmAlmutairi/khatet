@@ -76,6 +76,27 @@ apps/web/src/
 
 Feature modules should expose a small public API. A typical module may contain `components/`, `queries.ts`, `mutations.ts`, `schemas.ts`, `types.ts`, `utils.ts`, `routes.tsx`, and `index.ts`. Pure transformations and validation belong in testable functions; route components orchestrate rather than own all business logic.
 
+## Backend boundaries
+
+The API is organized by product capability:
+
+```text
+apps/api/
+  Auth
+  Users and Teams
+  Projects and Phases
+  Tasks
+  Comments and Activity
+  Notifications
+  Imports
+  AI Review and Reports
+  Files and Integrations
+```
+
+Route handlers translate transport input into application commands. Services/use cases coordinate validation, business behavior, and transactions. Repositories or data-access functions hide ORM/query details where practical. DTOs and schemas define external responses; database models must not automatically become API responses. Module-to-module calls use explicit interfaces or application services rather than random direct table access.
+
+The backend should remain easy to test without starting the entire system for every unit of logic. Long-running work uses a database-backed job table first and a queue/worker only when retries, delayed jobs, concurrency, multiple workers, or throughput justify the added infrastructure.
+
 ## State ownership
 
 | State | Owner | Examples |

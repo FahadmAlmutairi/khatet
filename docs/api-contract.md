@@ -69,16 +69,21 @@ Use one typed error concept across the API so the UI can explain and recover fro
 
 ```json
 {
-  "message": "The task could not be saved.",
-  "code": "TASK_UPDATE_FAILED",
-  "fieldErrors": {
-    "dueDate": "Due date must be on or after the project start date."
-  },
-  "requestId": "request-id"
+  "error": {
+    "code": "TASK_UPDATE_FAILED",
+    "message": "The task could not be saved.",
+    "fieldErrors": [
+      {
+        "field": "dueDate",
+        "message": "Due date must be on or after the project start date."
+      }
+    ],
+    "requestId": "request-id"
+  }
 }
 ```
 
-`message` is safe for users, `code` drives behavior, `fieldErrors` maps form feedback, and `requestId` supports debugging. Final error codes and HTTP status mapping must be agreed in OpenAPI. A failed mutation should preserve input and provide retry or a clear recovery path.
+`error.message` is safe for users, `error.code` drives behavior, `error.fieldErrors` maps form feedback, and `error.requestId` supports debugging. Final error codes and HTTP status mapping must be agreed in OpenAPI. A failed mutation should preserve input and provide retry or a clear recovery path. Internal diagnostics remain server-side.
 
 ## Query and mutation conventions
 

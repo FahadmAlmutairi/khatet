@@ -9,17 +9,20 @@ The repository started as an initialized but empty Git repository. This document
 ## Completed
 
 - [x] Read the supplied frontend handbook PDF.
+- [x] Read the supplied backend handbook PDF.
 - [x] Read the supplied project brief PDF.
 - [x] Read the supplied UI design and animation notes.
 - [x] Read the supplied technology stack and architecture notes.
 - [x] Distinguished direct repository work from instructions/recommendations embedded in source documents.
 - [x] Created `AGENTS.md`, `README.md`, and the seven requested documents under `docs/`.
+- [x] Added `docs/backend-guidelines.md` for the shared backend/API team.
 - [x] Recorded the React/TypeScript/Vite frontend baseline, modular-monolith architecture, API boundary, data concepts, UX/UI rules, and workflow.
 
 ## Decided baseline
 
 - Product: calm project-management workspace for project teams.
 - Scope: integrated full-stack delivery with a strong frontend/UI/UX experience.
+- Branching: one shared integration branch; use short-lived feature/fix/docs branches and pull requests. Do not maintain both `master` and `main`.
 - Frontend: React + TypeScript + Vite, React Router, TanStack Query, React Hook Form + Zod, shared tokens, dnd-kit, and controlled CSS/Motion.
 - Backend: NestJS + TypeScript REST/OpenAPI, PostgreSQL + Prisma, optional worker/job table.
 - Architecture: modular monolith before microservices.
@@ -30,6 +33,7 @@ The repository started as an initialized but empty Git repository. This document
 ## Not started
 
 - [ ] Ratify the final repository/package layout with the whole team.
+- [ ] Decide once whether to rename the current `master` integration branch to `main`; do not create both as active defaults.
 - [ ] Scaffold `apps/web`, `apps/api`, optional `apps/worker`, shared packages, Prisma, Docker Compose, and CI.
 - [ ] Finalize OpenAPI DTOs, error codes, authentication transport, enums, pagination, and operation lifecycle.
 - [ ] Finalize Prisma schema, migrations, seed data, and permission policies.

@@ -40,6 +40,7 @@ The backend baseline is NestJS + TypeScript with REST/OpenAPI, PostgreSQL + Pris
 `-- docs/
     |-- product-requirements.md
     |-- architecture.md
+    |-- backend-guidelines.md
     |-- api-contract.md
     |-- data-model.md
     |-- ui-ux-guidelines.md
@@ -47,15 +48,19 @@ The backend baseline is NestJS + TypeScript with REST/OpenAPI, PostgreSQL + Pris
     `-- current-status.md
 ```
 
-The application monorepo structure described by the architecture document is the target implementation structure. This initial commit establishes the shared product and frontend/UI/UX contract before application code is added.
+The application monorepo structure described by the architecture document is the target implementation structure. This repository is shared by frontend/UI/UX and backend contributors; the documents define the common product and engineering contract before application code is added.
 
 ## How to use the documentation
 
 1. Read `docs/product-requirements.md` before changing product scope.
-2. Read `docs/architecture.md`, `docs/api-contract.md`, and `docs/data-model.md` before implementing a screen that consumes or changes data.
+2. Read `docs/architecture.md`, `docs/backend-guidelines.md`, `docs/api-contract.md`, and `docs/data-model.md` before implementing a screen or service that consumes or changes data.
 3. Read `docs/ui-ux-guidelines.md` before introducing a component, visual pattern, or animation.
-4. Follow `docs/development-workflow.md` for design-to-code handoff, testing, review, and product evidence.
+4. Follow `docs/development-workflow.md` for design-to-code handoff, backend/frontend handoff, testing, review, and product evidence.
 5. Use `docs/current-status.md` to understand what is decided, in progress, blocked, or intentionally deferred.
+
+## Branch policy
+
+Use one shared integration branch and short-lived branches for individual work. The current repository uses `master`; the team may rename it once to `main` before application development begins, but should not keep both as active defaults. Open pull requests from focused branches such as `feat/board-task-movement`, `fix/api-permissions`, or `docs/update-contract` and do not maintain permanent personal branches.
 
 ## Local development
 

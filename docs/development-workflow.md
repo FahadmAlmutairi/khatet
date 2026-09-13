@@ -35,6 +35,37 @@ Every frontend feature should link or point to:
 
 The implementation should preserve the reason for a design decision, not only its pixels.
 
+## Backend feature workflow
+
+For backend work, use the same loop with these explicit outputs:
+
+1. **Define behavior:** user action, domain rule, permissions, side effects, success/failure states, and data needed by the frontend.
+2. **Model the data:** entities, relationships, constraints, indexes, migration, history, and deletion behavior.
+3. **Define the contract:** endpoint/command, request schema, response shape, errors, pagination, authentication, and payload examples.
+4. **Implement domain logic:** testable services/use cases with validation, transactions, and safe failure behavior before transport glue where practical.
+5. **Wire integrations:** database, storage, job system, AI provider, notifications, or external provider behind clear interfaces.
+6. **Verify and document:** run tests, inspect logs, update OpenAPI/docs, share fixtures/examples, and state remaining risks.
+
+Before frontend integration, confirm field names, enum values, timestamp format, pagination, nullability, auth requirements, error cases, loading/progress behavior, optimistic-safety, and breaking-change handling.
+
+## Branch and integration workflow
+
+Use one shared integration branch. `main` is the recommended standard; do not keep both `master` and `main` as active integration branches.
+
+Every contributor uses a short-lived branch created from the integration branch:
+
+```text
+main
+  |-- feat/board-task-movement
+  |-- feat/api-import-preview
+  |-- fix/task-permission-check
+  `-- docs/update-api-contract
+```
+
+Open a pull request back into the integration branch. Keep branches focused, update them from the latest integration branch before review, require at least one review for shared code, run CI before merge, and delete merged branches. Personal branches are useful only as short-lived feature branches; do not create a permanent branch per person.
+
+The current remote uses `master` as its only integration branch. Before application development begins, either rename it once to `main` or explicitly adopt `master` and apply the same workflow. Do not create a second long-lived branch just for personal work.
+
 ## Frontend/API coordination
 
 - Agree resource IDs, enums, timestamps, nullability, permission representation, errors, pagination/filtering, and operation statuses before integration.
