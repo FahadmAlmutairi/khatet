@@ -16,7 +16,7 @@ The first release is expected to provide:
 - Task-linked chat, activity history, and notifications.
 - CSV import with preview, column mapping, validation, review, and confirmation.
 - Non-blocking AI suggestions for task assignment and estimation.
-- AI-generated progress/risk reports and official letters, editable before export or sharing.
+- AI-generated progress/risk reports, editable before export or sharing.
 
 ## Frontend baseline
 
@@ -60,13 +60,13 @@ The application monorepo structure described by the architecture document is the
 
 ## Branch policy
 
-Use one shared integration branch and short-lived branches for individual work. The current repository uses `master`; the team may rename it once to `main` before application development begins, but should not keep both as active defaults. Open pull requests from focused branches such as `feat/board-task-movement`, `fix/api-permissions`, or `docs/update-contract` and do not maintain permanent personal branches.
+Use one shared integration branch and short-lived branches for individual work. Open pull requests from focused branches such as `feat/board-task-movement`, `fix/api-permissions`, or `docs/update-contract` and do not maintain permanent personal branches.
 
 ## Local development
 
 The runtime application has not been scaffolded yet. Once the team adds the monorepo, document the exact install, environment, database, seed, test, and run commands here and in `.env.example`.
 
-Do not commit secrets. Use environment variables for credentials and keep the frontend free of database and AI provider keys.
+keep the frontend free of database and AI provider keys.
 
 ## Source material and scope boundary
 
