@@ -4,7 +4,7 @@ Khatet is a collaborative web platform for planning projects, managing tasks, ke
 
 The shared product workflow is:
 
-`create or join a project -> define phases and milestones -> create and assign tasks -> coordinate in task context -> review progress and risk -> generate reports or letters`
+`create or join a project -> define phases and milestones -> create and assign tasks -> coordinate in task context -> review progress and risk -> generate reports`
 
 ## MVP
 
@@ -15,7 +15,7 @@ The first release is expected to provide:
 - A Kanban board and a readable timeline.
 - Task-linked chat, activity history, and notifications.
 - CSV import with preview, column mapping, validation, review, and confirmation.
-- Non-blocking AI suggestions for task assignment and estimation.
+- Non-blocking AI suggestions for task assignment and estimation  (optional).
 - AI-generated progress/risk reports, editable before export or sharing.
 
 ## Frontend baseline
