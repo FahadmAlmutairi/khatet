@@ -56,7 +56,6 @@ The application monorepo structure described by the architecture document is the
 2. Read `docs/architecture.md`, `docs/backend-guidelines.md`, `docs/api-contract.md`, and `docs/data-model.md` before implementing a screen or service that consumes or changes data.
 3. Read `docs/ui-ux-guidelines.md` before introducing a component, visual pattern, or animation.
 4. Follow `docs/development-workflow.md` for design-to-code handoff, backend/frontend handoff, testing, review, and product evidence.
-5. Use `docs/current-status.md` to understand what is decided, in progress, blocked, or intentionally deferred.
 
 ## Branch policy
 
