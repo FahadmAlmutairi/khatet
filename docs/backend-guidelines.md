@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document is the neutral team reference for backend engineering and API handoff. It is derived from the supplied backend handbook and aligned with the shared Khatet architecture, data model, API contract, frontend guidelines, and development workflow.
+This document is the team reference for backend engineering and API handoff. It is derived from the supplied backend handbook and aligned with the shared Khatet architecture, data model, API contract, frontend guidelines, and development workflow.
 
 ## Backend north star
 
@@ -10,14 +10,12 @@ Make the right data and behavior easy for the frontend to consume: explicit cont
 
 ## Backend responsibilities
 
-The backend owns durable truth and safe business behavior for:
-
 - accounts, teams, memberships, roles, invitations, and active context;
 - projects, phases, milestones, dates, settings, and health summaries;
 - tasks, assignments, statuses, due dates, filters, and activity;
 - task-linked comments, notifications, unread state, and deep links;
 - CSV import preview, mapping, validation, confirmation, and summary;
-- AI review jobs, suggestions, reports, letters, and acceptance history;
+- AI review jobs(optional), reports;
 - file metadata/access references, cleanup, and future integrations.
 
 Every protected request is scoped to an authorized team/project. A changed ID must never reveal or mutate data outside the caller's scope.
@@ -95,7 +93,7 @@ Keep authentication behind a service boundary so future OIDC/SSO can map an exte
 
 Create an import job, validate source/file type and size, store the file safely, parse in a worker or bounded service, return a preview without mutating project data, preserve row-level issues, require explicit confirmation, commit transactionally or in an idempotent resumable batch, and store a recoverable summary.
 
-### AI review
+### AI review (optional)
 
 Save the task/project change immediately, create a review job from a stable input snapshot, call an internal provider interface, store suggestions/context/status, let the user accept/edit/ignore/clarify, record the decision in activity, and retry or fail without blocking core work. AI is advisory, not an authorization decision or unquestionable fact. Provider keys remain server-side.
 
