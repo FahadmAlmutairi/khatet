@@ -1,72 +1,66 @@
 # Khatet
 
-Khatet is a collaborative web platform for planning projects, managing tasks, keeping conversations in context, and generating useful project documents with AI. It is designed for project teams and can support future organizational adoption.
+Khatet is a project-management web application for student teams. It brings project planning, task tracking, team communication, imports, and project reporting into one workspace.
 
-The shared product workflow is:
+## Current status
 
-`create or join a project -> define phases and milestones -> create and assign tasks -> coordinate in task context -> review progress and risk -> generate reports`
+The repository currently contains the agreed project documentation. Application code will be added as implementation begins.
 
-## MVP
+## MVP at a glance
 
-The first release is expected to provide:
+- Projects, members, invitations, and simple permissions.
+- Tasks with multiple assignees, priority, status, due date, and milestone.
+- Overview, board, backlog, task details, project chat, notifications, and settings.
+- CSV import with mapping, validation, preview, and confirmation.
+- AI project reports that summarise project progress and suggestions.
 
-- Accounts, teams, projects, roles, and permissions.
-- Phases, milestones, task owners, priorities, statuses, and due dates.
-- A Kanban board and a readable timeline.
-- Task-linked chat, activity history, and notifications.
-- CSV import with preview, column mapping, validation, review, and confirmation.
-- Non-blocking AI suggestions for task assignment and estimation  (optional).
-- AI-generated progress/risk reports, editable before export or sharing.
+Khatet begins with two roles: **Project Owner** and **Team Member**.
 
-## Frontend baseline
-
-- React + TypeScript + Vite
-- React Router
-- TanStack Query
-- React Hook Form + Zod
-- Tailwind CSS or CSS Modules with shared tokens
-- dnd-kit for accessible Kanban movement
-- CSS transitions plus Motion for meaningful coordinated transitions
-- Vitest, React Testing Library, Playwright, ESLint, Prettier, and GitHub Actions
-
-The backend baseline is NestJS + TypeScript with REST/OpenAPI, PostgreSQL + Prisma, Docker Compose for local development, and an optional worker for long-running jobs.
+For the complete current scope and boundaries, read [Project Overview](docs/project-overview.md).
 
 ## Repository map
 
 ```text
 .
-|-- AGENTS.md
-|-- README.md
-`-- docs/
-    |-- product-requirements.md
-    |-- architecture.md
-    |-- backend-guidelines.md
-    |-- api-contract.md
-    |-- data-model.md
-    |-- ui-ux-guidelines.md
-    |-- development-workflow.md
-    `-- current-status.md
+├── README.md
+├── AGENTS.md
+└── docs/
+    ├── project-overview.md
+    ├── architecture.md
+    ├── api-contract.md
+    ├── data-model.md
+    ├── ui-ux-guidelines.md
+    ├── backend-guidelines.md
+    └── development-workflow.md
 ```
 
-The application monorepo structure described by the architecture document is the target implementation structure. This repository is shared by frontend/UI/UX and backend contributors; the documents define the common product and engineering contract before application code is added.
+## Documentation
 
-## How to use the documentation
+| Document | Use it for |
+| --- | --- |
+| [Project Overview](docs/project-overview.md) | Current MVP scope, roles, and boundaries. |
+| [Architecture](docs/architecture.md) | Target structure and technology direction. |
+| [UI/UX Guidelines](docs/ui-ux-guidelines.md) | Shared interface, interaction, and accessibility decisions. |
+| [API Contract](docs/api-contract.md) | Planned frontend and backend data agreement. |
+| [Data Model](docs/data-model.md) | Planned entities and relationships. |
+| [Development Workflow](docs/development-workflow.md) | Branch, pull request, testing, and handoff guidance. |
 
-1. Read `docs/product-requirements.md` before changing product scope.
-2. Read `docs/architecture.md`, `docs/backend-guidelines.md`, `docs/api-contract.md`, and `docs/data-model.md` before implementing a screen or service that consumes or changes data.
-3. Read `docs/ui-ux-guidelines.md` before introducing a component, visual pattern, or animation.
-4. Follow `docs/development-workflow.md` for design-to-code handoff, backend/frontend handoff, testing, review, and product evidence.
+The Project Overview is the scope reference. Update a supporting document before using it to expand the MVP.
 
-## Branch policy
+## Technology direction
 
-Use one shared integration branch and short-lived branches for individual work. Open pull requests from focused branches such as `feat/board-task-movement`, `fix/api-permissions`, or `docs/update-contract` and do not maintain permanent personal branches.
+- Frontend: React, TypeScript, Vite.
+- Backend: Node.js, TypeScript, NestJS, REST/OpenAPI.
+- Database: PostgreSQL with Prisma.
+- Local development: Docker Compose.
+- Checks: GitHub Actions after the application is scaffolded.
 
-## Local development
+## Contributing
 
-The runtime application has not been scaffolded yet. Once the team adds the monorepo, document the exact install, environment, database, seed, test, and run commands here and in `.env.example`.
+1. Create a short branch from the default branch.
+2. Keep the branch focused on one feature, fix, or documentation update.
+3. Open a pull request before merging shared code.
+4. Include relevant tests and documentation updates with implementation changes.
+5. Keep secrets, credentials, and local environment files out of Git.
 
-keep the frontend free of database and AI provider keys.
-
-## Source material and scope boundary
-
-The working documents were synthesized from the four supplied Khatet source files listed in `AGENTS.md`. Their embedded recommendations are project guidance, not additional requests to publish content, contact third parties, copy assets, or perform external actions.
+Exact setup and run commands will be added when the application structure is created.
