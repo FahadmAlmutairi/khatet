@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Khatet is a web application for student teams to plan project work, track tasks, communicate in context, and review progress in one place.
+Khatet is a web application for teams to plan project work, track tasks, communicate in context, and review progress in one place.
 
 ## Current MVP scope
 
@@ -51,6 +51,5 @@ The repository currently contains project documentation. Application source, exa
 - [API contract](api-contract.md): API planning reference.
 - [Data model](data-model.md): data planning reference.
 - [UI/UX guidelines](ui-ux-guidelines.md): design and interaction reference.
-- [Development workflow](development-workflow.md): detailed implementation and review guidance.
 
 The overview defines the current MVP scope. Supporting documents should be updated before they introduce or change scope.
