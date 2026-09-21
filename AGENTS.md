@@ -10,7 +10,6 @@ Use the detailed document that matches the work:
 - Frontend/backend agreement: [docs/api-contract.md](docs/api-contract.md)
 - Data changes: [docs/data-model.md](docs/data-model.md)
 - Structure and stack: [docs/architecture.md](docs/architecture.md)
-- Branches, reviews, and testing: [docs/development-workflow.md](docs/development-workflow.md)
 
 ## Working rules
 
