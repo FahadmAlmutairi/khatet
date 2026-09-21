@@ -1,6 +1,6 @@
 # Khatet
 
-Khatet is a project-management web application for student teams. It brings project planning, task tracking, team communication, imports, and project reporting into one workspace.
+Khatet is a project-management web application for teams. It brings project planning, task tracking, team communication, imports, and project reporting into one workspace.
 
 ## Current status
 
@@ -29,9 +29,7 @@ For the complete current scope and boundaries, read [Project Overview](docs/proj
     ├── architecture.md
     ├── api-contract.md
     ├── data-model.md
-    ├── ui-ux-guidelines.md
-    ├── backend-guidelines.md
-    └── development-workflow.md
+    └── ui-ux-guidelines.md
 ```
 
 ## Documentation
@@ -43,7 +41,6 @@ For the complete current scope and boundaries, read [Project Overview](docs/proj
 | [UI/UX Guidelines](docs/ui-ux-guidelines.md) | Shared interface, interaction, and accessibility decisions. |
 | [API Contract](docs/api-contract.md) | Planned frontend and backend data agreement. |
 | [Data Model](docs/data-model.md) | Planned entities and relationships. |
-| [Development Workflow](docs/development-workflow.md) | Branch, pull request, testing, and handoff guidance. |
 
 The Project Overview is the scope reference. Update a supporting document before using it to expand the MVP.
 
