@@ -121,9 +121,9 @@ AI flow: save task -> create review job -> worker analyzes -> store suggestions 
 
 Import flow: upload CSV -> parse on server -> preview -> map columns -> validate -> review issues -> explicit confirm -> commit -> activity summary. Additional providers should extend the import domain rather than replace this flow.
 
-## Authentication and college readiness
+## Future readiness
 
-Start with Khatet accounts behind an authentication service boundary. Keep the authorization model ready for team member, team owner, supervisor, and organization administrator roles. Prepare for OIDC/SSO without spreading provider-specific code through feature modules.
+Start with Khatet accounts behind an authentication service boundary. Support the current Project Owner and Team Member roles, and add further roles only when product requirements call for them. Prepare for future OIDC/SSO without spreading provider-specific code through feature modules.
 
 The system should be designed for tenant/project isolation, audit logs, secure passwords, rate limiting, HTTPS, backups, health checks, monitoring, privacy/data-retention policies, and future Arabic/English support.
 
