@@ -1,18 +1,20 @@
 # Khatet
 
-Khatet is a project-management web application for teams. It brings project planning, task tracking, team communication, imports, and project reporting into one workspace.
+Khatet is a collaborative web platform for student teams to plan projects, organize work, and keep project discussion in one shared workspace. It is the SWE 444 Software Construction Laboratory team project.
 
 ## Current status
 
 The repository currently contains the agreed project documentation. Application code will be added as implementation begins.
 
-## MVP at a glance
+## First release at a glance
 
-- Projects, members, invitations, and simple permissions.
-- Tasks with multiple assignees, priority, status, due date, and milestone.
-- Overview, board, backlog, task details, project chat, notifications, and settings.
-- CSV import with mapping, validation, preview, and confirmation.
-- AI project reports that summarise project progress and suggestions.
+- Email code sign-in with a unique username.
+- Projects, invitations by username, and three task-access levels for members.
+- Tasks with one or more assignees, priority, due date, phase, five statuses, and a blocked flag.
+- Kanban board with filter and search, task activity, overview, timeline, and notifications.
+- Project chat with task references.
+- AI project report with a progress summary, warnings, and suggestions. The report never changes project data.
+- Could have: automatic AI reports and CSV task import.
 
 Khatet begins with two roles: **Project Owner** and **Team Member**.
 
@@ -46,18 +48,21 @@ The Project Overview is the scope reference. Update a supporting document before
 
 ## Technology direction
 
-- Frontend: React, TypeScript, Vite.
-- Backend: Node.js, TypeScript, NestJS, REST/OpenAPI.
-- Database: PostgreSQL with Prisma.
-- Local development: Docker Compose.
-- Checks: GitHub Actions after the application is scaffolded.
+- Frontend: React, JavaScript, Vite. Hosted on Vercel.
+- Backend: Node.js, Express, REST with OpenAPI. Hosted on Render.
+- Database: PostgreSQL on Supabase, accessed through Prisma.
+- Authentication: Supabase Auth with a 6-digit email code.
+- Project chat: refresh every few seconds first, then Socket.IO.
+- Tests: Vitest, React Testing Library, Supertest, Playwright.
+- Checks: GitHub Actions on every pull request.
+- Local development: no local database. Each developer uses their own free Supabase project.
 
 ## Contributing
 
 1. Create a short branch from the default branch.
 2. Keep the branch focused on one feature, fix, or documentation update.
-3. Open a pull request before merging shared code.
-4. Include relevant tests and documentation updates with implementation changes.
+3. Open a pull request; merge into the protected main branch after a review and passing checks.
+4. Include tests and documentation updates in the same pull request as the code.
 5. Keep secrets, credentials, and local environment files out of Git.
 
 Exact setup and run commands will be added when the application structure is created.
