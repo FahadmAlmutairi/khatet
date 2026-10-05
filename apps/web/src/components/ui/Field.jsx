@@ -1,16 +1,16 @@
 import { useId } from 'react'
 
 const inputClass =
-  'min-h-11 w-full rounded-lg border bg-white px-3 text-base text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked disabled:bg-surface disabled:text-muted'
+  'min-h-11 w-full rounded-lg border bg-white px-3 text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked disabled:bg-surface disabled:text-muted'
 
 function FieldShell({ id, label, required, hint, error, children }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium text-heading">
+      <label htmlFor={id} className="text-sm font-medium text-body">
         {label}
         {required && (
           <>
-            <span aria-hidden="true"> *</span>
+            <span aria-hidden="true" className="text-attention"> *</span>
             <span className="sr-only"> (required)</span>
           </>
         )}
@@ -45,7 +45,7 @@ export function TextField({ label, required, hint, error, className = '', ...pro
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy(id, hint, error)}
         aria-required={required || undefined}
-        className={`${inputClass} border-line ${className}`}
+        className={`${inputClass} border-surface-supporting ${className}`}
         {...props}
       />
     </FieldShell>
@@ -61,7 +61,7 @@ export function TextArea({ label, required, hint, error, rows = 3, ...props }) {
         rows={rows}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy(id, hint, error)}
-        className={`${inputClass} border-line py-2`}
+        className={`${inputClass} border-surface-supporting py-2`}
         {...props}
       />
     </FieldShell>
@@ -76,7 +76,7 @@ export function SelectField({ label, required, hint, error, options, ...props })
         id={id}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy(id, hint, error)}
-        className={`${inputClass} border-line`}
+        className={`${inputClass} border-surface-supporting`}
         {...props}
       >
         {options.map((option) => (
@@ -86,54 +86,5 @@ export function SelectField({ label, required, hint, error, options, ...props })
         ))}
       </select>
     </FieldShell>
-  )
-}
-
-// A group of checkboxes for picking several people, for example task assignees.
-export function CheckboxGroup({ legend, required, error, options, value, onChange }) {
-  const id = useId()
-  function toggle(optionValue, checked) {
-    onChange(checked ? [...value, optionValue] : value.filter((item) => item !== optionValue))
-  }
-  return (
-    <fieldset aria-describedby={error ? `${id}-error` : undefined} className="flex flex-col gap-1.5">
-      <legend className="mb-1.5 text-sm font-medium text-heading">
-        {legend}
-        {required && (
-          <>
-            <span aria-hidden="true"> *</span>
-            <span className="sr-only"> (required)</span>
-          </>
-        )}
-      </legend>
-      <div
-        className={`flex flex-wrap gap-2 rounded-lg ${error ? 'outline-2 outline-offset-2 outline-blocked' : ''}`}
-      >
-        {options.map((option) => {
-          const checked = value.includes(option.value)
-          return (
-            <label
-              key={option.value}
-              className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-3 text-base ${
-                checked ? 'border-action bg-nav-active text-heading' : 'border-line bg-white text-body'
-              }`}
-            >
-              <input
-                type="checkbox"
-                className="size-4 accent-action"
-                checked={checked}
-                onChange={(event) => toggle(option.value, event.target.checked)}
-              />
-              {option.label}
-            </label>
-          )
-        })}
-      </div>
-      {error && (
-        <p id={`${id}-error`} className="text-sm font-medium text-blocked">
-          {error}
-        </p>
-      )}
-    </fieldset>
   )
 }

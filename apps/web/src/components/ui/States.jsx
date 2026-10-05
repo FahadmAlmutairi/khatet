@@ -34,6 +34,7 @@ export function EmptyState({ title, children, action }) {
 }
 
 export function Notice({ children, tone = 'info' }) {
-  const toneClass = tone === 'warning' ? 'border-attention/40 bg-priority-high-bg/40' : 'border-line bg-surface'
-  return <div className={`rounded-lg border px-3 py-2.5 text-base ${toneClass}`}>{children}</div>
+  // Figma: Notice / View only (light sage, no border).
+  const toneClass = tone === 'warning' ? 'bg-priority-high-bg/60 text-priority-high-text' : 'bg-nav-active text-heading'
+  return <div className={`rounded-[10px] px-3.5 py-3 text-sm leading-5 ${toneClass}`}>{children}</div>
 }

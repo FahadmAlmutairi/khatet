@@ -1,6 +1,7 @@
 import { fieldError } from '../../api/errors.js'
-import { CheckboxGroup, SelectField, TextArea, TextField } from '../../components/ui/Field.jsx'
+import { SelectField, TextArea, TextField } from '../../components/ui/Field.jsx'
 import { PRIORITIES } from '../../lib/domain.js'
+import AssigneePicker from './AssigneePicker.jsx'
 
 // The fields shared by Create task (US-13) and Edit task (US-15). Phase (US-20) arrives in Sprint 3.
 export default function TaskFields({ values, onChange, members, error }) {
@@ -9,12 +10,11 @@ export default function TaskFields({ values, onChange, members, error }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       <TextField label="Task title" required value={values.title} onChange={set('title')} error={fieldError(error, 'title')} />
-      <CheckboxGroup
-        legend="Assignees"
+      <AssigneePicker
         required
-        options={members.map((member) => ({ value: member.userId, label: `@${member.username}` }))}
+        members={members}
         value={values.assigneeIds}
         onChange={(assigneeIds) => onChange({ ...values, assigneeIds })}
         error={fieldError(error, 'assigneeIds')}

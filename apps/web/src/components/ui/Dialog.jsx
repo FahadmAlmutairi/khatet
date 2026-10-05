@@ -3,6 +3,7 @@ import { CloseIcon } from '../icons.jsx'
 
 // Built on the native <dialog> element: it traps focus, closes with Esc and
 // returns focus to the control that opened it.
+// variant "panel" is the centred mini page from Figma (task details): it draws its own header.
 export default function Dialog({ open, onClose, title, description, children, footer, variant = 'modal', labelledBy }) {
   const ref = useRef(null)
   const titleId = useId()
@@ -15,10 +16,12 @@ export default function Dialog({ open, onClose, title, description, children, fo
     if (!open && dialog.open) dialog.close()
   }, [open])
 
-  const placement =
-    variant === 'drawer'
-      ? 'ml-auto mr-0 h-dvh max-h-dvh w-full max-w-full sm:max-w-[30rem] rounded-none sm:border-l'
-      : 'm-auto w-[calc(100%-2rem)] max-w-xl rounded-2xl'
+  const placement = {
+    drawer: 'ml-auto mr-0 h-dvh max-h-dvh w-full max-w-full sm:max-w-[30rem] rounded-none sm:border-l',
+    modal: 'm-auto w-[calc(100%-2rem)] max-w-xl rounded-2xl',
+    panel:
+      'mx-auto mt-4 mb-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[640px] rounded-2xl border outline-none sm:m-auto sm:max-h-none sm:overflow-visible sm:rounded-[20px] shadow-[0_24px_48px_rgba(38,54,41,0.18)]',
+  }[variant]
 
   return (
     <dialog
@@ -32,9 +35,10 @@ export default function Dialog({ open, onClose, title, description, children, fo
       onClick={(event) => {
         if (event.target === ref.current) onClose()
       }}
-      className={`border-line bg-white p-0 text-body shadow-xl backdrop:bg-heading/30 ${placement}`}
+      className={`border-line bg-white p-0 text-body shadow-xl backdrop:bg-heading/40 ${placement}`}
     >
-      {open && (
+      {open && variant === 'panel' && <div className="p-4 sm:p-6">{children}</div>}
+      {open && variant !== 'panel' && (
         <div className="flex h-full flex-col">
           <div className="flex items-start justify-between gap-4 px-6 pt-6">
             <div>

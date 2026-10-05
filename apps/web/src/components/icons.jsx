@@ -54,9 +54,9 @@ export function MoreIcon() {
   )
 }
 
-export function CloseIcon() {
+export function CloseIcon({ size = 18 }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 18 18" fill="none" aria-hidden="true">
       <path d="M4.5 4.5l9 9M13.5 4.5l-9 9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   )
@@ -101,6 +101,14 @@ export function SignOutIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <path d="M6 14H3.33A1.33 1.33 0 0 1 2 12.67V3.33A1.33 1.33 0 0 1 3.33 2H6M10.67 11.33 14 8l-3.33-3.33M14 8H6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" className="shrink-0 text-action">
+      <path d="m3 7.2 2.6 2.6L11 4.3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }

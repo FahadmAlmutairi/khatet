@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
+import { CheckIcon } from '../icons.jsx'
 
 // A menu button with arrow-key navigation, Esc to close and focus returned to the button.
-export default function Menu({ label, buttonContent, buttonClassName = '', items, align = 'right' }) {
+export default function Menu({ label, buttonContent, buttonClassName = '', items, align = 'right', listClassName = 'min-w-56' }) {
   const [open, setOpen] = useState(false)
   const buttonRef = useRef(null)
   const listRef = useRef(null)
@@ -9,7 +10,8 @@ export default function Menu({ label, buttonContent, buttonClassName = '', items
 
   useEffect(() => {
     if (!open) return undefined
-    listRef.current?.querySelector('[role="menuitem"]:not([disabled])')?.focus()
+    const list = listRef.current
+    ;(list?.querySelector('[role="menuitem"][aria-current="true"]') ?? list?.querySelector('[role="menuitem"]:not([disabled])'))?.focus()
     function onPointerDown(event) {
       if (!listRef.current?.contains(event.target) && !buttonRef.current?.contains(event.target)) setOpen(false)
     }
@@ -72,14 +74,18 @@ export default function Menu({ label, buttonContent, buttonClassName = '', items
           aria-label={label}
           onKeyDown={onKeyDown}
           onPointerDown={(event) => event.stopPropagation()}
-          className={`absolute z-30 mt-1 min-w-56 rounded-xl border border-line bg-white p-1 shadow-lg ${
+          className={`absolute z-30 mt-1.5 rounded-xl border border-line bg-white p-2 shadow-[0_12px_24px_rgba(38,54,41,0.16)] ${listClassName} ${
             align === 'right' ? 'right-0' : 'left-0'
           }`}
         >
           {items.map((item) =>
             item.heading ? (
-              <li key={item.key} role="presentation" className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-muted">
+              <li key={item.key} role="presentation" className="px-2 pt-1.5 pb-1.5 text-xs font-medium text-muted">
                 {item.heading}
+              </li>
+            ) : item.note ? (
+              <li key={item.key} role="presentation" className="px-2 pt-2 pb-1 text-xs leading-4 text-muted">
+                {item.note}
               </li>
             ) : (
               <li key={item.key} role="none">
@@ -92,13 +98,18 @@ export default function Menu({ label, buttonContent, buttonClassName = '', items
                     close()
                     item.onSelect()
                   }}
-                  className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-3 text-left text-base hover:bg-surface focus:bg-surface disabled:cursor-default disabled:text-muted ${
+                  className={`flex min-h-11 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-sm hover:bg-surface focus:bg-surface disabled:cursor-default disabled:text-muted ${
                     item.danger ? 'text-blocked' : 'text-body'
-                  }`}
+                  } ${item.current ? 'bg-nav-active font-medium' : ''}`}
                 >
                   {item.icon}
                   <span className="flex-1">{item.label}</span>
-                  {item.current && <span className="text-sm text-muted">Current</span>}
+                  {item.current && (
+                    <>
+                      <CheckIcon />
+                      <span className="sr-only">(current)</span>
+                    </>
+                  )}
                 </button>
               </li>
             ),

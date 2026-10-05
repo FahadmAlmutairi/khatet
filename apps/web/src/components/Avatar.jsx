@@ -3,7 +3,7 @@ function initialsFor(username) {
 }
 
 export default function Avatar({ username, size = 'md' }) {
-  const sizeClass = size === 'sm' ? 'size-7 text-xs' : 'size-8 text-xs'
+  const sizeClass = { xs: 'size-6 text-xs', sm: 'size-7 text-xs', md: 'size-8 text-xs' }[size]
   return (
     <span
       className={`inline-flex shrink-0 items-center justify-center rounded-full border-2 border-white bg-action font-medium leading-4 text-white ${sizeClass}`}

@@ -10,7 +10,7 @@ Khatet should feel like a calm, polished workspace: neutral surfaces, grounded g
 - **One visual language:** use shared type, spacing, radius, border, surface, status, and control tokens.
 - **Density with breathing room:** group related information and preserve scan paths on management screens.
 - **Progress is visible:** expose status, deadlines, blockers, ownership, and next actions.
-- **Familiar metaphors:** use board, task drawer, phase, notification, activity feed, and wizard patterns.
+- **Familiar metaphors:** use board, task details window, phase, notification, activity feed, and wizard patterns.
 - **Recovery is part of UX:** design undo, retry, draft preservation, validation, and explainable errors as first-class states.
 
 ## Visual system
@@ -60,11 +60,11 @@ Answer at a glance: how much is complete and what needs attention. Show progress
 
 The board is the primary experience. Use a toolbar with project title, filters (assignee, status, priority) with visible active filters and a clear action, search by title with a no-results message, and Add Task. Columns are Backlog, To Do, In Progress, Ready for Review, and Done; Backlog is kept apart from active work. Blocked is shown on In Progress cards as a flag with its icon and label, not as a column. A card shows title and assignees, and its priority, due date, and Blocked label when set. Provide useful empty-column states.
 
-Use dnd-kit for real pointer, touch, and keyboard movement, and keep a "Move to…" menu on every card as the keyboard and screen-reader alternative. On mobile, the board shows one column at a time with horizontal swipe (Trello-style), neighbouring columns peeking, and previous/next stage labels. Show a dashed insertion placeholder and clear destination feedback. After drop, reconcile with the server; on failure restore the previous position and explain retry. Preserve scroll position and do not animate every card.
+Use dnd-kit so the whole card drags with a mouse or a long press (no drag handle). Keyboard and screen-reader users change the status with the "Move to" list in each card's ⋯ menu or with the status button in task details. On mobile, the board shows one column at a time with horizontal swipe (Trello-style), neighbouring columns peeking, and previous/next stage labels. Show a dashed insertion placeholder and clear destination feedback. After drop, reconcile with the server; on failure restore the previous position and explain retry. Preserve scroll position and do not animate every card.
 
-### Task-detail drawer
+### Task details
 
-Open a right-side drawer on desktop and a full-screen surface on mobile. Show title, assignees, status, priority, due date, description, phase, the Blocked flag and reason, and task activity (newest first, with who and when). A task must keep at least one assignee. Deleting a task asks for confirmation. Members without edit access see the information without editable controls, with a note that owner permission is required. On open, manage focus; while modal, trap focus; on close, restore focus and expose a keyboard close action. Use an explicit save action unless autosave behavior is part of the agreed contract.
+Open task details as a centred window (a "mini page") over the board, 640px wide on desktop and full width minus 16px margins on mobile. Do not use a right-side drawer: the right side is kept for project chat. The status shows as a button with a down arrow; choosing it opens the list of statuses, so there is no separate "Move to" button. Show title, assignees, status, priority, due date, description, phase, the Blocked flag and reason, and task activity (newest first, with who and when). A task must keep at least one assignee. Deleting a task asks for confirmation. Members without edit access see the information without editable controls, with a note that owner permission is required. On open, manage focus; while modal, trap focus; on close, restore focus and expose a keyboard close action. Use an explicit save action unless autosave behavior is part of the agreed contract.
 
 ### Timeline and phases
 

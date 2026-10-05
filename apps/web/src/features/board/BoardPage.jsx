@@ -8,7 +8,7 @@ import { useToast } from '../../components/ui/toastContext.js'
 import { statusLabel } from '../../lib/domain.js'
 import BoardColumns from './BoardColumns.jsx'
 import CreateTaskDialog from './CreateTaskDialog.jsx'
-import TaskDrawer from './TaskDrawer.jsx'
+import TaskDetails from './TaskDetails.jsx'
 
 function accessNote(project) {
   if (project.role === 'OWNER' || project.taskAccess === 'EDIT_ALL') return null
@@ -101,7 +101,8 @@ export default function BoardPage() {
             members={members.data.members}
             onCreated={(task) => toast(`“${task.title}” was added to To Do.`)}
           />
-          <TaskDrawer
+          <TaskDetails
+            projectName={project.name}
             taskId={openTaskId}
             projectId={project.id}
             members={members.data.members}
