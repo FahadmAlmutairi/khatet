@@ -1,0 +1,42 @@
+@import 'tailwindcss';
+
+/* Shared Khatet tokens from docs/ui-ux-guidelines.md (Visual system). */
+@theme {
+  --color-surface: #f8faf7; /* surface.default */
+  --color-surface-subtle: #dce1d2; /* surface.subtle */
+  --color-surface-supporting: #aeb79d; /* surface.supporting */
+  --color-heading: #263629; /* text.primary and navigation */
+  --color-body: #242522; /* text.body */
+  --color-action: #40533f; /* action.primary and active */
+  --color-attention: #c86c4d; /* status.attention, AI and blocked */
+  --color-focus: #26362a; /* focus.ring */
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    font-size: 100%; /* body text stays at 16px or more (NFR-03) */
+  }
+
+  body {
+    @apply bg-surface font-sans text-body antialiased;
+  }
+
+  /* Keyboard focus stays visible on every surface (NFR-04). */
+  :focus-visible {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

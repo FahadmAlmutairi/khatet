@@ -4,7 +4,7 @@ Khatet is a collaborative web platform for student teams to plan projects, organ
 
 ## Current status
 
-The repository currently contains the agreed project documentation. Application code will be added as implementation begins.
+The repository contains the agreed project documentation and the frontend project in `apps/web`. The backend will be added in `apps/api`.
 
 ## First release at a glance
 
@@ -26,6 +26,8 @@ For the complete current scope and boundaries, read [Project Overview](docs/proj
 .
 ├── README.md
 ├── AGENTS.md
+├── apps/
+│   └── web/          React frontend (Vite, JavaScript)
 └── docs/
     ├── project-overview.md
     ├── architecture.md
@@ -65,4 +67,23 @@ The Project Overview is the scope reference. Update a supporting document before
 4. Include tests and documentation updates in the same pull request as the code.
 5. Keep secrets, credentials, and local environment files out of Git.
 
-Exact setup and run commands will be added when the application structure is created.
+## Running the frontend
+
+Requires Node.js 22 or later.
+
+```bash
+cd apps/web
+npm install
+npm run dev
+```
+
+The app opens at http://localhost:5173 with placeholder pages for Sign in (`/sign-in`), My projects (`/projects`) and the Board (`/projects/:projectId/board`).
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Starts the development server. |
+| `npm test` | Runs the Vitest and React Testing Library tests. |
+| `npm run lint` | Runs the linter. |
+| `npm run build` | Builds the production bundle into `dist/`. |
+
+Backend setup commands will be added with the API project.
