@@ -15,16 +15,11 @@ export default function NotificationsButton() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
-        className="relative inline-flex size-11 items-center justify-center rounded-lg border border-line bg-white text-heading hover:bg-surface"
+        className="relative inline-flex size-10 items-center justify-center rounded-[10px] border border-line bg-white text-heading hover:bg-surface"
       >
         <BellIcon />
         {unread > 0 && (
-          <span
-            aria-hidden="true"
-            className="absolute -right-1.5 -top-1.5 inline-flex min-w-5 items-center justify-center rounded-full bg-attention px-1 text-xs font-semibold text-white"
-          >
-            {unread}
-          </span>
+          <span aria-hidden="true" className="absolute right-2 top-1.5 size-1.5 rounded-full bg-[#e5484d] ring-2 ring-white" />
         )}
       </button>
       <NotificationsPanel open={open} onClose={() => setOpen(false)} query={notifications} />

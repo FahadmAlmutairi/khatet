@@ -143,9 +143,12 @@ export function useMoveTask(projectId) {
   return useMutation({
     mutationFn: ({ taskId, status, position }) => api.moveTask(taskId, { status, position }),
     onMutate: async ({ taskId, status, position }) => {
-      await queryClient.cancelQueries({ queryKey: tasksKey })
+      // Set the new order before awaiting, so a dropped card never flashes back to its old place.
       const previous = queryClient.getQueryData(tasksKey)
-      if (previous) queryClient.setQueryData(tasksKey, applyMove(previous, taskId, status, position))
+      const next = previous && applyMove(previous, taskId, status, position)
+      if (next) queryClient.setQueryData(tasksKey, next)
+      await queryClient.cancelQueries({ queryKey: tasksKey })
+      if (next) queryClient.setQueryData(tasksKey, next)
       return { previous }
     },
     onError: (_error, _variables, context) => {

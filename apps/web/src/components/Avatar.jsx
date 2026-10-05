@@ -6,7 +6,7 @@ export default function Avatar({ username, size = 'md' }) {
   const sizeClass = size === 'sm' ? 'size-7 text-[11px]' : 'size-8 text-xs'
   return (
     <span
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-action font-medium text-white ring-2 ring-white ${sizeClass}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full border-2 border-white bg-action font-medium leading-4 text-white ${sizeClass}`}
       title={`@${username}`}
     >
       <span aria-hidden="true">{initialsFor(username)}</span>
@@ -21,14 +21,14 @@ export function AvatarStack({ users, max = 3 }) {
   const label = `Assigned to ${users.map((user) => `@${user.username}`).join(', ')}`
 
   return (
-    <span role="img" aria-label={label} className="flex -space-x-1.5">
+    <span role="img" aria-label={label} className="flex -space-x-2">
       {shown.map((user) => (
-        <Avatar key={user.id} username={user.username} size="sm" />
+        <Avatar key={user.id} username={user.username} />
       ))}
       {extra > 0 && (
         <span
           aria-hidden="true"
-          className="inline-flex size-7 items-center justify-center rounded-full bg-surface-subtle text-[11px] font-medium text-heading ring-2 ring-white"
+          className="inline-flex size-8 items-center justify-center rounded-full border-2 border-white bg-surface-subtle text-xs font-medium text-heading"
         >
           +{extra}
         </span>

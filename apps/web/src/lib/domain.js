@@ -38,18 +38,34 @@ export function roleLabel(role) {
   return role === 'OWNER' ? 'Owner' : 'Member'
 }
 
-const dateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-const shortDateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
-// Due dates are calendar dates (YYYY-MM-DD), so they are read as UTC to avoid a day shift.
+// Due dates are calendar dates (YYYY-MM-DD), so they are read as plain parts to avoid a day shift.
+// Months are spelled as in Figma ("20 Sep"); Intl's en-GB gives "Sept".
 export function formatDueDate(value, { short = false } = {}) {
   if (!value) return ''
-  const date = new Date(`${value}T00:00:00Z`)
-  return (short ? shortDateFormat : dateFormat).format(date)
+  const [year, month, day] = value.split('-').map(Number)
+  const date = `${day} ${MONTHS[month - 1]}`
+  return short ? date : `${date} ${year}`
 }
 
 const timeFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 export function formatTimestamp(value) {
   return value ? timeFormat.format(new Date(value)) : ''
+}
+
+function todayKey(now = new Date()) {
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${now.getFullYear()}-${month}-${day}`
+}
+
+// The due line on a board card: "Due 20 Sep", "Due today" or "No due date".
+// A past due date on an unfinished task is marked overdue.
+export function dueLine(dueDate, status, now = new Date()) {
+  if (!dueDate) return { text: 'No due date', overdue: false }
+  const today = todayKey(now)
+  if (dueDate === today) return { text: 'Due today', overdue: false }
+  return { text: `Due ${formatDueDate(dueDate, { short: true })}`, overdue: dueDate < today && status !== 'DONE' }
 }

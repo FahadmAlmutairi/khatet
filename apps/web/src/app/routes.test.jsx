@@ -45,9 +45,9 @@ describe('sign in (US-01, US-02)', () => {
     await user.click(screen.getByRole('button', { name: 'Verify code' }))
 
     const username = await screen.findByLabelText(/Username/)
-    await user.type(username, 'sara')
+    await user.type(username, 'saad')
     await user.click(screen.getByRole('button', { name: 'Continue' }))
-    expect(await screen.findByText('@sara is taken. Try another username.')).toBeInTheDocument()
+    expect(await screen.findByText('@saad is taken. Try another username.')).toBeInTheDocument()
 
     await user.clear(username)
     await user.type(username, 'new_member')
@@ -87,8 +87,20 @@ describe('board (US-16, US-21)', () => {
       expect(await screen.findByRole('heading', { name: new RegExp(`^${label}`) })).toBeInTheDocument()
     }
     const inProgress = screen.getByRole('region', { name: /^In Progress/ })
-    expect(within(inProgress).getByText(/Blocked · Waiting for sample file/)).toBeInTheDocument()
+    expect(within(inProgress).getByText('Blocked')).toBeInTheDocument()
     expect(within(inProgress).getByRole('img', { name: 'Assigned to @fahad, @omar' })).toBeInTheDocument()
+  })
+
+  it('keeps Backlog collapsed under the lanes until it is opened', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    const toggle = await screen.findByRole('button', { name: 'Show backlog' })
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByText('Collect interview notes')).not.toBeInTheDocument()
+    await user.click(toggle)
+    expect(screen.getByRole('button', { name: 'Hide backlog' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('Collect interview notes')).toBeInTheDocument()
   })
 
   it('moves a task with the Move to menu', async () => {
@@ -119,7 +131,9 @@ describe('board (US-16, US-21)', () => {
     renderApp('/projects/p-capstone/board')
     expect(await screen.findByText(/You can view tasks but not change them/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /^Drag/ })).not.toBeInTheDocument()
+    const user = userEvent.setup()
+    await user.click((await screen.findAllByRole('button', { name: /^More actions for/ }))[0])
+    expect(screen.queryByText('Move to')).not.toBeInTheDocument()
   })
 })
 
@@ -135,7 +149,7 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
     expect(within(dialog).getByText('Choose at least one assignee.')).toBeInTheDocument()
 
     await user.type(within(dialog).getByLabelText(/Task title/), 'Plan the demo')
-    await user.click(within(dialog).getByRole('checkbox', { name: '@sara' }))
+    await user.click(within(dialog).getByRole('checkbox', { name: '@saad' }))
     await user.click(within(dialog).getByRole('button', { name: 'Create task' }))
     const todo = screen.getByRole('region', { name: /^To Do/ })
     expect(await within(todo).findByText('Plan the demo')).toBeInTheDocument()
@@ -148,7 +162,7 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
     const drawer = await screen.findByRole('dialog', { name: 'Define board hierarchy' })
     await user.click(await within(drawer).findByRole('button', { name: 'Edit' }))
     await user.click(within(drawer).getByRole('checkbox', { name: '@fahad' }))
-    await user.click(within(drawer).getByRole('checkbox', { name: '@sara' }))
+    await user.click(within(drawer).getByRole('checkbox', { name: '@saad' }))
     await user.click(within(drawer).getByRole('button', { name: 'Save changes' }))
     expect(await within(drawer).findByText('Choose at least one assignee.')).toBeInTheDocument()
 
@@ -220,7 +234,7 @@ describe('members (US-07, US-09, US-10)', () => {
   it('shows a member the access levels without controls', async () => {
     signIn()
     renderApp('/projects/p-study/members')
-    expect(await screen.findByText('@sara')).toBeInTheDocument()
+    expect(await screen.findByText('@saad')).toBeInTheDocument()
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Invite member' })).not.toBeInTheDocument()
     expect(screen.getAllByText('Edit assigned tasks')).toHaveLength(2)
@@ -234,7 +248,7 @@ describe('notifications (US-08, US-30)', () => {
     renderApp('/projects')
     await user.click(await screen.findByRole('button', { name: 'Notifications, 2 unread' }))
     const panel = screen.getByRole('dialog', { name: 'Notifications' })
-    expect(await within(panel).findByText('@lina invited you to join “Mobile App Study”.')).toBeInTheDocument()
+    expect(await within(panel).findByText('@ali invited you to join “Mobile App Study”.')).toBeInTheDocument()
     await user.click(within(panel).getByRole('button', { name: 'Accept' }))
     expect(await within(panel).findByText('You joined this project.')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Notifications, 1 unread' })).toBeInTheDocument()

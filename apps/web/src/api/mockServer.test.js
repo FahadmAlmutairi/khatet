@@ -51,7 +51,7 @@ describe('sample API', () => {
   })
 
   it('starts a new task in To Do at the end of the column', async () => {
-    const task = await api.createTask('p-khatet', { title: 'Write tests', assigneeIds: ['u-sara'] })
+    const task = await api.createTask('p-khatet', { title: 'Write tests', assigneeIds: ['u-saad'] })
     expect(task).toMatchObject({ status: 'TODO', position: 4 })
   })
 
@@ -85,8 +85,8 @@ describe('sample API', () => {
   })
 
   it('refuses an invitation to someone who is already a member', async () => {
-    await expect(api.inviteMember('p-khatet', '@sara')).rejects.toMatchObject({
-      fieldErrors: [{ field: 'username', message: '@sara is already a member of this project.' }],
+    await expect(api.inviteMember('p-khatet', '@saad')).rejects.toMatchObject({
+      fieldErrors: [{ field: 'username', message: '@saad is already a member of this project.' }],
     })
   })
 })

@@ -1,129 +1,248 @@
 import { useMemo, useState } from 'react'
 import {
-  closestCorners,
+  closestCenter,
   DndContext,
   DragOverlay,
-  KeyboardSensor,
-  PointerSensor,
+  MeasuringStrategy,
+  MouseSensor,
+  pointerWithin,
+  rectIntersection,
   TouchSensor,
   useDroppable,
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { arrayMove, rectSortingStrategy, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { ChevronIcon } from '../../components/icons.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
-import { statusLabel, STATUSES } from '../../lib/domain.js'
+import { ACTIVE_STATUSES, STATUSES } from '../../lib/domain.js'
 import TaskCard, { TaskCardBody } from './TaskCard.jsx'
 
-function Column({ status, tasks, usernames, onOpen, onMove, separated }) {
-  const { setNodeRef, isOver } = useDroppable({ id: `column:${status.value}`, data: { type: 'column', status: status.value } })
+const ACCENTS = {
+  TODO: 'bg-status-todo',
+  IN_PROGRESS: 'bg-status-in-progress',
+  READY_FOR_REVIEW: 'bg-status-review',
+  DONE: 'bg-status-done',
+}
+
+const COLUMN_PREFIX = 'column:'
+const isColumnId = (id) => String(id).startsWith(COLUMN_PREFIX)
+
+function Lane({ status, tasks, usernames, onOpen, onMove }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `${COLUMN_PREFIX}${status.value}`, data: { type: 'column', status: status.value } })
   const headingId = `column-${status.value}`
-  const isBacklog = status.value === 'BACKLOG'
 
   return (
     <section
+      ref={setNodeRef}
       aria-labelledby={headingId}
-      className={`relative flex w-[85vw] max-w-80 shrink-0 snap-start flex-col rounded-2xl p-3 sm:w-72 lg:w-auto lg:min-w-52 lg:flex-1 ${
-        isBacklog ? 'border border-dashed border-surface-supporting bg-white/60' : 'bg-surface-subtle/50'
-      } ${isOver ? 'ring-2 ring-action' : ''} ${separated ? 'mr-4' : ''}`}
+      className={`relative flex min-h-40 w-[274px] shrink-0 snap-start flex-col gap-3 overflow-hidden rounded-[var(--radius-card)] border border-line p-3 transition-colors duration-150 lg:min-h-[460px] lg:w-auto lg:min-w-0 lg:flex-1 ${
+        isOver ? 'bg-nav-active' : 'bg-surface'
+      }`}
     >
-      <h2 id={headingId} className="flex items-center gap-2 px-1 pb-2 text-base font-semibold text-heading">
+      <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 ${ACCENTS[status.value]}`} />
+      <h2 id={headingId} className="flex h-6 items-center gap-1.5 text-sm leading-[21px] font-normal text-body">
         <StatusIcon status={status.value} />
-        {status.label}
-        <span className="ml-auto rounded-full bg-white px-2 text-sm font-medium text-muted">
-          <span className="sr-only">, </span>
-          {tasks.length}
+        <span>
+          {status.label} · {tasks.length}
           <span className="sr-only"> {tasks.length === 1 ? 'task' : 'tasks'}</span>
         </span>
       </h2>
-      {isBacklog && <p className="px-1 pb-2 text-sm text-muted">Kept apart from active work.</p>}
       <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
-        <ul ref={setNodeRef} className="flex min-h-24 flex-1 flex-col gap-2">
+        <ul className="flex flex-1 flex-col gap-3">
           {tasks.map((task) => (
             <TaskCard key={task.id} task={task} usernames={usernames} onOpen={onOpen} onMove={onMove} />
           ))}
-          {tasks.length === 0 && (
-            <li className="rounded-xl border border-dashed border-line px-3 py-6 text-center text-sm text-muted">
-              No tasks here. Drop a task here, or use Move to… from a card’s menu.
-            </li>
-          )}
         </ul>
       </SortableContext>
     </section>
   )
 }
 
-function columnOf(tasks, status) {
-  return tasks.filter((task) => task.status === status).sort((a, b) => a.position - b.position)
+// Backlog sits under the lanes, collapsed by default (Figma 324:778, "Backlog / Secondary").
+function BacklogPanel({ tasks, usernames, onOpen, onMove, open, onToggle }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `${COLUMN_PREFIX}BACKLOG`, data: { type: 'column', status: 'BACKLOG' } })
+
+  return (
+    <section
+      ref={setNodeRef}
+      id="backlog-panel"
+      aria-labelledby="column-BACKLOG"
+      className={`rounded-[var(--radius-card)] border p-3 transition-colors duration-150 ${
+        isOver ? 'border-action bg-nav-active' : 'border-line bg-surface'
+      }`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h2 id="column-BACKLOG" className="text-sm leading-[21px] font-normal text-body">
+            Backlog · {tasks.length}
+            <span className="sr-only"> {tasks.length === 1 ? 'task' : 'tasks'}</span>
+          </h2>
+          <p className="text-xs leading-4 font-medium text-muted">
+            Future work. Move a task to To Do when you are ready to commit.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          aria-controls="backlog-tasks"
+          className="inline-flex items-center gap-1.5 rounded-[9px] border border-line bg-white px-[18px] py-[13px] text-[13px] leading-[18px] font-medium text-heading hover:bg-surface"
+        >
+          {open ? 'Hide backlog' : 'Show backlog'}
+          <ChevronIcon direction={open ? 'up' : 'down'} />
+        </button>
+      </div>
+      <div id="backlog-tasks" hidden={!open}>
+        {open && (
+          <SortableContext items={tasks.map((task) => task.id)} strategy={rectSortingStrategy}>
+            <ul className="mt-3 flex flex-wrap gap-3">
+              {tasks.map((task) => (
+                <TaskCard key={task.id} className="w-[250px] max-w-full" task={task} usernames={usernames} onOpen={onOpen} onMove={onMove} />
+              ))}
+              {tasks.length === 0 && <li className="py-2 text-sm text-muted">The backlog is empty.</li>}
+            </ul>
+          </SortableContext>
+        )}
+      </div>
+    </section>
+  )
+}
+
+function idsByStatus(tasks) {
+  const ids = Object.fromEntries(STATUSES.map((status) => [status.value, []]))
+  for (const task of [...tasks].sort((a, b) => a.position - b.position)) ids[task.status]?.push(task.id)
+  return ids
 }
 
 export default function BoardColumns({ tasks, usernames, onOpen, onMove }) {
+  const [backlogOpen, setBacklogOpen] = useState(false)
   const [activeId, setActiveId] = useState(null)
+  // While a card is dragged, this holds the live order so cards make room as it moves.
+  const [dragIds, setDragIds] = useState(null)
+
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
   )
 
-  const columns = useMemo(() => STATUSES.map((status) => ({ status, tasks: columnOf(tasks, status.value) })), [tasks])
-  const titles = useMemo(() => new Map(tasks.map((task) => [task.id, task.title])), [tasks])
-  const activeTask = tasks.find((task) => task.id === activeId)
+  const byId = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks])
+  const savedIds = useMemo(() => idsByStatus(tasks), [tasks])
+  const ids = dragIds ?? savedIds
+  const columnTasks = (status) => ids[status].map((id) => byId.get(id)).filter(Boolean)
+  const activeTask = activeId ? byId.get(activeId) : null
 
-  function targetOf(over) {
-    if (!over) return null
-    if (over.data.current?.type === 'column') return { status: over.data.current.status, overId: null }
-    return { status: over.data.current?.status, overId: over.id }
+  function containerOf(id, current = ids) {
+    if (isColumnId(id)) return String(id).slice(COLUMN_PREFIX.length)
+    return Object.keys(current).find((status) => current[status].includes(id))
+  }
+
+  // Prefer the card under the pointer; between cards, use the nearest card in that lane.
+  function collisionDetection(args) {
+    // The backlog panel moves down when a lane grows mid-drag, and dnd-kit keeps its old
+    // rectangle, so check the live position of the collapsed panel first.
+    const pointer = args.pointerCoordinates
+    const panel = document.getElementById('backlog-panel')?.getBoundingClientRect()
+    if (!backlogOpen && pointer && panel && pointer.y >= panel.top && pointer.y <= panel.bottom && pointer.x >= panel.left && pointer.x <= panel.right) {
+      const container = args.droppableContainers.find((item) => item.id === `${COLUMN_PREFIX}BACKLOG`)
+      if (container) return [{ id: container.id, data: { droppableContainer: container, value: 0 } }]
+    }
+    const hits = pointerWithin(args)
+    const found = hits.length ? hits : rectIntersection(args)
+    const cardHits = found.filter((hit) => !isColumnId(hit.id))
+    if (cardHits.length) return cardHits
+    const lane = found[0]
+    if (!lane) return []
+    const laneIds = ids[containerOf(lane.id)] ?? []
+    if (laneIds.length === 0) return [lane]
+    const containers = args.droppableContainers.filter((container) => laneIds.includes(container.id))
+    const nearest = closestCenter({ ...args, droppableContainers: containers })
+    return nearest.length ? nearest : [lane]
+  }
+
+  function onDragStart({ active }) {
+    setActiveId(active.id)
+    setDragIds(savedIds)
+  }
+
+  function onDragOver({ active, over }) {
+    if (!over) return
+    setDragIds((current) => {
+      if (!current) return current
+      const from = containerOf(active.id, current)
+      const to = containerOf(over.id, current)
+      if (!from || !to || from === to) return current
+      if (to === 'BACKLOG' && !backlogOpen) return current
+      const target = current[to].filter((id) => id !== active.id)
+      let index = target.length
+      if (!isColumnId(over.id)) {
+        const overIndex = target.indexOf(over.id)
+        const translated = active.rect.current.translated
+        const below = translated && translated.top > over.rect.top + over.rect.height / 2
+        index = overIndex + (below ? 1 : 0)
+      }
+      return {
+        ...current,
+        [from]: current[from].filter((id) => id !== active.id),
+        [to]: [...target.slice(0, index), active.id, ...target.slice(index)],
+      }
+    })
+  }
+
+  function finish() {
+    setActiveId(null)
+    setDragIds(null)
   }
 
   function onDragEnd({ active, over }) {
-    setActiveId(null)
-    const target = targetOf(over)
-    const task = tasks.find((item) => item.id === active.id)
-    if (!target?.status || !task) return
+    const task = byId.get(active.id)
+    const current = dragIds ?? savedIds
+    finish()
+    if (!task || !over) return
 
-    const column = columnOf(tasks, target.status)
-    let index
-    if (target.status === task.status) {
-      index = target.overId ? column.findIndex((item) => item.id === target.overId) : column.length - 1
-      if (column[index]?.id === task.id) return
+    const overContainer = containerOf(over.id, current)
+    let status
+    let position
+    if (overContainer === 'BACKLOG' && !backlogOpen) {
+      status = 'BACKLOG'
+      position = current.BACKLOG.filter((id) => id !== task.id).length + 1
     } else {
-      const overIndex = column.findIndex((item) => item.id === target.overId)
-      index = overIndex === -1 ? column.length : overIndex
+      status = containerOf(active.id, current)
+      const items = current[status]
+      const from = items.indexOf(active.id)
+      const to = overContainer === status && !isColumnId(over.id) ? items.indexOf(over.id) : from
+      position = arrayMove(items, from, to).indexOf(active.id) + 1
     }
-    onMove(task, target.status, index + 1)
+
+    const savedPosition = savedIds[task.status].indexOf(task.id) + 1
+    if (status === task.status && position === savedPosition) return
+    onMove(task, status, position)
   }
 
   const announcements = {
-    onDragStart: ({ active }) => `Picked up ${titles.get(active.id)}. Use the arrow keys to move it, Space to drop, Escape to cancel.`,
-    onDragOver: ({ active, over }) => {
-      const target = targetOf(over)
-      return target ? `${titles.get(active.id)} is over ${statusLabel(target.status)}.` : `${titles.get(active.id)} is not over a column.`
-    },
-    onDragEnd: ({ active, over }) => {
-      const target = targetOf(over)
-      return target ? `${titles.get(active.id)} was dropped in ${statusLabel(target.status)}.` : `${titles.get(active.id)} was not moved.`
-    },
-    onDragCancel: ({ active }) => `Moving ${titles.get(active.id)} was cancelled.`,
+    onDragStart: ({ active }) => `Picked up ${byId.get(active.id)?.title}.`,
+    onDragOver: () => undefined,
+    onDragEnd: () => undefined,
+    onDragCancel: ({ active }) => `Moving ${byId.get(active.id)?.title} was cancelled.`,
   }
 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={({ active }) => setActiveId(active.id)}
-      onDragCancel={() => setActiveId(null)}
+      collisionDetection={collisionDetection}
+      measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
       onDragEnd={onDragEnd}
+      onDragCancel={finish}
       accessibility={{
         announcements,
-        screenReaderInstructions: {
-          draggable:
-            'To pick up a task, press Space or Enter. Use the arrow keys to move it between columns, then press Space or Enter to drop it, or Escape to cancel. You can also use Move to in the task menu.',
-        },
+        screenReaderInstructions: { draggable: 'Use Move to in the task menu to move a task between stages.' },
       }}
     >
       <nav aria-label="Board columns" className="-mx-4 mb-3 overflow-x-auto px-4 lg:hidden">
         <ul className="flex gap-2">
-          {columns.map(({ status, tasks: columnTasks }) => (
+          {ACTIVE_STATUSES.map((status) => (
             <li key={status.value}>
               <button
                 type="button"
@@ -133,28 +252,42 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove }) {
                 className="inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-white px-3 text-sm font-medium text-heading"
               >
                 <StatusIcon status={status.value} />
-                {status.label} · {columnTasks.length}
+                {status.label} · {ids[status.value].length}
               </button>
             </li>
           ))}
         </ul>
       </nav>
-      <div className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto px-4 pb-4 lg:mx-0 lg:px-0">
-        {columns.map(({ status, tasks: columnTasks }) => (
-          <Column
+      <div className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-1 lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0">
+        {ACTIVE_STATUSES.map((status) => (
+          <Lane
             key={status.value}
             status={status}
-            tasks={columnTasks}
+            tasks={columnTasks(status.value)}
             usernames={usernames}
             onOpen={onOpen}
-            onMove={(task, value) => onMove(task, value)}
-            separated={status.value === 'BACKLOG'}
+            onMove={onMove}
           />
         ))}
       </div>
-      <DragOverlay>
-        {activeTask && <TaskCardBody task={activeTask} usernames={usernames} onOpen={() => {}} onMove={() => {}} isOverlay />}
+      <div className="mt-6">
+        <BacklogPanel
+          tasks={columnTasks('BACKLOG')}
+          usernames={usernames}
+          onOpen={onOpen}
+          onMove={onMove}
+          open={backlogOpen}
+          onToggle={() => setBacklogOpen((value) => !value)}
+        />
+      </div>
+      <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' }}>
+        {activeTask && (
+          <div className="cursor-grabbing">
+            <TaskCardBody task={activeTask} usernames={usernames} onOpen={() => {}} onMove={() => {}} isOverlay />
+          </div>
+        )}
       </DragOverlay>
     </DndContext>
   )
 }
+

@@ -3,7 +3,6 @@ import { useOutletContext, useSearchParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useMembers, useMoveTask, useTasks } from '../../api/hooks.js'
 import { PlusIcon } from '../../components/icons.jsx'
-import Button from '../../components/ui/Button.jsx'
 import { ErrorState, LoadingState, Notice } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { statusLabel } from '../../lib/domain.js'
@@ -17,7 +16,7 @@ function accessNote(project) {
   return 'You can view tasks but not change them. Ask the project owner for edit access.'
 }
 
-// US-21: tasks grouped by status, with Backlog kept apart from active work.
+// US-21: tasks grouped by status, with Backlog kept apart under the lanes (Figma 324:778).
 export default function BoardPage() {
   const { project } = useOutletContext()
   const tasks = useTasks(project.id)
@@ -58,26 +57,32 @@ export default function BoardPage() {
   const note = accessNote(project)
 
   return (
-    <section>
+    <section className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted">Board</p>
-          <h1 className="text-3xl font-semibold text-heading">{project.name}</h1>
+        <div className="flex min-w-0 flex-col gap-2">
+          <p className="text-xs font-medium whitespace-pre text-muted uppercase">{`${project.name}  /  Board`}</p>
+          <h1 className="text-[28px] leading-[34px] font-bold text-body">Project board</h1>
         </div>
         {project.permissions.canCreateTask && (
-          <Button onClick={() => setCreating(true)} disabled={!members.data}>
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            disabled={!members.data}
+            className="inline-flex items-center justify-center gap-1.5 rounded-[9px] bg-action px-[18px] py-[13px] text-[13px] leading-[18px] font-medium text-white hover:bg-heading disabled:opacity-60"
+          >
             <PlusIcon />
             Add task
-          </Button>
+          </button>
         )}
       </div>
+      <p className="text-sm leading-[21px] text-muted">Open a task for details or move it between stages.</p>
       {note && (
-        <div className="mt-4 max-w-2xl">
+        <div className="max-w-2xl">
           <Notice>{note}</Notice>
         </div>
       )}
 
-      <div className="mt-6">
+      <div>
         {(tasks.isPending || members.isPending) && <LoadingState label="Loading the board" />}
         {tasks.isError && (
           <ErrorState title="The board could not be loaded" message={errorMessage(tasks.error)} onRetry={() => tasks.refetch()} />
