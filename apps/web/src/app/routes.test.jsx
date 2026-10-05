@@ -1,34 +1,256 @@
-import { render, screen } from '@testing-library/react'
-import { createMemoryRouter, RouterProvider } from 'react-router'
+import { screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
-import { routes } from './routes.jsx'
+import { ApiError } from '../api/errors.js'
+import { failNextCall, resetMockServer } from '../api/mockServer.js'
+import { renderApp } from '../test/renderApp.jsx'
 
-function renderAt(path) {
-  const router = createMemoryRouter(routes, { initialEntries: [path] })
-  render(<RouterProvider router={router} />)
-  return router
+function signIn() {
+  resetMockServer({ signedInAs: 'u-fahad' })
 }
 
-describe('routes', () => {
-  it('shows the sign-in page', async () => {
-    renderAt('/sign-in')
-    expect(await screen.findByRole('heading', { name: 'Sign in to Khatet' })).toBeInTheDocument()
+describe('sign in (US-01, US-02)', () => {
+  it('sends a signed-out visitor to sign in', async () => {
+    const router = renderApp('/projects')
+    expect(await screen.findByRole('heading', { name: 'Sign in or create an account' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/sign-in')
   })
 
-  it('redirects the home address to the project list', async () => {
-    const router = renderAt('/')
-    expect(await screen.findByRole('heading', { name: 'My projects' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/projects')
+  it('rejects a wrong code with a message, then signs in', async () => {
+    const user = userEvent.setup()
+    renderApp('/sign-in')
+    await user.type(await screen.findByLabelText(/Email/), 'fahad@example.com')
+    await user.click(screen.getByRole('button', { name: 'Send code' }))
+    expect(await screen.findByText(/The code expires in 10 minutes and works once/)).toBeInTheDocument()
+
+    const code = screen.getByLabelText(/Verification code/)
+    await user.type(code, '000000')
+    await user.click(screen.getByRole('button', { name: 'Verify code' }))
+    expect(await screen.findByText('That code is not right. Check the email and try again.')).toBeInTheDocument()
+    expect(code).toHaveAttribute('aria-invalid', 'true')
+
+    await user.clear(code)
+    await user.type(code, '123456')
+    await user.click(screen.getByRole('button', { name: 'Verify code' }))
+    expect(await screen.findByRole('heading', { name: 'Your projects' })).toBeInTheDocument()
   })
 
-  it('shows the board for a project', async () => {
-    renderAt('/projects/demo/board')
-    expect(await screen.findByRole('heading', { name: 'Board' })).toBeInTheDocument()
-    expect(screen.getByText('demo')).toBeInTheDocument()
+  it('asks a new user for a unique username', async () => {
+    const user = userEvent.setup()
+    renderApp('/sign-in')
+    await user.type(await screen.findByLabelText(/Email/), 'new@example.com')
+    await user.click(screen.getByRole('button', { name: 'Send code' }))
+    await user.type(await screen.findByLabelText(/Verification code/), '123456')
+    await user.click(screen.getByRole('button', { name: 'Verify code' }))
+
+    const username = await screen.findByLabelText(/Username/)
+    await user.type(username, 'sara')
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(await screen.findByText('@sara is taken. Try another username.')).toBeInTheDocument()
+
+    await user.clear(username)
+    await user.type(username, 'new_member')
+    await user.click(screen.getByRole('button', { name: 'Continue' }))
+    expect(await screen.findByRole('heading', { name: 'No projects yet' })).toBeInTheDocument()
+  })
+})
+
+describe('projects (US-04, US-05)', () => {
+  it('lists each project with the user role', async () => {
+    signIn()
+    renderApp('/projects')
+    const khatet = await screen.findByRole('link', { name: /Khatet.*Owner/ })
+    expect(khatet).toHaveAttribute('href', '/projects/p-khatet/board')
+    expect(screen.getByRole('link', { name: /Capstone Research.*Member/ })).toBeInTheDocument()
+  })
+
+  it('creates a project and makes the creator its owner', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects')
+    await user.click(await screen.findByRole('button', { name: 'Create project' }))
+    const dialog = screen.getByRole('dialog', { name: 'Create a project' })
+    await user.click(within(dialog).getByRole('button', { name: 'Create project' }))
+    expect(await within(dialog).findByText('Enter a project name.')).toBeInTheDocument()
+    await user.type(within(dialog).getByLabelText(/Project name/), 'Thesis')
+    await user.click(within(dialog).getByRole('button', { name: 'Create project' }))
+    expect(await screen.findByRole('link', { name: /Thesis.*Owner/ })).toBeInTheDocument()
+  })
+})
+
+describe('board (US-16, US-21)', () => {
+  it('groups tasks by status with text labels and shows card details', async () => {
+    signIn()
+    renderApp('/projects/p-khatet/board')
+    for (const label of ['Backlog', 'To Do', 'In Progress', 'Ready for Review', 'Done']) {
+      expect(await screen.findByRole('heading', { name: new RegExp(`^${label}`) })).toBeInTheDocument()
+    }
+    const inProgress = screen.getByRole('region', { name: /^In Progress/ })
+    expect(within(inProgress).getByText(/Blocked · Waiting for sample file/)).toBeInTheDocument()
+    expect(within(inProgress).getByRole('img', { name: 'Assigned to @fahad, @omar' })).toBeInTheDocument()
+  })
+
+  it('moves a task with the Move to menu', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('button', { name: 'More actions for Prepare usability test script' }))
+    await user.click(screen.getByRole('menuitem', { name: /Done/ }))
+    const done = screen.getByRole('region', { name: /^Done/ })
+    expect(await within(done).findByText('Prepare usability test script')).toBeInTheDocument()
+    expect(await screen.findByText('“Prepare usability test script” moved to Done.')).toBeInTheDocument()
+  })
+
+  it('puts the card back and explains when a move fails', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('button', { name: 'More actions for Prepare usability test script' }))
+    failNextCall('moveTask', new ApiError({ code: 'MOVE_FAILED', status: 500, message: 'The server did not answer.' }))
+    await user.click(screen.getByRole('menuitem', { name: /Done/ }))
+    expect(await screen.findByText(/could not be moved and is back in its place/)).toBeInTheDocument()
+    const todo = screen.getByRole('region', { name: /^To Do/ })
+    await waitFor(() => expect(within(todo).getByText('Prepare usability test script')).toBeInTheDocument())
+  })
+
+  it('shows a member without edit access no move or create controls', async () => {
+    signIn()
+    renderApp('/projects/p-capstone/board')
+    expect(await screen.findByText(/You can view tasks but not change them/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Drag/ })).not.toBeInTheDocument()
+  })
+})
+
+describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
+  it('shows field errors, then creates a task in To Do', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('button', { name: 'Add task' }))
+    const dialog = screen.getByRole('dialog', { name: 'Create a task' })
+    await user.click(within(dialog).getByRole('button', { name: 'Create task' }))
+    expect(await within(dialog).findByText('Enter a task title.')).toBeInTheDocument()
+    expect(within(dialog).getByText('Choose at least one assignee.')).toBeInTheDocument()
+
+    await user.type(within(dialog).getByLabelText(/Task title/), 'Plan the demo')
+    await user.click(within(dialog).getByRole('checkbox', { name: '@sara' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Create task' }))
+    const todo = screen.getByRole('region', { name: /^To Do/ })
+    expect(await within(todo).findByText('Plan the demo')).toBeInTheDocument()
+  })
+
+  it('edits a task and keeps at least one assignee', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board?task=t-8')
+    const drawer = await screen.findByRole('dialog', { name: 'Define board hierarchy' })
+    await user.click(await within(drawer).findByRole('button', { name: 'Edit' }))
+    await user.click(within(drawer).getByRole('checkbox', { name: '@fahad' }))
+    await user.click(within(drawer).getByRole('checkbox', { name: '@sara' }))
+    await user.click(within(drawer).getByRole('button', { name: 'Save changes' }))
+    expect(await within(drawer).findByText('Choose at least one assignee.')).toBeInTheDocument()
+
+    await user.click(within(drawer).getByRole('checkbox', { name: '@omar' }))
+    await user.clear(within(drawer).getByLabelText(/Task title/))
+    await user.type(within(drawer).getByLabelText(/Task title/), 'Define board rules')
+    await user.click(within(drawer).getByRole('button', { name: 'Save changes' }))
+    expect(await within(drawer).findByText('@omar')).toBeInTheDocument()
+    const review = screen.getByRole('region', { name: /^Ready for Review/ })
+    expect(within(review).getByText('Define board rules')).toBeInTheDocument()
+  })
+
+  it('flags an In Progress task as blocked', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board?task=t-7')
+    const toggle = await screen.findByRole('switch', { name: 'Blocked' })
+    expect(toggle).toHaveAttribute('aria-checked', 'false')
+    await user.click(toggle)
+    await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'))
+    const inProgress = screen.getByRole('region', { name: /^In Progress/ })
+    expect(within(inProgress).getAllByText(/^Blocked/)).toHaveLength(2)
+  })
+
+  it('deletes a task after confirmation', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board?task=t-4')
+    const drawer = await screen.findByRole('dialog', { name: 'Write sign-in error messages' })
+    await user.click(await within(drawer).findByRole('button', { name: 'More actions' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Delete task' }))
+    const confirm = screen.getByRole('dialog', { name: 'Delete this task?' })
+    await user.click(within(confirm).getByRole('button', { name: 'Delete task' }))
+    expect(await screen.findByText('“Write sign-in error messages” was deleted.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Write sign-in error messages' })).not.toBeInTheDocument()
+  })
+
+  it('shows a view-only drawer to a member without edit access', async () => {
+    signIn()
+    renderApp('/projects/p-capstone/board?task=t-14')
+    const drawer = await screen.findByRole('dialog', { name: 'Collect survey responses' })
+    expect(await within(drawer).findByText(/You can view this task but not change it/)).toBeInTheDocument()
+    expect(within(drawer).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+    expect(within(drawer).queryByRole('button', { name: 'Move to' })).not.toBeInTheDocument()
+  })
+})
+
+describe('members (US-07, US-09, US-10)', () => {
+  it('lets the owner change access and invite by username', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/members')
+    const access = await screen.findByRole('combobox', { name: 'Task access for @omar' })
+    await user.selectOptions(access, 'EDIT_ALL')
+    expect(await screen.findByText('@omar now has Edit all tasks access.')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Invite member' }))
+    const dialog = screen.getByRole('dialog', { name: 'Invite a member' })
+    await user.type(within(dialog).getByLabelText(/Username/), 'ghost')
+    await user.click(within(dialog).getByRole('button', { name: 'Send invitation' }))
+    expect(await within(dialog).findByText('No user has the username @ghost.')).toBeInTheDocument()
+    await user.clear(within(dialog).getByLabelText(/Username/))
+    await user.type(within(dialog).getByLabelText(/Username/), 'khalid')
+    await user.click(within(dialog).getByRole('button', { name: 'Send invitation' }))
+    expect(await screen.findByText('Invitation sent to @khalid.')).toBeInTheDocument()
+    expect(await screen.findByText('@khalid')).toBeInTheDocument()
+  })
+
+  it('shows a member the access levels without controls', async () => {
+    signIn()
+    renderApp('/projects/p-study/members')
+    expect(await screen.findByText('@sara')).toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Invite member' })).not.toBeInTheDocument()
+    expect(screen.getAllByText('Edit assigned tasks')).toHaveLength(2)
+  })
+})
+
+describe('notifications (US-08, US-30)', () => {
+  it('shows the unread count and accepts an invitation', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects')
+    await user.click(await screen.findByRole('button', { name: 'Notifications, 2 unread' }))
+    const panel = screen.getByRole('dialog', { name: 'Notifications' })
+    expect(await within(panel).findByText('@lina invited you to join “Mobile App Study”.')).toBeInTheDocument()
+    await user.click(within(panel).getByRole('button', { name: 'Accept' }))
+    expect(await within(panel).findByText('You joined this project.')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Notifications, 1 unread' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: /Mobile App Study.*Member/ })).toBeInTheDocument()
+  })
+})
+
+describe('other pages', () => {
+  it('shows a not-found message for a project the user is not in', async () => {
+    signIn()
+    renderApp('/projects/p-mobile/board')
+    expect(await screen.findByText('This project does not exist or you are not a member of it.')).toBeInTheDocument()
   })
 
   it('shows a not-found page for an unknown address', async () => {
-    renderAt('/nowhere')
+    signIn()
+    renderApp('/nowhere')
     expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeInTheDocument()
   })
 })

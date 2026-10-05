@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { createBrowserRouter, RouterProvider } from 'react-router'
+import { ToastProvider } from '../components/ui/Toast.jsx'
 import { createQueryClient } from './queryClient.js'
 import { routes } from './routes.jsx'
 
@@ -11,7 +12,9 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <ToastProvider>
+        <RouterProvider router={router} />
+      </ToastProvider>
     </QueryClientProvider>
   )
 }

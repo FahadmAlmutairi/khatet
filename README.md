@@ -77,7 +77,9 @@ npm install
 npm run dev
 ```
 
-The app opens at http://localhost:5173 with placeholder pages for Sign in (`/sign-in`), My projects (`/projects`) and the Board (`/projects/:projectId/board`).
+The app opens at http://localhost:5173 with the Sprint 1 screens: sign in, projects, board, task details, members and notifications.
+
+Until the API exists, the screens run on sample data in `src/api/mockServer.js`. Sign in with `fahad@example.com` and any 6-digit code (`000000` shows the wrong-code message and `111111` the expired one). Any other email creates a new account. The sample user owns one project, can edit only assigned tasks in a second and can only view a third. Changes last until the page reloads.
 
 | Command | What it does |
 | --- | --- |

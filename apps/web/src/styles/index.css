@@ -11,7 +11,28 @@
   --color-attention: #c86c4d; /* status.attention, AI and blocked */
   --color-focus: #26362a; /* focus.ring */
 
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Supporting values from the Figma file (page 08, Board). */
+  --color-line: #e3e9e2;
+  --color-muted: #59635b;
+  --color-nav: #536157;
+  --color-nav-active: #eef4ed;
+  --color-status-todo: #a8b0a6;
+  --color-status-in-progress: #54b2a1;
+  --color-status-review: #f2c14e;
+  --color-status-done: #68a66f;
+  --color-blocked: #a63a32;
+  --color-priority-high-bg: #f6d6cc;
+  --color-priority-high-text: #85291a;
+  --color-priority-medium-bg: #faedbf;
+  --color-priority-medium-text: #66470a;
+  --color-priority-low-bg: #e3f0e0;
+  --color-priority-low-text: #2e5c33;
+
+  --radius-card: 14px;
+
+  --shadow-card: 0 2px 8px rgba(48, 65, 54, 0.05);
+
+  --font-sans: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 @layer base {
