@@ -73,6 +73,7 @@ Useful indexes include members by user and project, tasks by project/status/posi
 - Only the owner and members with `EDIT_ALL` create or delete tasks.
 - Status, IDs, timestamps, and permission decisions come from the server.
 - Moving a task updates its status and position in one transaction and records activity.
+- Board order uses whole-number positions within each status column (1, 2, 3, ...). A move locks that column's rows (`SELECT ... FOR UPDATE`), shifts the other cards' positions, and saves the moved card in the same transaction. A new task goes to the end of its column. (Decided by Fahad, 5 October 2026.)
 - Import preview and review do not change project data; confirm is the commit boundary.
 - AI reports only read project data. Creating a report never changes tasks, assignments, dates, or permissions.
 
@@ -91,7 +92,6 @@ The model should support:
 
 ## Decisions still open
 
-- Ordering strategy for board cards.
 - Date, timezone, and overdue rules.
 - CSV limits, duplicates, and retries.
 - Soft deletion and history retention.
