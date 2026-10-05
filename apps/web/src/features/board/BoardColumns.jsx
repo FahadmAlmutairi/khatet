@@ -74,7 +74,8 @@ function BacklogPanel({ tasks, usernames, onOpen, onMove, open, onToggle }) {
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <h2 id="column-BACKLOG" className="text-sm leading-[21px] font-normal text-body">
+          <h2 id="column-BACKLOG" className="flex items-center gap-1.5 text-sm leading-[21px] font-normal text-body">
+            <StatusIcon status="BACKLOG" />
             Backlog · {tasks.length}
             <span className="sr-only"> {tasks.length === 1 ? 'task' : 'tasks'}</span>
           </h2>

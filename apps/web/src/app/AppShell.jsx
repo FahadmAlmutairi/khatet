@@ -7,7 +7,7 @@ import NotificationsButton from '../features/notifications/NotificationsButton.j
 
 // Sizes and colours from the Figma "Project Sidebar" (page 08, Board 324:778).
 function subNavClass({ isActive }) {
-  return `flex h-[30px] items-center gap-2 rounded-md px-2 text-xs ${
+  return `flex h-11 items-center gap-2 rounded-md px-2 text-xs lg:h-[30px] ${
     isActive ? 'bg-nav-active font-medium text-[#26352a]' : 'text-nav hover:bg-surface'
   }`
 }
@@ -27,7 +27,7 @@ function Sidebar({ onNavigate }) {
           end
           onClick={onNavigate}
           className={({ isActive }) =>
-            `flex h-10 items-center gap-2 rounded-md px-2 text-xs ${isActive ? 'bg-nav-active font-medium text-[#26352a]' : 'text-nav hover:bg-surface'}`
+            `flex h-11 items-center gap-2 rounded-md px-2 text-xs lg:h-10 ${isActive ? 'bg-nav-active font-medium text-[#26352a]' : 'text-nav hover:bg-surface'}`
           }
         >
           <HomeIcon />
@@ -36,12 +36,12 @@ function Sidebar({ onNavigate }) {
 
         <div className="flex flex-col gap-2">
           <div className="flex h-6 items-center justify-between">
-            <h2 className="text-[11px] font-medium tracking-[1px] text-[#879388] uppercase">Projects</h2>
+            <h2 className="text-xs font-medium tracking-[1px] text-[#879388] uppercase">Projects</h2>
             <Link
               to="/projects?new=project"
               onClick={onNavigate}
               aria-label="Create project"
-              className="inline-flex size-6 items-center justify-center rounded-md text-[#879388] hover:bg-surface hover:text-heading"
+              className="inline-flex size-11 items-center justify-center rounded-md text-[#879388] lg:size-6 hover:bg-surface hover:text-heading"
             >
               <PlusIcon />
             </Link>
@@ -55,7 +55,7 @@ function Sidebar({ onNavigate }) {
                     to={`/projects/${project.id}/board`}
                     onClick={onNavigate}
                     aria-current={current ? 'true' : undefined}
-                    className={`flex h-10 items-center gap-2 rounded-lg p-2 text-xs font-medium text-[#26352a] ${
+                    className={`flex h-11 items-center gap-2 rounded-lg p-2 text-xs font-medium lg:h-10 text-[#26352a] ${
                       current ? 'bg-[#f7faf6]' : 'hover:bg-surface'
                     }`}
                   >
@@ -99,7 +99,7 @@ function Sidebar({ onNavigate }) {
         <button
           type="button"
           onClick={() => signOut.mutate(undefined, { onSuccess: () => navigate('/sign-in', { replace: true }) })}
-          className="flex h-9 w-full items-center gap-2 rounded-lg px-2 text-left text-xs text-nav hover:bg-surface"
+          className="flex h-11 w-full items-center gap-2 rounded-lg px-2 lg:h-9 text-left text-xs text-nav hover:bg-surface"
         >
           <SignOutIcon />
           Sign out
@@ -175,7 +175,7 @@ export default function AppShell() {
           >
             <MenuIcon />
           </button>
-          <Link to="/projects" className="flex-1 text-xl font-bold text-heading lg:hidden">
+          <Link to="/projects" className="inline-flex min-h-11 flex-1 items-center text-xl font-bold text-heading lg:hidden">
             khatet
           </Link>
           <NotificationsButton />

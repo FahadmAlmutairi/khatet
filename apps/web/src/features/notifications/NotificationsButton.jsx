@@ -15,7 +15,7 @@ export default function NotificationsButton() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
-        className="relative inline-flex size-10 items-center justify-center rounded-[10px] border border-line bg-white text-heading hover:bg-surface"
+        className="relative inline-flex size-11 items-center lg:size-10 justify-center rounded-[10px] border border-line bg-white text-heading hover:bg-surface"
       >
         <BellIcon />
         {unread > 0 && (

@@ -33,7 +33,7 @@ export function TaskCardBody({ task, usernames, onOpen, onMove, isOverlay = fals
         <button
           type="button"
           onClick={() => onOpen(task.id)}
-          className="line-clamp-2 w-full text-left text-sm leading-[21px] text-body"
+          className="-my-0.5 line-clamp-2 min-h-11 w-full py-0.5 text-left text-sm leading-[21px] text-body lg:min-h-0"
         >
           {task.title}
         </button>
@@ -48,14 +48,14 @@ export function TaskCardBody({ task, usernames, onOpen, onMove, isOverlay = fals
         <div className="flex items-center gap-1.5">
           <AvatarStack users={assignees} />
           {isOverlay ? (
-            <span aria-hidden="true" className="inline-flex size-8 items-center justify-center rounded-lg border border-line bg-white text-heading">
+            <span aria-hidden="true" className="inline-flex size-11 items-center lg:size-8 justify-center rounded-lg border border-line bg-white text-heading">
               <MoreIcon />
             </span>
           ) : (
             <Menu
               label={`More actions for ${task.title}`}
               buttonContent={<MoreIcon />}
-              buttonClassName="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-line bg-white text-heading hover:bg-surface"
+              buttonClassName="inline-flex size-11 shrink-0 lg:size-8 items-center justify-center rounded-lg border border-line bg-white text-heading hover:bg-surface"
               items={[
                 ...(task.permissions.canMove ? moveMenuItems(task, onMove) : []),
                 { key: 'open', label: 'Open task details', onSelect: () => onOpen(task.id) },

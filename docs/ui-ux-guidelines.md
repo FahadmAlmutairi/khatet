@@ -102,8 +102,8 @@ Every interactive component has a state matrix: default, hover/focus, pressed/se
 
 - Target WCAG 2.2 AA.
 - Contrast: 4.5:1 for body text and pill labels; 3:1 for large text, icons, input borders, and focus rings.
-- Text size: body text at least 16px (NFR-03); pills and metadata at least 12px; nothing below 11px.
-- Touch targets: every button and form field at least 44×44px on a 360px-wide screen (NFR-05).
+- Text size: body text at least 14px and no text smaller than 12px (NFR-03).
+- Touch targets: every button and form field at least 44×44px on a 360px-wide screen and at least 24×24px on a desktop screen (NFR-05).
 - Core actions (create a task, change a task's status, invite a member, open chat and send a message) take at most 3 clicks or taps from the board (NFR-01).
 - Use semantic HTML and accessible names that describe actions, not icon shapes (for example Notifications, Project chat, Close, More actions, Import tasks, Open sidebar, Send message).
 - Make all actions, menus, dialogs, drawers, tabs, forms, and drag alternatives usable with Tab, Shift+Tab, Enter, Space, and Esc, with a visible outline on the focused element (NFR-04).
