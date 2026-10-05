@@ -5,7 +5,7 @@ export default function AuthLayout({ step, title, children }) {
         <p className="text-2xl font-bold text-heading">khatet</p>
       </header>
       <main id="main" className="flex flex-1 items-start justify-center px-4 py-10 sm:items-center">
-        <section className="w-full max-w-md rounded-2xl border border-line bg-white p-6 shadow-card sm:p-8">
+        <section className="w-full max-w-md rounded-2xl border border-line bg-white p-4 shadow-card sm:p-8">
           {step && <p className="text-xs font-semibold uppercase tracking-wide text-muted">{step}</p>}
           <h1 className="mt-2 text-2xl font-semibold text-heading">{title}</h1>
           {children}

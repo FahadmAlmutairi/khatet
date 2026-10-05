@@ -3,8 +3,8 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { errorMessage, fieldError } from '../../api/errors.js'
 import { useRequestCode, useVerifyCode } from '../../api/hooks.js'
 import Button from '../../components/ui/Button.jsx'
-import { TextField } from '../../components/ui/Field.jsx'
 import AuthLayout, { SampleSignInNote } from './AuthLayout.jsx'
+import CodeInput from './CodeInput.jsx'
 
 const RESEND_SECONDS = 30
 
@@ -53,18 +53,7 @@ export default function VerifyCodePage() {
         Wrong email? Change it
       </Link>
       <form onSubmit={submit} noValidate className="mt-4 flex flex-col gap-4">
-        <TextField
-          label="Verification code"
-          name="code"
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          maxLength={6}
-          required
-          value={code}
-          onChange={(event) => setCode(event.target.value.replace(/\D/g, ''))}
-          error={codeError}
-          className="font-mono text-xl tracking-[0.4em]"
-        />
+        <CodeInput value={code} onChange={setCode} error={codeError} />
         {verify.isError && !codeError && (
           <p role="alert" className="text-base text-blocked">
             {errorMessage(verify.error)}
