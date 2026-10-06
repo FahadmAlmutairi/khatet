@@ -364,6 +364,7 @@ describe('notifications (US-08, US-30)', () => {
     await user.click(await screen.findByRole('button', { name: 'Notifications, 2 unread' }))
     const panel = screen.getByRole('dialog', { name: /Notifications/ })
     expect(await within(panel).findByText('@ali invited you to join “Mobile App Study”.')).toBeInTheDocument()
+    expect(within(panel).getByRole('heading', { name: 'Earlier' })).toBeInTheDocument()
     await user.click(within(panel).getByRole('button', { name: 'Accept' }))
     expect(await within(panel).findByText('You joined this project.')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Notifications, 1 unread' })).toBeInTheDocument()

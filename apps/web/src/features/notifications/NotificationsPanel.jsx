@@ -82,7 +82,7 @@ function NotificationItem({ notification, onOpenTask }) {
       <span className="flex items-start justify-between gap-3">
         <span className="flex items-center gap-1.5">
           {!notification.read && <UnreadDot className="hidden size-[7px] lg:block" />}
-          <span className="text-sm leading-[17px] font-semibold text-body">{title}</span>
+          <span className={`text-sm leading-[17px] text-body ${notification.read ? 'font-medium' : 'font-bold'}`}>{title}</span>
           {!notification.read && <span className="sr-only">(unread)</span>}
         </span>
         <span className="hidden shrink-0 text-xs leading-[15px] text-nav lg:block">{time.short}</span>
@@ -139,6 +139,16 @@ function CaughtUpBadge() {
       ✓
     </span>
   )
+}
+
+// N1: newest first, split into Today and Earlier by the viewer's local date.
+function groupByDay(items) {
+  const today = new Date().toDateString()
+  const groups = [
+    { key: 'today', label: 'Today', items: items.filter((item) => new Date(item.createdAt).toDateString() === today) },
+    { key: 'earlier', label: 'Earlier', items: items.filter((item) => new Date(item.createdAt).toDateString() !== today) },
+  ]
+  return groups.filter((group) => group.items.length > 0)
 }
 
 export default function NotificationsPanel({ open, onClose, query }) {
@@ -261,13 +271,21 @@ export default function NotificationsPanel({ open, onClose, query }) {
               <CaughtUpBadge />
             </PanelState>
           )}
-          {shown.length > 0 && (
-            <ul className="flex flex-col gap-3 lg:gap-0">
-              {shown.map((notification) => (
-                <NotificationItem key={notification.id} notification={notification} onOpenTask={openTask} />
-              ))}
-            </ul>
-          )}
+          {groupByDay(shown).map((group) => (
+            <section key={group.label} aria-labelledby={`${titleId}-${group.key}`} className="flex flex-col gap-3 lg:gap-0">
+              <h3
+                id={`${titleId}-${group.key}`}
+                className="text-xs leading-4 font-semibold text-muted lg:border-b lg:border-line lg:bg-surface lg:px-[15px] lg:py-2"
+              >
+                {group.label}
+              </h3>
+              <ul className="flex flex-col gap-3 lg:gap-0">
+                {group.items.map((notification) => (
+                  <NotificationItem key={notification.id} notification={notification} onOpenTask={openTask} />
+                ))}
+              </ul>
+            </section>
+          ))}
         </div>
       </div>
     </Dialog>

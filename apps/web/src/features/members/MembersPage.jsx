@@ -371,7 +371,7 @@ export default function MembersPage() {
                       {invitations.map((invitation) => (
                         <li key={invitation.id} className="flex flex-col gap-0.5 py-1 lg:border-t lg:border-line lg:py-2.5">
                           <p className="text-[15px] font-semibold text-body lg:text-sm lg:font-medium">@{invitation.username}</p>
-                          <p className="hidden text-xs leading-[18px] text-muted lg:block">
+                          <p className="text-xs leading-[18px] text-muted">
                             Invited{' '}
                             {formatDueDate(invitation.createdAt.slice(0, 10), {
                               short: true,
