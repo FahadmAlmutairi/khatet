@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate, useParams } from 'react-router'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
-import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PlusIcon, SignOutIcon } from '../components/icons.jsx'
+import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SignOutIcon } from '../components/icons.jsx'
 import Logo from '../components/Logo.jsx'
 import NotificationsButton from '../features/notifications/NotificationsButton.jsx'
 import { useBreadcrumb } from './pageMeta.js'
@@ -116,8 +116,58 @@ function Sidebar({ onNavigate }) {
   )
 }
 
+const COLLAPSED_KEY = 'khatet.sidebarCollapsed'
+
+function readCollapsed() {
+  try {
+    return localStorage.getItem(COLLAPSED_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+const panelButton = 'inline-flex size-8 items-center justify-center rounded-md text-nav hover:bg-surface hover:text-heading'
+
 export default function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false)
+  // Desktop: the sidebar can be hidden to give the board more room; the choice is remembered.
+  const [collapsed, setCollapsed] = useState(readCollapsed)
+  const hideButtonRef = useRef(null)
+  const showButtonRef = useRef(null)
+  const toggledRef = useRef(false)
+
+  // The pressed button disappears, so focus moves to the button that replaces it.
+  useEffect(() => {
+    if (!toggledRef.current) return
+    toggledRef.current = false
+    // Only when focus was lost with the hidden part; never pull it out of a field the user is typing in.
+    if (document.activeElement && document.activeElement !== document.body) return
+    ;(collapsed ? showButtonRef : hideButtonRef).current?.focus()
+  }, [collapsed])
+
+  function toggleSidebar() {
+    toggledRef.current = true
+    setCollapsed((value) => {
+      try {
+        localStorage.setItem(COLLAPSED_KEY, String(!value))
+      } catch {
+        // Private windows can block storage; the toggle still works for this visit.
+      }
+      return !value
+    })
+  }
+
+  useEffect(() => {
+    // Ctrl+\ (Cmd+\ on a Mac) shows or hides the sidebar, as in many editors.
+    function onKeyDown(event) {
+      if (event.key === '\\' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault()
+        toggleSidebar()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
   const crumbs = useBreadcrumb()
   useEffect(() => {
     if (!menuOpen) return undefined
@@ -137,12 +187,27 @@ export default function AppShell() {
         Skip to main content
       </a>
 
-      <aside className="sticky top-0 hidden h-dvh w-[232px] shrink-0 flex-col gap-6 border-r border-line bg-white p-4 lg:flex">
-        <Link to="/projects" className="inline-flex size-8 items-center justify-center">
-          <Logo label="Khatet home" />
-        </Link>
-        <Sidebar />
-      </aside>
+      {!collapsed && (
+        <aside className="sticky top-0 hidden h-dvh w-[232px] shrink-0 flex-col gap-6 border-r border-line bg-white p-4 lg:flex">
+          <div className="flex items-center justify-between">
+            <Link to="/projects" className="inline-flex size-8 items-center justify-center">
+              <Logo label="Khatet home" />
+            </Link>
+            <button
+              type="button"
+              ref={hideButtonRef}
+              onClick={toggleSidebar}
+              aria-label="Hide sidebar"
+              aria-keyshortcuts={'Control+\\ Meta+\\'}
+              title={'Hide sidebar (Ctrl+\\)'}
+              className={panelButton}
+            >
+              <PanelLeftIcon />
+            </button>
+          </div>
+          <Sidebar />
+        </aside>
+      )}
 
       {menuOpen && (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -186,6 +251,25 @@ export default function AppShell() {
               <Logo label="Khatet home" />
             </Link>
           </span>
+          {collapsed && (
+            <span className="hidden items-center gap-3 lg:flex">
+              <button
+                type="button"
+                ref={showButtonRef}
+                onClick={toggleSidebar}
+                aria-label="Show sidebar"
+                aria-keyshortcuts={'Control+\\ Meta+\\'}
+                title={'Show sidebar (Ctrl+\\)'}
+                className={panelButton}
+              >
+                <PanelLeftIcon />
+              </button>
+              <Link to="/projects" className="inline-flex size-8 items-center justify-center">
+                <Logo label="Khatet home" />
+              </Link>
+              <span aria-hidden="true" className="h-5 w-px bg-line" />
+            </span>
+          )}
           <Breadcrumb items={crumbs} className="hidden flex-1 lg:block" />
           <NotificationsButton />
         </header>

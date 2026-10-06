@@ -96,6 +96,21 @@ describe('loading and messages (G8, G10)', () => {
   })
 })
 
+describe('sidebar', () => {
+  it('hides and shows the desktop sidebar and remembers the choice', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects')
+    await user.click(await screen.findByRole('button', { name: 'Hide sidebar' }))
+    expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument()
+    expect(localStorage.getItem('khatet.sidebarCollapsed')).toBe('true')
+    expect(screen.getByRole('button', { name: 'Show sidebar' })).toHaveFocus()
+    await user.keyboard('{Control>}\\{/Control}')
+    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+    expect(localStorage.getItem('khatet.sidebarCollapsed')).toBe('false')
+  })
+})
+
 describe('page names (G7, G12)', () => {
   it('heads the board with the project name, names the tab and links back through the breadcrumb', async () => {
     signIn()

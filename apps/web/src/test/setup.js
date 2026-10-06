@@ -16,6 +16,7 @@ if (!HTMLDialogElement.prototype.showModal) {
 
 beforeEach(() => {
   resetMockServer()
+  localStorage.clear()
 })
 
 afterEach(() => {
