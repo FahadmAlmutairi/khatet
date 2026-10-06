@@ -80,6 +80,21 @@ describe('projects (US-04, US-05)', () => {
   })
 })
 
+describe('loading and messages (G8, G10)', () => {
+  it('shows the board shape while it loads and lets a message be closed', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    expect(await screen.findByText('Loading the board…')).toBeInTheDocument()
+    const card = await screen.findByRole('button', { name: 'More actions for Prepare usability test script' })
+    await user.click(card)
+    await user.click(screen.getByRole('menuitem', { name: /Done/ }))
+    await screen.findByText('“Prepare usability test script” moved to Done.', { selector: '[aria-live]' })
+    await user.click(screen.getByRole('button', { name: 'Dismiss message' }))
+    expect(screen.queryByRole('button', { name: 'Dismiss message' })).not.toBeInTheDocument()
+  })
+})
+
 describe('page names (G7, G12)', () => {
   it('heads the board with the project name, names the tab and links back through the breadcrumb', async () => {
     signIn()
@@ -130,7 +145,7 @@ describe('board (US-16, US-21)', () => {
     await user.click(screen.getByRole('menuitem', { name: /Done/ }))
     const done = screen.getByRole('region', { name: /^Done/ })
     expect(await within(done).findByText('Prepare usability test script')).toBeInTheDocument()
-    expect(await screen.findByText('“Prepare usability test script” moved to Done.')).toBeInTheDocument()
+    expect(await screen.findByText('“Prepare usability test script” moved to Done.', { selector: '[aria-live]' })).toBeInTheDocument()
   })
 
   it('puts the card back and explains when a move fails', async () => {
@@ -140,7 +155,7 @@ describe('board (US-16, US-21)', () => {
     await user.click(await screen.findByRole('button', { name: 'More actions for Prepare usability test script' }))
     failNextCall('moveTask', new ApiError({ code: 'MOVE_FAILED', status: 500, message: 'The server did not answer.' }))
     await user.click(screen.getByRole('menuitem', { name: /Done/ }))
-    expect(await screen.findByText(/could not be moved and is back in its place/)).toBeInTheDocument()
+    expect(await screen.findByText(/could not be moved and is back in its place/, { selector: '[aria-live]' })).toBeInTheDocument()
     const todo = screen.getByRole('region', { name: /^To Do/ })
     await waitFor(() => expect(within(todo).getByText('Prepare usability test script')).toBeInTheDocument())
   })
@@ -294,7 +309,7 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Delete task' }))
     const confirm = screen.getByRole('dialog', { name: 'Delete this task?' })
     await user.click(within(confirm).getByRole('button', { name: 'Delete task' }))
-    expect(await screen.findByText('“Write sign-in error messages” was deleted.')).toBeInTheDocument()
+    expect(await screen.findByText('“Write sign-in error messages” was deleted.', { selector: '[aria-live]' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Write sign-in error messages' })).not.toBeInTheDocument()
   })
 
@@ -317,7 +332,7 @@ describe('members (US-07, US-09, US-10)', () => {
     const accessDialog = screen.getByRole('dialog', { name: /@omar/ })
     await user.click(within(accessDialog).getByRole('radio', { name: /Edit all tasks/ }))
     await user.click(within(accessDialog).getByRole('button', { name: 'Save access' }))
-    expect(await screen.findByText('@omar now has Edit all tasks access.')).toBeInTheDocument()
+    expect(await screen.findByText('@omar now has Edit all tasks access.', { selector: '[aria-live]' })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Invite member' }))
     const dialog = screen.getByRole('dialog', { name: 'Invite a team member' })
@@ -327,7 +342,7 @@ describe('members (US-07, US-09, US-10)', () => {
     await user.clear(within(dialog).getByLabelText(/Username/))
     await user.type(within(dialog).getByLabelText(/Username/), 'khalid')
     await user.click(within(dialog).getByRole('button', { name: 'Send invitation' }))
-    expect(await screen.findByText('Invitation sent to @khalid.')).toBeInTheDocument()
+    expect(await screen.findByText('Invitation sent to @khalid.', { selector: '[aria-live]' })).toBeInTheDocument()
     expect(await screen.findByText('@khalid')).toBeInTheDocument()
   })
 

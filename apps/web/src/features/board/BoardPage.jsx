@@ -5,7 +5,8 @@ import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
 import { useMembers, useMoveTask, useTasks } from '../../api/hooks.js'
 import { PlusIcon } from '../../components/icons.jsx'
-import { ErrorState, LoadingState, Notice } from '../../components/ui/States.jsx'
+import { BoardSkeleton } from '../../components/ui/Skeleton.jsx'
+import { ErrorState, Notice } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { statusLabel } from '../../lib/domain.js'
 import BoardColumns from './BoardColumns.jsx'
@@ -93,7 +94,7 @@ export default function BoardPage() {
       )}
 
       <div>
-        {(tasks.isPending || members.isPending) && <LoadingState label="Loading the board" />}
+        {(tasks.isPending || members.isPending) && <BoardSkeleton />}
         {tasks.isError && (
           <ErrorState title="The board could not be loaded" message={errorMessage(tasks.error)} onRetry={() => tasks.refetch()} />
         )}

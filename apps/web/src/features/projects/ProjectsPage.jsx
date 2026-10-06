@@ -2,7 +2,8 @@ import { Link, useSearchParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useDocumentTitle } from '../../app/pageMeta.js'
 import { useProjects } from '../../api/hooks.js'
-import { ErrorState, LoadingState } from '../../components/ui/States.jsx'
+import { ProjectCardsSkeleton } from '../../components/ui/Skeleton.jsx'
+import { ErrorState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { roleLabel } from '../../lib/domain.js'
 import CreateProjectDialog from './CreateProjectDialog.jsx'
@@ -52,7 +53,7 @@ export default function ProjectsPage() {
         {projects.data && createButton}
       </div>
 
-      {projects.isPending && <LoadingState label="Loading your projects" />}
+      {projects.isPending && <ProjectCardsSkeleton />}
       {projects.isError && (
         <ErrorState title="Your projects could not be loaded" message={errorMessage(projects.error)} onRetry={() => projects.refetch()} />
       )}

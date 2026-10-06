@@ -8,7 +8,8 @@ import Avatar from '../../components/Avatar.jsx'
 import { ChevronIcon } from '../../components/icons.jsx'
 import { Spinner } from '../../components/ui/Button.jsx'
 import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
-import { ErrorState, LoadingState } from '../../components/ui/States.jsx'
+import { MemberRowsSkeleton } from '../../components/ui/Skeleton.jsx'
+import { ErrorState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { formatDueDate, taskAccessLabel } from '../../lib/domain.js'
 
@@ -306,7 +307,7 @@ export default function MembersPage() {
         {isOwner ? 'Invite people, review their roles, and set their task access.' : 'View project members and their task access.'}
       </p>
 
-      {members.isPending && <LoadingState label="Loading members" />}
+      {members.isPending && <MemberRowsSkeleton />}
       {members.isError && (
         <div className="mt-6">
           <ErrorState title="Members could not be loaded" message={errorMessage(members.error)} onRetry={() => members.refetch()} />
