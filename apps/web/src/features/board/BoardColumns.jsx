@@ -39,11 +39,12 @@ function Lane({ status, tasks, usernames, onOpen, onMove, onCreate }) {
     <section
       ref={setNodeRef}
       aria-labelledby={headingId}
-      className={`relative flex min-h-40 w-full shrink-0 snap-start sm:w-[274px] flex-col gap-3 overflow-hidden rounded-[var(--radius-card)] border border-line p-3 transition-colors duration-150 lg:min-h-60 lg:w-auto lg:min-w-0 lg:flex-1 ${
+      className={`relative flex min-h-40 w-full shrink-0 snap-start sm:w-[274px] flex-col gap-3 rounded-[var(--radius-card)] border border-line p-3 transition-colors duration-150 lg:min-h-60 lg:w-auto lg:min-w-0 lg:flex-1 ${
         isOver ? 'bg-nav-active' : 'bg-surface'
       }`}
     >
-      <span aria-hidden="true" className={`absolute inset-x-0 top-0 h-1 ${ACCENTS[status.value]}`} />
+      {/* No overflow clipping on the lane, so a card menu can open past its bottom edge. */}
+      <span aria-hidden="true" className={`absolute -inset-x-px -top-px h-1 rounded-t-[var(--radius-card)] ${ACCENTS[status.value]}`} />
       <h2 id={headingId} className="flex h-6 items-center gap-1.5 text-sm leading-[21px] font-normal text-body">
         <StatusIcon status={status.value} />
         <span>

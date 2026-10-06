@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { CheckIcon } from '../icons.jsx'
 
 // A menu button with arrow-key navigation, Esc to close and focus returned to the button.
@@ -8,19 +8,37 @@ export default function Menu({ label, buttonContent, buttonClassName = '', items
   const listRef = useRef(null)
   const menuId = useId()
 
+  const [up, setUp] = useState(false)
+
+  // Opens upward when there is no room below but there is above, before it is painted.
+  useLayoutEffect(() => {
+    if (!open) return
+    const list = listRef.current?.getBoundingClientRect()
+    const button = buttonRef.current?.getBoundingClientRect()
+    if (list && button && list.bottom > window.innerHeight - 8 && button.top - list.height - 14 > 0) setUp(true)
+  }, [open])
+
   useEffect(() => {
     if (!open) return undefined
     const list = listRef.current
-    ;(list?.querySelector('[role="menuitem"][aria-current="true"]') ?? list?.querySelector('[role="menuitem"]:not([disabled])'))?.focus()
+    // preventScroll: focusing an item must not scroll the board or a lane under the menu.
+    ;(list?.querySelector('[role="menuitem"][aria-current="true"]') ?? list?.querySelector('[role="menuitem"]:not([disabled])'))?.focus({
+      preventScroll: true,
+    })
     function onPointerDown(event) {
-      if (!listRef.current?.contains(event.target) && !buttonRef.current?.contains(event.target)) setOpen(false)
+      if (!listRef.current?.contains(event.target) && !buttonRef.current?.contains(event.target)) show(false)
     }
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [open])
 
+  function show(value) {
+    setUp(false)
+    setOpen(value)
+  }
+
   function close() {
-    setOpen(false)
+    show(false)
     buttonRef.current?.focus()
   }
 
@@ -54,12 +72,12 @@ export default function Menu({ label, buttonContent, buttonClassName = '', items
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => show(!open)}
         onPointerDown={(event) => event.stopPropagation()}
         onKeyDown={(event) => {
           if (event.key === 'ArrowDown') {
             event.preventDefault()
-            setOpen(true)
+            show(true)
           }
         }}
         className={buttonClassName}
@@ -74,7 +92,7 @@ export default function Menu({ label, buttonContent, buttonClassName = '', items
           aria-label={label}
           onKeyDown={onKeyDown}
           onPointerDown={(event) => event.stopPropagation()}
-          className={`absolute z-30 mt-1.5 rounded-xl border border-line bg-white p-2 shadow-[0_12px_24px_rgba(38,54,41,0.16)] ${listClassName} ${
+          className={`absolute z-30 ${up ? 'bottom-full mb-1.5' : 'mt-1.5'} rounded-xl border border-line bg-white p-2 shadow-[0_12px_24px_rgba(38,54,41,0.16)] ${listClassName} ${
             align === 'right' ? 'right-0' : 'left-0'
           }`}
         >
