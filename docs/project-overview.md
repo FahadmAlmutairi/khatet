@@ -52,10 +52,10 @@ The report shows a summary of progress, warnings (such as overloaded members, un
 
 | Sprint | Dates | Goal | Stories |
 | --- | --- | --- | --- |
-| 1 | 5 to 19 Oct 2026 | Working foundation and core task flow | US-01, US-02, US-04, US-05, US-06, US-10, US-13 to US-18, US-21; TF-01 to TF-11 |
-| 2 | 20 Oct to 2 Nov 2026 | Team collaboration: invitations, notifications, members | US-07, US-08, US-09, US-30; TF-12 to TF-15 |
-| 3 | 3 to 16 Nov 2026 | Chat, AI report, settings, overview, activity | US-31, US-24, US-26, US-28, US-19 |
-| 4 | 17 Nov to 7 Dec 2026 | Should and Could have stories, regression testing, final report | US-11, US-22, US-25, US-20, US-29, US-03, US-27, US-12, US-23, US-32, US-33 |
+| 1 | 5 to 19 Oct 2026 | Working foundation, team collaboration and core task flow: sign-in, projects, invitations, notifications, members and task access, tasks, blocked flags and the Kanban board | US-01, US-02, US-04 to US-10, US-13 to US-18, US-21, US-30; TF-01 to TF-11 (51 points) |
+| 2 | 20 Oct to 2 Nov 2026 | Communication and team management: project chat with task references, project settings, task filters, username changes, removing members and leaving a project, plus any Sprint 1 carry-over | US-24, US-26, US-22, US-11, US-03, US-25, US-12; TF-12 to TF-15 (20 points) |
+| 3 | 3 to 16 Nov 2026 | Insight and structure: AI project report, project overview, task activity history and phases | US-31, US-28, US-19, US-20 (22 points) |
+| 4 | 17 Nov to 7 Dec 2026 | Enhancements and release: timeline and Could have stories in priority order, regression testing, bug fixes and the final report | US-29, US-27, US-23, US-32, US-33 (27 points) |
 
 All Must have stories are finished by the end of Sprint 3.
 
@@ -64,7 +64,7 @@ All Must have stories are finished by the end of Sprint 3.
 | Area | Direction |
 | --- | --- |
 | Web app | React, JavaScript, Vite, React Router, TanStack Query, React Hook Form, Zod, dnd-kit; hosted on Vercel |
-| Styling | Tailwind CSS or CSS Modules with the shared Khatet tokens |
+| Styling | Tailwind CSS with the shared Khatet tokens |
 | API | Node.js and Express, REST documented with OpenAPI; hosted on Render |
 | Data | PostgreSQL on Supabase, with Prisma migrations |
 | Authentication | Supabase Auth email one-time code, sent through Gmail SMTP |
@@ -79,7 +79,7 @@ All services use free plans; only the AI credit costs money. Record an agreed ch
 
 ## Repository status
 
-The repository currently contains project documentation. Application source, setup commands, the example settings file, and automated checks will be added in Sprint 1 (TF-01 to TF-11). Test notes go in `docs/testing` and training notes in `docs/training`.
+The web app (`apps/web`) has the Sprint 1 screens running on an in-memory sample API. The backend, database, example settings file, and automated checks are added during Sprint 1 (TF-01 to TF-11). Test notes go in `docs/testing` and training notes in `docs/training`.
 
 ## Working agreement
 
