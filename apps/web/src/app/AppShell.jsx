@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate, useParams } from 'react-router'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
@@ -116,6 +116,84 @@ function Sidebar({ onNavigate }) {
   )
 }
 
+// A label that appears beside a rail control on hover or keyboard focus.
+function RailTip({ children }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="pointer-events-none absolute top-1/2 left-full z-50 ml-3 -translate-y-1/2 rounded-md bg-heading px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+    >
+      {children}
+    </span>
+  )
+}
+
+const railItem = 'group relative inline-flex size-10 cursor-pointer items-center justify-center rounded-lg text-nav hover:bg-surface hover:text-heading'
+
+// Collapsed desktop sidebar (like ChatGPT): the logo, Home, one tile per project and the user.
+// Hovering the logo turns it into the open button; clicking any empty part of the rail opens it too.
+function Rail({ onExpand, expandButtonRef }) {
+  const { projectId } = useParams()
+  const projects = useProjects()
+  const me = useMe()
+
+  return (
+    <aside
+      aria-label="Sidebar"
+      onClick={(event) => {
+        if (!event.target.closest('a, button')) onExpand()
+      }}
+      className="sidebar-enter sticky top-0 z-30 hidden h-dvh w-16 shrink-0 cursor-e-resize flex-col items-center gap-4 border-r border-line bg-white py-3 lg:flex"
+    >
+      <button
+        type="button"
+        ref={expandButtonRef}
+        onClick={onExpand}
+        aria-label="Expand sidebar"
+        aria-keyshortcuts={'Control+\\ Meta+\\'}
+        className={railItem}
+      >
+        <span className="inline-flex group-hover:hidden group-focus-visible:hidden">
+          <Logo label="" size={28} />
+        </span>
+        <span className="hidden group-hover:inline-flex group-focus-visible:inline-flex">
+          <PanelLeftIcon />
+        </span>
+        <RailTip>Open sidebar</RailTip>
+      </button>
+      <nav aria-label="Main" className="flex flex-col items-center gap-2">
+        <NavLink to="/projects" end aria-label="Home" className={({ isActive }) => `${railItem} ${isActive ? 'bg-nav-active text-heading' : ''}`}>
+          <HomeIcon />
+          <RailTip>Home</RailTip>
+        </NavLink>
+        {projects.data?.map((project) => {
+          const current = project.id === projectId
+          return (
+            <Link
+              key={project.id}
+              to={`/projects/${project.id}/board`}
+              aria-label={project.name}
+              aria-current={current ? 'true' : undefined}
+              className={railItem}
+            >
+              <span
+                aria-hidden="true"
+                className={`inline-flex size-7 items-center justify-center rounded-md text-xs font-medium ${
+                  current ? 'bg-[#e5eee4] text-[#4c6650] ring-2 ring-action/40' : 'bg-[#f1f3f0] text-[#68736b]'
+                }`}
+              >
+                {project.name.charAt(0).toUpperCase()}
+              </span>
+              <RailTip>{project.name}</RailTip>
+            </Link>
+          )
+        })}
+      </nav>
+      <div className="mt-auto">{me.data && <Avatar username={me.data.username} />}</div>
+    </aside>
+  )
+}
+
 const COLLAPSED_KEY = 'khatet.sidebarCollapsed'
 
 function readCollapsed() {
@@ -126,6 +204,9 @@ function readCollapsed() {
   }
 }
 
+const SIDEBAR_WIDTH = 232
+const RAIL_WIDTH = 64
+
 const panelButton = 'inline-flex size-8 items-center justify-center rounded-md text-nav hover:bg-surface hover:text-heading'
 
 export default function AppShell() {
@@ -135,6 +216,25 @@ export default function AppShell() {
   const hideButtonRef = useRef(null)
   const showButtonRef = useRef(null)
   const toggledRef = useRef(false)
+  const contentRef = useRef(null)
+  const firstRenderRef = useRef(true)
+
+  // The page column jumps to its new width once, then slides from where it was to where it is
+  // (FLIP). Only transform animates, so the browser does no layout work during the motion.
+  useLayoutEffect(() => {
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false
+      return
+    }
+    const content = contentRef.current
+    if (!content?.animate || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+    if (!window.matchMedia?.('(min-width: 64rem)').matches) return
+    const shift = SIDEBAR_WIDTH - RAIL_WIDTH
+    content.animate([{ transform: `translateX(${collapsed ? shift : -shift}px)` }, { transform: 'translateX(0)' }], {
+      duration: 220,
+      easing: 'cubic-bezier(0.2, 0, 0, 1)',
+    })
+  }, [collapsed])
 
   // The pressed button disappears, so focus moves to the button that replaces it.
   useEffect(() => {
@@ -187,8 +287,9 @@ export default function AppShell() {
         Skip to main content
       </a>
 
+      {collapsed && <Rail onExpand={toggleSidebar} expandButtonRef={showButtonRef} />}
       {!collapsed && (
-        <aside className="sticky top-0 hidden h-dvh w-[232px] shrink-0 flex-col gap-6 border-r border-line bg-white p-4 lg:flex">
+        <aside className="sidebar-enter sticky top-0 z-30 hidden h-dvh w-[232px] shrink-0 flex-col gap-6 border-r border-line bg-white p-4 lg:flex">
           <div className="flex items-center justify-between">
             <Link to="/projects" className="inline-flex size-8 items-center justify-center">
               <Logo label="Khatet home" />
@@ -197,12 +298,17 @@ export default function AppShell() {
               type="button"
               ref={hideButtonRef}
               onClick={toggleSidebar}
-              aria-label="Hide sidebar"
+              aria-label="Collapse sidebar"
               aria-keyshortcuts={'Control+\\ Meta+\\'}
-              title={'Hide sidebar (Ctrl+\\)'}
-              className={panelButton}
+              className={`group relative ${panelButton}`}
             >
               <PanelLeftIcon />
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute top-full right-0 z-50 mt-2 rounded-md bg-heading px-2.5 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+              >
+                Close sidebar
+              </span>
             </button>
           </div>
           <Sidebar />
@@ -234,7 +340,7 @@ export default function AppShell() {
         </div>
       )}
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div ref={contentRef} className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-[#e3e5de] bg-white px-4 lg:px-8">
           <button
             type="button"
@@ -251,25 +357,6 @@ export default function AppShell() {
               <Logo label="Khatet home" />
             </Link>
           </span>
-          {collapsed && (
-            <span className="hidden items-center gap-3 lg:flex">
-              <button
-                type="button"
-                ref={showButtonRef}
-                onClick={toggleSidebar}
-                aria-label="Show sidebar"
-                aria-keyshortcuts={'Control+\\ Meta+\\'}
-                title={'Show sidebar (Ctrl+\\)'}
-                className={panelButton}
-              >
-                <PanelLeftIcon />
-              </button>
-              <Link to="/projects" className="inline-flex size-8 items-center justify-center">
-                <Logo label="Khatet home" />
-              </Link>
-              <span aria-hidden="true" className="h-5 w-px bg-line" />
-            </span>
-          )}
           <Breadcrumb items={crumbs} className="hidden flex-1 lg:block" />
           <NotificationsButton />
         </header>

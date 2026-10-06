@@ -12,7 +12,7 @@ import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import { MemberRowsSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
-import { formatDueDate, taskAccessLabel } from '../../lib/domain.js'
+import { taskAccessLabel } from '../../lib/domain.js'
 
 // Figma: owner 211:198, member 216:199, access window 219:327, invite window 220:344;
 // mobile list 737:2, manage access 900:691.
@@ -274,7 +274,6 @@ export default function MembersPage() {
   const [managing, setManaging] = useState(null)
   const isOwner = project.permissions.canManageMembers
   const list = members.data?.members ?? []
-  const invitations = members.data?.invitations ?? []
   const crumbs = useBreadcrumb()
   useDocumentTitle('Members', project.name)
 
@@ -322,30 +321,6 @@ export default function MembersPage() {
               ))}
             </ul>
           </div>
-
-          {isOwner && invitations.length > 0 && (
-            <section
-              aria-labelledby="pending-invitations"
-              className="mt-4 flex flex-col gap-3 rounded-[14px] border border-line bg-white p-4 lg:max-w-xl lg:rounded-2xl lg:p-5"
-            >
-              <h2
-                id="pending-invitations"
-                className="text-xs font-medium text-muted uppercase lg:text-base lg:font-semibold lg:text-body lg:normal-case"
-              >
-                Pending invitations
-              </h2>
-              <ul className="flex flex-col">
-                {invitations.map((invitation) => (
-                  <li key={invitation.id} className="flex flex-col gap-0.5 py-1 lg:border-t lg:border-line lg:py-2.5">
-                    <p className="text-[15px] font-semibold text-body lg:text-sm lg:font-medium">@{invitation.username}</p>
-                    <p className="text-xs leading-[18px] text-muted">
-                      Invited {formatDueDate(invitation.createdAt.slice(0, 10), { short: true })} · Waiting for a reply
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
         </>
       )}
 

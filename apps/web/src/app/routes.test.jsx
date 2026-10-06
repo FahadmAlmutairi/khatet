@@ -97,17 +97,24 @@ describe('loading and messages (G8, G10)', () => {
 })
 
 describe('sidebar', () => {
-  it('hides and shows the desktop sidebar and remembers the choice', async () => {
+  it('collapses to a rail, opens from any empty part of it and remembers the choice', async () => {
     signIn()
     const user = userEvent.setup()
-    renderApp('/projects')
-    await user.click(await screen.findByRole('button', { name: 'Hide sidebar' }))
-    expect(screen.queryByRole('navigation', { name: 'Main' })).not.toBeInTheDocument()
+    renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('button', { name: 'Collapse sidebar' }))
     expect(localStorage.getItem('khatet.sidebarCollapsed')).toBe('true')
-    expect(screen.getByRole('button', { name: 'Show sidebar' })).toHaveFocus()
-    await user.keyboard('{Control>}\\{/Control}')
-    expect(screen.getByRole('navigation', { name: 'Main' })).toBeInTheDocument()
+    const rail = screen.getByRole('complementary', { name: 'Sidebar' })
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveFocus()
+    expect(within(rail).getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/projects')
+    expect(within(rail).getByRole('link', { name: 'Khatet' })).toHaveAttribute('aria-current', 'true')
+    expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument()
+
+    await user.click(rail)
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeInTheDocument()
     expect(localStorage.getItem('khatet.sidebarCollapsed')).toBe('false')
+
+    await user.keyboard('{Control>}\\{/Control}')
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument()
   })
 })
 
@@ -382,7 +389,6 @@ describe('members (US-07, US-09, US-10)', () => {
     await user.type(within(dialog).getByLabelText(/Username/), 'khalid')
     await user.click(within(dialog).getByRole('button', { name: 'Send invitation' }))
     expect(await screen.findByText('Invitation sent to @khalid.', { selector: '[aria-live]' })).toBeInTheDocument()
-    expect(await screen.findByText('@khalid')).toBeInTheDocument()
   })
 
   it('shows a member the access levels without controls', async () => {
