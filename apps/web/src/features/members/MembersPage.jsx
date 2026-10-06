@@ -1,20 +1,61 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useOutletContext } from 'react-router'
 import { errorMessage, fieldError } from '../../api/errors.js'
 import { useInviteMember, useMembers, useUpdateMemberAccess } from '../../api/hooks.js'
 import Avatar from '../../components/Avatar.jsx'
-import Button from '../../components/ui/Button.jsx'
-import Dialog from '../../components/ui/Dialog.jsx'
-import { TextField } from '../../components/ui/Field.jsx'
+import { ChevronIcon } from '../../components/icons.jsx'
+import { Spinner } from '../../components/ui/Button.jsx'
+import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import { ErrorState, LoadingState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
-import { formatTimestamp, roleLabel, TASK_ACCESS, taskAccessLabel } from '../../lib/domain.js'
+import { formatDueDate, taskAccessLabel } from '../../lib/domain.js'
+
+// Figma: owner 211:198, member 216:199, access window 219:327, invite window 220:344;
+// mobile list 737:2, manage access 900:691.
+
+// Wording from the Figma access window (219:327) and "Task access levels" card (211:198).
+const ACCESS_OPTIONS = [
+  {
+    value: 'VIEW_ONLY',
+    label: 'View tasks only',
+    help: 'View project details and tasks. Cannot create, edit, or move tasks.',
+  },
+  {
+    value: 'EDIT_ASSIGNED',
+    label: 'Edit assigned tasks',
+    tag: 'Default',
+    help: 'Edit or move tasks assigned to you. Cannot create tasks, change assignees, or edit other tasks.',
+  },
+  {
+    value: 'EDIT_ALL',
+    label: 'Edit all tasks',
+    help: 'Create, edit, and move any project task.',
+  },
+]
+
+const ACCESS_SUMMARY = [
+  {
+    label: 'View tasks only',
+    help: 'Can see every task and use chat, but not edit.',
+  },
+  {
+    label: 'Edit assigned tasks',
+    help: 'Can edit and move tasks assigned to them.',
+  },
+  { label: 'Edit all tasks', help: 'Can edit, move and create any task.' },
+]
+
+const secondaryButton =
+  'inline-flex h-11 items-center rounded-xl border border-line bg-white px-[14px] text-[13px] font-medium text-body hover:bg-surface sm:h-10'
+const primaryButton =
+  'inline-flex h-11 items-center justify-center gap-2 rounded-[9px] bg-action px-[18px] text-[13px] font-medium text-white hover:bg-heading disabled:cursor-not-allowed'
 
 // US-07: the owner invites a registered user by username.
 function InviteDialog({ open, onClose, projectId }) {
   const invite = useInviteMember(projectId)
   const toast = useToast()
   const [username, setUsername] = useState('')
+  const id = useId()
 
   function close() {
     setUsername('')
@@ -33,74 +74,213 @@ function InviteDialog({ open, onClose, projectId }) {
   }
 
   const usernameError = fieldError(invite.error, 'username')
+  const otherError = invite.isError && !usernameError ? errorMessage(invite.error) : null
 
   return (
-    <Dialog
-      open={open}
-      onClose={close}
-      title="Invite a member"
-      description="They get a notification and can accept or decline. New members start with Edit assigned tasks access."
-      footer={
-        <>
-          <Button variant="secondary" onClick={close}>
-            Cancel
-          </Button>
-          <Button type="submit" form="invite-form" loading={invite.isPending}>
-            Send invitation
-          </Button>
-        </>
-      }
-    >
-      <form id="invite-form" onSubmit={submit} noValidate className="flex flex-col gap-3">
-        <TextField
-          label="Username"
-          required
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
-          placeholder="@username"
-          autoComplete="off"
-          error={usernameError}
-          autoFocus
-        />
-        {invite.isError && !usernameError && (
-          <p role="alert" className="text-base text-blocked">
-            {errorMessage(invite.error)}
+    <Dialog open={open} onClose={close} variant="page" width={560} labelledBy={`${id}-title`}>
+      <MobileBackBar label="Members" onBack={close} />
+      <form onSubmit={submit} noValidate className="flex flex-col gap-[18px] px-5 pt-3 pb-6 sm:px-7 sm:pt-7 sm:pb-6">
+        <div className="flex flex-col gap-1.5">
+          <h2 id={`${id}-title`} className="text-[26px] leading-8 font-bold text-body">
+            Invite a team member
+          </h2>
+          <p className="text-sm leading-5 text-muted">
+            Invite a registered user by their username. They join with Edit assigned tasks access. Every member can use project chat.
+          </p>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={`${id}-username`} className="text-xs leading-4 font-semibold text-body">
+            Username
+            <span aria-hidden="true" className="text-attention">
+              {' '}
+              *
+            </span>
+            <span className="sr-only"> (required)</span>
+          </label>
+          <input
+            id={`${id}-username`}
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            placeholder="@username"
+            autoComplete="off"
+            autoFocus
+            aria-required="true"
+            aria-invalid={Boolean(usernameError)}
+            aria-describedby={`${id}-${usernameError ? 'error' : 'hint'}`}
+            className="h-11 w-full rounded-[10px] border border-surface-supporting bg-white px-[14px] text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
+          />
+          {usernameError ? (
+            <p id={`${id}-error`} className="text-sm font-medium text-blocked">
+              {usernameError}
+            </p>
+          ) : (
+            <p id={`${id}-hint`} className="text-xs leading-4 text-muted">
+              Enter the unique username of an existing Khatet user.
+            </p>
+          )}
+        </div>
+        {otherError && (
+          <p role="alert" className="text-sm text-blocked">
+            {otherError}
           </p>
         )}
+        <div className="flex items-center justify-end gap-2.5">
+          <button type="button" onClick={close} className={`max-sm:hidden ${secondaryButton}`}>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={invite.isPending}
+            aria-busy={invite.isPending || undefined}
+            className={`w-full sm:w-auto ${primaryButton}`}
+          >
+            {invite.isPending && <Spinner />}
+            Send invitation
+          </button>
+        </div>
       </form>
     </Dialog>
   )
 }
 
-// US-10: the owner changes a member's task access; the change applies at once.
-function AccessSelect({ member, projectId }) {
+// US-10: the owner picks one of three access levels; saving applies it at once.
+function AccessDialog({ member, projectId, onClose }) {
   const update = useUpdateMemberAccess(projectId)
   const toast = useToast()
+  const [picked, setPicked] = useState(null)
+  const id = useId()
+  const value = picked ?? member?.taskAccess
+
+  function close() {
+    setPicked(null)
+    onClose()
+  }
+
+  function save(event) {
+    event.preventDefault()
+    update.mutate(
+      { userId: member.userId, taskAccess: value },
+      {
+        onSuccess: (updated) => {
+          toast(`@${updated.username} now has ${taskAccessLabel(updated.taskAccess)} access.`)
+          close()
+        },
+        onError: (error) => toast(errorMessage(error), 'error'),
+      },
+    )
+  }
+
   return (
-    <label className="flex flex-col gap-1 text-sm text-muted sm:items-end">
-      <span className="sr-only">Task access for @{member.username}</span>
-      <select
-        value={member.taskAccess}
-        disabled={update.isPending}
-        onChange={(event) =>
-          update.mutate(
-            { userId: member.userId, taskAccess: event.target.value },
-            {
-              onSuccess: (updated) =>
-                toast(`@${updated.username} now has ${taskAccessLabel(updated.taskAccess)} access.`),
-              onError: (error) => toast(errorMessage(error), 'error'),
-            },
-          )
-        }
-        className="min-h-11 rounded-lg border border-line bg-white px-3 text-base text-body"
-      >
-        {TASK_ACCESS.map((access) => (
-          <option key={access.value} value={access.value}>
-            {access.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <Dialog open={Boolean(member)} onClose={close} variant="page" width={500} labelledBy={`${id}-title`}>
+      {member && (
+        <>
+          <MobileBackBar label="Members" onBack={close} />
+          <form onSubmit={save} className="flex flex-col px-5 pt-3 pb-6 sm:px-6 sm:pt-6">
+            <p className="hidden text-xs font-semibold text-muted uppercase sm:block">Task access</p>
+            <h2 id={`${id}-title`} className="text-[26px] font-bold text-body sm:mt-2 sm:text-[22px] sm:font-semibold">
+              <span className="sm:hidden">Manage access</span>
+              <span className="sr-only sm:not-sr-only">
+                <span className="sm:hidden"> for </span>@{member.username}
+              </span>
+            </h2>
+            <p className="mt-3 text-[15px] font-semibold text-body sm:hidden">@{member.username} · Team Member</p>
+            <p className="mt-3 text-sm text-muted sm:mt-2">Choose one task access level. Every Team Member can use project chat.</p>
+            <fieldset className="mt-4 flex flex-col gap-3 sm:mt-6">
+              <legend className="sr-only">Task access for @{member.username}</legend>
+              {ACCESS_OPTIONS.map((option) => {
+                const checked = value === option.value
+                return (
+                  <label
+                    key={option.value}
+                    className={`flex cursor-pointer gap-3.5 rounded-xl border px-[15px] py-[15px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus ${
+                      checked ? 'border-[#668a66] bg-nav-active' : 'border-line bg-white hover:bg-surface'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`${id}-access`}
+                      value={option.value}
+                      checked={checked}
+                      onChange={() => setPicked(option.value)}
+                      className="mt-px size-[18px] shrink-0 accent-action"
+                    />
+                    <span className="flex flex-col gap-1.5">
+                      <span className="text-sm font-semibold text-body">
+                        {option.label}
+                        {option.tag && ` · ${option.tag}`}
+                      </span>
+                      <span className="text-sm text-muted">{option.help}</span>
+                    </span>
+                  </label>
+                )
+              })}
+            </fieldset>
+            <p className="mt-3 hidden text-xs text-muted sm:block">Only the Project Owner can change task access or remove members.</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" onClick={close} className={`max-sm:hidden ${secondaryButton}`}>
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={update.isPending}
+                aria-busy={update.isPending || undefined}
+                className={`w-full sm:h-10 sm:w-auto sm:rounded-lg ${primaryButton}`}
+              >
+                {update.isPending && <Spinner />}
+                Save access
+              </button>
+            </div>
+          </form>
+        </>
+      )}
+    </Dialog>
+  )
+}
+
+const columns = 'lg:grid lg:grid-cols-[minmax(0,400fr)_170px_minmax(0,370fr)_164px] lg:items-center'
+
+function MemberRow({ member, isOwner, onManage }) {
+  const owner = member.role === 'OWNER'
+  const access = owner ? 'Owner' : taskAccessLabel(member.taskAccess)
+  return (
+    <li
+      className={`flex min-h-16 items-center gap-3 rounded-[14px] border border-line bg-white px-[14px] py-3 lg:h-[78px] lg:gap-0 lg:rounded-none lg:border-0 lg:border-b lg:px-5 lg:py-0 ${columns}`}
+    >
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <Avatar username={member.username} size="lg" />
+        <div className="min-w-0">
+          <p className="truncate text-[15px] leading-5 font-semibold text-body lg:text-sm">@{member.username}</p>
+          <p className="text-xs text-muted lg:hidden">{owner ? 'Project Owner · Full access' : `Team Member · ${access}`}</p>
+        </div>
+      </div>
+      <div className="hidden lg:block">
+        <span
+          className={`inline-flex rounded-full px-2.5 text-xs leading-4 font-medium text-body ${
+            owner ? 'bg-[#e8f0e5] py-2' : 'border border-line py-[7px]'
+          }`}
+        >
+          {owner ? 'Project Owner' : 'Team Member'}
+        </span>
+      </div>
+      <p className="hidden text-sm text-muted lg:block">{access}</p>
+      <div className="flex justify-end">
+        {isOwner && !owner && (
+          <button
+            type="button"
+            onClick={() => onManage(member)}
+            aria-label={`Manage access for @${member.username}`}
+            className="inline-flex size-11 items-center justify-center rounded-full text-body hover:bg-surface lg:h-10 lg:w-auto lg:border lg:border-line lg:px-2.5 lg:text-xs lg:font-medium"
+          >
+            <span className="lg:hidden">
+              <ChevronIcon />
+            </span>
+            <span aria-hidden="true" className="hidden lg:inline">
+              Manage access
+            </span>
+          </button>
+        )}
+      </div>
+    </li>
   )
 }
 
@@ -109,80 +289,119 @@ export default function MembersPage() {
   const { project } = useOutletContext()
   const members = useMembers(project.id)
   const [inviting, setInviting] = useState(false)
+  const [managing, setManaging] = useState(null)
   const isOwner = project.permissions.canManageMembers
+  const list = members.data?.members ?? []
+  const invitations = members.data?.invitations ?? []
 
   return (
-    <section className="mx-auto max-w-4xl">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-sm text-muted">{project.name}</p>
-          <h1 className="text-3xl font-semibold text-heading">Members</h1>
-        </div>
-        {isOwner && <Button onClick={() => setInviting(true)}>Invite member</Button>}
-      </div>
+    <section>
+      <p className="text-xs font-medium whitespace-pre text-muted uppercase">{`${project.name}  /  Members`}</p>
+      <h1 className="mt-2 text-[26px] font-bold text-body lg:text-[32px] lg:leading-[38px]">Members</h1>
+      <p className="mt-2 text-sm leading-[21px] text-muted lg:mt-4">
+        {isOwner ? 'Invite people, review their roles, and set their task access.' : 'View project members and their task access.'}
+      </p>
 
-      <details className="mt-4 max-w-2xl rounded-lg border border-line bg-white px-4 py-2 text-base">
-        <summary className="min-h-11 cursor-pointer content-center font-medium text-heading">What each access level allows</summary>
-        <ul className="mb-2 mt-1 flex list-disc flex-col gap-1 pl-5">
-          {TASK_ACCESS.map((access) => (
-            <li key={access.value}>
-              <strong className="font-semibold">{access.label}:</strong> {access.help}
-            </li>
-          ))}
-          <li>The project owner has full access.</li>
-        </ul>
-      </details>
-
-      <div className="mt-6">
-        {members.isPending && <LoadingState label="Loading members" />}
-        {members.isError && (
+      {members.isPending && <LoadingState label="Loading members" />}
+      {members.isError && (
+        <div className="mt-6">
           <ErrorState title="Members could not be loaded" message={errorMessage(members.error)} onRetry={() => members.refetch()} />
-        )}
-        {members.data && (
-          <>
-            <ul className="divide-y divide-line rounded-xl border border-line bg-white">
-              {members.data.members.map((member) => (
-                <li key={member.userId} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
-                  <div className="flex flex-1 items-center gap-3">
-                    <Avatar username={member.username} />
-                    <div>
-                      <p className="text-base font-semibold text-heading">@{member.username}</p>
-                      <p className="text-sm text-muted">
-                        {member.role === 'OWNER' ? 'Project owner · full access' : roleLabel(member.role)}
-                      </p>
-                    </div>
-                  </div>
-                  {member.role !== 'OWNER' &&
-                    (isOwner ? (
-                      <AccessSelect member={member} projectId={project.id} />
-                    ) : (
-                      <p className="text-base text-body">{taskAccessLabel(member.taskAccess)}</p>
-                    ))}
-                </li>
+        </div>
+      )}
+      {members.data && (
+        <>
+          <div className="mt-4 flex flex-col gap-3 lg:h-[52px] lg:flex-row lg:items-center lg:justify-between">
+            <p className="text-base leading-[22px] font-semibold text-body">
+              {list.length} project {list.length === 1 ? 'member' : 'members'}
+            </p>
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => setInviting(true)}
+                className="inline-flex h-11 items-center rounded-[14px] bg-action px-[18px] text-[13px] font-semibold text-white hover:bg-heading lg:rounded-[9px] lg:font-medium"
+              >
+                Invite member
+              </button>
+            )}
+          </div>
+
+          <div className="mt-4 lg:overflow-hidden lg:rounded-[14px] lg:border lg:border-line lg:bg-white">
+            <div
+              aria-hidden="true"
+              className={`hidden h-12 border-b border-line bg-[#f6f8f6] px-5 text-xs leading-4 font-semibold text-muted ${columns}`}
+            >
+              <span>Member</span>
+              <span>Role</span>
+              <span>Access</span>
+              <span />
+            </div>
+            <ul aria-label="Project members" className="flex flex-col gap-2.5 lg:gap-0">
+              {list.map((member) => (
+                <MemberRow key={member.userId} member={member} isOwner={isOwner} onManage={setManaging} />
               ))}
             </ul>
+          </div>
 
-            {isOwner && members.data.invitations.length > 0 && (
-              <div className="mt-8">
-                <h2 className="text-xl font-semibold text-heading">Pending invitations</h2>
-                <ul className="mt-3 divide-y divide-line rounded-xl border border-line bg-white">
-                  {members.data.invitations.map((invitation) => (
-                    <li key={invitation.id} className="flex items-center gap-3 p-4">
-                      <Avatar username={invitation.username} />
-                      <div>
-                        <p className="text-base font-semibold text-heading">@{invitation.username}</p>
-                        <p className="text-sm text-muted">Invited {formatTimestamp(invitation.createdAt)} · Waiting for a reply</p>
+          <div className="mt-4 flex flex-col gap-4">
+            {/* Mobile (737:2) shows pending invitations before this note; desktop shows it first. */}
+            <p className="order-last rounded-[10px] bg-[#f6f8f6] px-3.5 py-3 text-sm leading-[18px] text-muted lg:order-none">
+              All Team Members can use project chat. Task access controls which tasks each member can edit.
+            </p>
+
+            {isOwner && (
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+                <section
+                  aria-labelledby="pending-invitations"
+                  className="flex flex-1 flex-col gap-3 rounded-[14px] border border-line bg-white p-4 lg:rounded-2xl lg:p-5"
+                >
+                  <h2
+                    id="pending-invitations"
+                    className="text-xs font-medium text-muted uppercase lg:text-base lg:font-semibold lg:text-body lg:normal-case"
+                  >
+                    Pending invitations
+                  </h2>
+                  {invitations.length === 0 && <p className="text-sm text-muted">No invitations are waiting for a reply.</p>}
+                  {invitations.length > 0 && (
+                    <ul className="flex flex-col">
+                      {invitations.map((invitation) => (
+                        <li key={invitation.id} className="flex flex-col gap-0.5 py-1 lg:border-t lg:border-line lg:py-2.5">
+                          <p className="text-[15px] font-semibold text-body lg:text-sm lg:font-medium">@{invitation.username}</p>
+                          <p className="hidden text-xs leading-[18px] text-muted lg:block">
+                            Invited{' '}
+                            {formatDueDate(invitation.createdAt.slice(0, 10), {
+                              short: true,
+                            })}{' '}
+                            · Waiting for a reply
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+                <section
+                  aria-labelledby="access-levels"
+                  className="hidden flex-1 flex-col gap-3 rounded-2xl border border-line bg-surface p-5 lg:flex"
+                >
+                  <h2 id="access-levels" className="text-base font-semibold text-body">
+                    Task access levels
+                  </h2>
+                  <dl className="flex flex-col gap-3">
+                    {ACCESS_SUMMARY.map((level) => (
+                      <div key={level.label} className="flex flex-col gap-0.5 leading-normal">
+                        <dt className="text-sm font-medium text-body">{level.label}</dt>
+                        <dd className="text-sm text-muted">{level.help}</dd>
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    ))}
+                  </dl>
+                </section>
               </div>
             )}
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
       {isOwner && <InviteDialog open={inviting} onClose={() => setInviting(false)} projectId={project.id} />}
+      {isOwner && <AccessDialog member={managing} projectId={project.id} onClose={() => setManaging(null)} />}
     </section>
   )
 }

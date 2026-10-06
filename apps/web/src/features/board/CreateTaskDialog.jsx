@@ -2,8 +2,7 @@ import { useId, useState } from 'react'
 import { errorMessage } from '../../api/errors.js'
 import { useCreateTask } from '../../api/hooks.js'
 import { Spinner } from '../../components/ui/Button.jsx'
-import Dialog from '../../components/ui/Dialog.jsx'
-import { ArrowLeftIcon } from '../../components/icons.jsx'
+import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import TaskFields from './TaskFields.jsx'
 import { emptyTaskValues } from './taskValues.js'
 
@@ -33,15 +32,7 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
 
   return (
     <Dialog open={open} onClose={close} variant="page" labelledBy={titleId}>
-      <div className="relative flex h-16 items-center justify-center bg-white px-5 sm:hidden">
-        <button type="button" onClick={close} className="absolute left-5 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-action">
-          <ArrowLeftIcon />
-          Board
-        </button>
-        <p aria-hidden="true" className="text-[17px] font-semibold text-body">
-          Create task
-        </p>
-      </div>
+      <MobileBackBar label="Board" onBack={close} title="Create task" />
       <form onSubmit={submit} noValidate className="flex flex-col gap-4 px-5 pt-3 pb-6 sm:p-6">
         <div className="flex flex-col gap-2">
           <h2 id={titleId} className="sr-only text-2xl font-semibold text-body sm:not-sr-only">

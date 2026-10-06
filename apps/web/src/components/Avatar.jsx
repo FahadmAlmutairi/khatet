@@ -3,7 +3,13 @@ function initialsFor(username) {
 }
 
 export default function Avatar({ username, size = 'md' }) {
-  const sizeClass = { xs: 'size-6 text-xs', sm: 'size-7 text-xs', md: 'size-8 text-xs' }[size]
+  const sizeClass = {
+    xs: 'size-6 text-xs',
+    sm: 'size-7 text-xs',
+    md: 'size-8 text-xs',
+    // Members list: 40px on mobile, 36px on desktop (Figma 737:2 and 211:198).
+    lg: 'size-10 text-xs font-semibold lg:size-9',
+  }[size]
   return (
     <span
       className={`inline-flex shrink-0 items-center justify-center rounded-full border-2 border-white bg-action font-medium leading-4 text-white ${sizeClass}`}

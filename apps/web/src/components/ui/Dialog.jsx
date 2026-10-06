@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from 'react'
-import { CloseIcon } from '../icons.jsx'
+import { ArrowLeftIcon, CloseIcon } from '../icons.jsx'
 
 // Built on the native <dialog> element: it traps focus, closes with Esc and
 // returns focus to the control that opened it.
@@ -7,7 +7,7 @@ import { CloseIcon } from '../icons.jsx'
 // variant "popover" drops down under the header buttons on desktop and fills the
 // screen on mobile (Figma: Notifications panel 1035:1912 and mobile page 741:2).
 // variant "page" is a centred window from sm up and a full page on mobile (Figma: Create task 1068:11244 and 736:2).
-export default function Dialog({ open, onClose, title, description, children, footer, variant = 'modal', labelledBy }) {
+export default function Dialog({ open, onClose, title, description, children, footer, variant = 'modal', labelledBy, width }) {
   const ref = useRef(null)
   const titleId = useId()
   const descriptionId = useId()
@@ -25,7 +25,7 @@ export default function Dialog({ open, onClose, title, description, children, fo
     panel:
       'mx-auto mt-4 mb-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[640px] rounded-2xl border outline-none sm:m-auto sm:max-h-none sm:overflow-visible sm:rounded-[20px] shadow-[0_24px_48px_rgba(38,54,41,0.18)] backdrop:bg-heading/40',
     page:
-      'm-0 h-dvh max-h-dvh w-full max-w-full bg-surface outline-none backdrop:bg-heading/40 sm:m-auto sm:h-fit sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:max-w-[558px] sm:overflow-visible sm:rounded-[16px] sm:border sm:bg-white sm:shadow-[0_10px_24px_rgba(20,31,23,0.12)]',
+      'm-0 h-dvh max-h-dvh w-full max-w-full bg-surface outline-none backdrop:bg-heading/40 sm:m-auto sm:h-fit sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:max-w-[var(--dialog-width,558px)] sm:overflow-visible sm:rounded-[16px] sm:border sm:bg-white sm:shadow-[0_10px_24px_rgba(20,31,23,0.12)]',
     popover:
       'm-0 h-dvh max-h-dvh w-full max-w-full bg-surface outline-none backdrop:bg-transparent lg:top-0 lg:bottom-auto lg:mt-[88px] lg:mr-8 lg:ml-auto lg:h-auto lg:max-h-[calc(100dvh-120px)] lg:w-[380px] lg:rounded-[16px] lg:border lg:bg-white lg:shadow-[0_12px_28px_rgba(20,31,23,0.16)]',
   }[variant]
@@ -34,6 +34,7 @@ export default function Dialog({ open, onClose, title, description, children, fo
     <dialog
       ref={ref}
       aria-labelledby={labelledBy ?? titleId}
+      style={width ? { '--dialog-width': `${width}px` } : undefined}
       aria-describedby={description ? descriptionId : undefined}
       onCancel={(event) => {
         event.preventDefault()
@@ -75,5 +76,22 @@ export default function Dialog({ open, onClose, title, description, children, fo
         </div>
       )}
     </dialog>
+  )
+}
+
+// The white top bar of a "page" dialog on mobile: a back link and an optional centred title.
+export function MobileBackBar({ label, onBack, title }) {
+  return (
+    <div className="relative flex h-16 items-center justify-center bg-white px-5 sm:hidden">
+      <button type="button" onClick={onBack} className="absolute left-5 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-action">
+        <ArrowLeftIcon />
+        {label}
+      </button>
+      {title && (
+        <p aria-hidden="true" className="text-[17px] font-semibold text-body">
+          {title}
+        </p>
+      )}
+    </div>
   )
 }
