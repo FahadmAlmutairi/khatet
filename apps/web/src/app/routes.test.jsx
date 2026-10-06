@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '../api/errors.js'
-import { createProject, createTask, failNextCall, resetMockServer } from '../api/mockServer.js'
+import { createProject, createTask, failNextCall, getTasks, resetMockServer } from '../api/mockServer.js'
 import { dateFromToday, formatDueDate } from '../lib/domain.js'
 import { renderApp } from '../test/renderApp.jsx'
 
@@ -106,7 +106,7 @@ describe('sidebar', () => {
     const rail = screen.getByRole('complementary', { name: 'Sidebar' })
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toHaveFocus()
     expect(within(rail).getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/projects')
-    expect(within(rail).getByRole('link', { name: 'Khatet' })).toHaveAttribute('aria-current', 'true')
+    expect(within(rail).getByRole('button', { name: 'Khatet' })).toHaveAttribute('aria-current', 'true')
     expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument()
 
     await user.click(rail)
@@ -115,6 +115,34 @@ describe('sidebar', () => {
 
     await user.keyboard('{Control>}\\{/Control}')
     expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeInTheDocument()
+  })
+  it('shows a project\'s pages in the sidebar instead of opening its board', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects')
+    const sidebar = await screen.findByRole('complementary')
+    const project = await within(sidebar).findByRole('button', { name: 'Khatet' })
+    expect(project).toHaveAttribute('aria-expanded', 'false')
+    await user.click(project)
+    expect(project).toHaveAttribute('aria-expanded', 'true')
+    expect(router.state.location.pathname).toBe('/projects')
+    expect(within(sidebar).getByRole('link', { name: 'Members' })).toHaveAttribute('href', '/projects/p-khatet/members')
+    await user.click(within(sidebar).getByRole('link', { name: 'Board' }))
+    expect(router.state.location.pathname).toBe('/projects/p-khatet/board')
+    await user.click(project)
+    expect(within(sidebar).queryByRole('link', { name: 'Board' })).not.toBeInTheDocument()
+  })
+
+  it('opens the sidebar on a project\'s pages from its rail tile', async () => {
+    signIn()
+    localStorage.setItem('khatet.sidebarCollapsed', 'true')
+    const user = userEvent.setup()
+    const router = renderApp('/projects')
+    const rail = await screen.findByRole('complementary', { name: 'Sidebar' })
+    await user.click(await within(rail).findByRole('button', { name: 'Khatet' }))
+    expect(router.state.location.pathname).toBe('/projects')
+    expect(screen.getByRole('button', { name: 'Khatet', expanded: true })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Board' })).toHaveAttribute('href', '/projects/p-khatet/board')
   })
 })
 
@@ -169,6 +197,19 @@ describe('board (US-16, US-21)', () => {
     const done = screen.getByRole('region', { name: /^Done/ })
     expect(await within(done).findByText('Prepare usability test script')).toBeInTheDocument()
     expect(await screen.findByText('“Prepare usability test script” moved to Done.', { selector: '[aria-live]' })).toBeInTheDocument()
+  })
+
+  it('undoes a move and puts the card back in its place', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('button', { name: 'More actions for Prepare usability test script' }))
+    await user.click(screen.getByRole('menuitem', { name: /Done/ }))
+    await screen.findByText('“Prepare usability test script” moved to Done.', { selector: '[aria-live]' })
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+    const todo = screen.getByRole('region', { name: /^To Do/ })
+    await waitFor(() => expect(within(todo).getAllByRole('heading', { level: 3 })[0]).toHaveTextContent('Prepare usability test script'))
+    expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
   })
 
   it('puts the card back and explains when a move fails', async () => {
@@ -354,6 +395,31 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
     const confirm = screen.getByRole('dialog', { name: 'Delete this task?' })
     await user.click(within(confirm).getByRole('button', { name: 'Delete task' }))
     expect(await screen.findByText('“Write sign-in error messages” was deleted.', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Write sign-in error messages' })).not.toBeInTheDocument()
+  })
+
+  it('brings a deleted task back with Undo and deletes it on the server only when the message closes', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board?task=t-4')
+    const drawer = await screen.findByRole('dialog', { name: 'Write sign-in error messages' })
+    await user.click(await within(drawer).findByRole('button', { name: 'More actions' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Delete task' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Delete this task?' })).getByRole('button', { name: 'Delete task' }))
+    await screen.findByText('“Write sign-in error messages” was deleted.', { selector: '[aria-live]' })
+    expect(screen.queryByRole('button', { name: 'Write sign-in error messages' })).not.toBeInTheDocument()
+    expect((await getTasks('p-khatet')).some((task) => task.id === 't-4')).toBe(true)
+
+    await user.keyboard('{Control>}z{/Control}')
+    expect(await screen.findByRole('button', { name: 'Write sign-in error messages' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Write sign-in error messages' }))
+    const again = await screen.findByRole('dialog', { name: 'Write sign-in error messages' })
+    await user.click(await within(again).findByRole('button', { name: 'More actions' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Delete task' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Delete this task?' })).getByRole('button', { name: 'Delete task' }))
+    await user.click(await screen.findByRole('button', { name: 'Dismiss message' }))
+    await waitFor(async () => expect((await getTasks('p-khatet')).some((task) => task.id === 't-4')).toBe(false))
     expect(screen.queryByRole('button', { name: 'Write sign-in error messages' })).not.toBeInTheDocument()
   })
 

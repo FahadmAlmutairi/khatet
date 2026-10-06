@@ -16,7 +16,7 @@ function subNavClass({ isActive }) {
   }`
 }
 
-function Sidebar({ onNavigate }) {
+function Sidebar({ onNavigate, openProjects, onToggleProject }) {
   const { projectId } = useParams()
   const projects = useProjects()
   const me = useMe()
@@ -53,13 +53,17 @@ function Sidebar({ onNavigate }) {
           <ul className="flex flex-col gap-2">
             {projects.data?.map((project) => {
               const current = project.id === projectId
+              const open = openProjects.has(project.id)
+              const listId = `project-pages-${project.id}`
               return (
                 <li key={project.id}>
-                  <NavLink
-                    to={`/projects/${project.id}/board`}
-                    onClick={onNavigate}
-                    aria-current={current ? 'true' : undefined}
-                    className={`flex h-11 items-center gap-2 rounded-lg p-2 text-xs font-medium lg:h-10 text-[#26352a] ${
+                  {/* A project opens to show its pages here; the person then picks the page. */}
+                  <button
+                    type="button"
+                    onClick={() => onToggleProject(project.id)}
+                    aria-expanded={open}
+                    aria-controls={listId}
+                    className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg p-2 text-left text-xs font-medium lg:h-10 text-[#26352a] ${
                       current ? 'bg-[#f7faf6]' : 'hover:bg-surface'
                     }`}
                   >
@@ -73,11 +77,11 @@ function Sidebar({ onNavigate }) {
                     </span>
                     <span className="flex-1 truncate">{project.name}</span>
                     <span aria-hidden="true" className="text-[#78847a]">
-                      <ChevronIcon direction={current ? 'up' : 'down'} size={14} />
+                      <ChevronIcon direction={open ? 'up' : 'down'} size={14} />
                     </span>
-                  </NavLink>
-                  {current && (
-                    <ul className="mt-2 flex flex-col gap-1 pl-6">
+                  </button>
+                  {open && (
+                    <ul id={listId} className="motion-reveal mt-2 flex flex-col gap-1 pl-6">
                       <li>
                         <NavLink to={`/projects/${project.id}/board`} className={subNavClass} onClick={onNavigate}>
                           <BoardIcon />
@@ -133,7 +137,7 @@ const railItem = 'group relative inline-flex size-10 cursor-pointer items-center
 
 // Collapsed desktop sidebar (like ChatGPT): the logo, Home, one tile per project and the user.
 // Hovering the logo turns it into the open button; clicking any empty part of the rail opens it too.
-function Rail({ onExpand, expandButtonRef }) {
+function Rail({ onExpand, onOpenProject, expandButtonRef }) {
   const { projectId } = useParams()
   const projects = useProjects()
   const me = useMe()
@@ -170,9 +174,10 @@ function Rail({ onExpand, expandButtonRef }) {
         {projects.data?.map((project) => {
           const current = project.id === projectId
           return (
-            <Link
+            <button
+              type="button"
               key={project.id}
-              to={`/projects/${project.id}/board`}
+              onClick={() => onOpenProject(project.id)}
               aria-label={project.name}
               aria-current={current ? 'true' : undefined}
               className={railItem}
@@ -186,7 +191,7 @@ function Rail({ onExpand, expandButtonRef }) {
                 {project.name.charAt(0).toUpperCase()}
               </span>
               <RailTip>{project.name}</RailTip>
-            </Link>
+            </button>
           )
         })}
       </nav>
@@ -269,6 +274,30 @@ export default function AppShell() {
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [])
+  // Which projects show their pages in the sidebar. The project being viewed always starts open.
+  const { projectId } = useParams()
+  const [openProjects, setOpenProjects] = useState(() => new Set(projectId ? [projectId] : []))
+  const [shownProject, setShownProject] = useState(projectId)
+  if (projectId !== shownProject) {
+    setShownProject(projectId)
+    if (projectId && !openProjects.has(projectId)) setOpenProjects(new Set(openProjects).add(projectId))
+  }
+
+  function toggleProject(id) {
+    setOpenProjects((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  // From the collapsed rail, a project tile opens the sidebar with that project's pages showing.
+  function openProjectFromRail(id) {
+    setOpenProjects((current) => new Set(current).add(id))
+    toggleSidebar()
+  }
+
   const crumbs = useBreadcrumb()
   const pageKey = useLocation().pathname
   useEffect(() => {
@@ -289,7 +318,7 @@ export default function AppShell() {
         Skip to main content
       </a>
 
-      {collapsed && <Rail onExpand={toggleSidebar} expandButtonRef={showButtonRef} />}
+      {collapsed && <Rail onExpand={toggleSidebar} onOpenProject={openProjectFromRail} expandButtonRef={showButtonRef} />}
       {!collapsed && (
         <aside className="sidebar-enter sticky top-0 z-30 hidden h-dvh w-[232px] shrink-0 flex-col gap-6 border-r border-line bg-white p-4 lg:flex">
           <div className="flex items-center justify-between">
@@ -313,7 +342,7 @@ export default function AppShell() {
               </span>
             </button>
           </div>
-          <Sidebar />
+          <Sidebar openProjects={openProjects} onToggleProject={toggleProject} />
         </aside>
       )}
 
@@ -337,7 +366,7 @@ export default function AppShell() {
                 <CloseIcon />
               </button>
             </div>
-            <Sidebar onNavigate={() => setMenuOpen(false)} />
+            <Sidebar onNavigate={() => setMenuOpen(false)} openProjects={openProjects} onToggleProject={toggleProject} />
           </aside>
         </div>
       )}

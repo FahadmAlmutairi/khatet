@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { errorMessage } from '../../api/errors.js'
-import { useDeleteTask, useTask, useUpdateTask } from '../../api/hooks.js'
+import { useDeleteTaskWithUndo, useTask, useUpdateTask } from '../../api/hooks.js'
 import { AvatarStack } from '../../components/Avatar.jsx'
 import { ChevronIcon, CloseIcon, MoreIcon, OverdueIcon } from '../../components/icons.jsx'
 import PriorityBadge from '../../components/PriorityBadge.jsx'
@@ -90,11 +90,23 @@ function BlockedControl({ task }) {
   const [reason, setReason] = useState(task.blockedReason ?? '')
   const id = useId()
 
-  function save(isBlocked, blockedReason = reason) {
+  function save(isBlocked, blockedReason = reason, { quiet = false } = {}) {
+    const before = { isBlocked: task.isBlocked, blockedReason: task.blockedReason }
     updateTask.mutate(
       { taskId: task.id, patch: { isBlocked, blockedReason } },
       {
-        onSuccess: () => toast(isBlocked ? 'The task is flagged as blocked.' : 'The blocked flag was removed.'),
+        onSuccess: () => {
+          if (quiet) return
+          const message = isBlocked ? 'The task is flagged as blocked.' : 'The blocked flag was removed.'
+          // Saving only the reason needs no Undo; turning the flag on or off does.
+          if (before.isBlocked === isBlocked) return toast(message)
+          toast(message, 'info', {
+            onUndo: () => {
+              setReason(before.blockedReason ?? '')
+              save(before.isBlocked, before.blockedReason, { quiet: true })
+            },
+          })
+        },
         onError: (error) => toast(errorMessage(error), 'error'),
       },
     )
@@ -161,7 +173,25 @@ function BlockedControl({ task }) {
 }
 
 function DeleteTaskDialog({ open, task, onCancel, onDeleted, projectId }) {
-  const deleteTask = useDeleteTask(projectId)
+  const deleteLater = useDeleteTaskWithUndo(projectId)
+  const toast = useToast()
+
+  // The card fades out, the cards below close the gap, and the server delete waits for the Undo time.
+  async function remove() {
+    onDeleted()
+    await fadeOutCard(task.id)?.finished.catch(() => {})
+    rememberCardPositions()
+    const pending = deleteLater(task)
+    toast(`“${task.title}” was deleted.`, 'info', {
+      onUndo: () => {
+        rememberCardPositions()
+        pending.restore()
+      },
+      onExpire: () =>
+        pending.commit().catch((error) => toast(`“${task.title}” could not be deleted. ${errorMessage(error)}`, 'error')),
+    })
+  }
+
   return (
     <Dialog
       open={open}
@@ -172,28 +202,13 @@ function DeleteTaskDialog({ open, task, onCancel, onDeleted, projectId }) {
           <Button variant="secondary" onClick={onCancel}>
             Cancel
           </Button>
-          <Button
-            variant="danger"
-            loading={deleteTask.isPending}
-            onClick={() => {
-              rememberCardPositions()
-              const fade = fadeOutCard(task.id)
-              deleteTask.mutate(task.id, { onSuccess: onDeleted, onError: () => fade?.cancel() })
-            }}
-          >
+          <Button variant="danger" onClick={remove}>
             Delete task
           </Button>
         </>
       }
     >
-      <p className="text-base">
-        “{task.title}” will be removed from the board for everyone in the project. This cannot be undone.
-      </p>
-      {deleteTask.isError && (
-        <p role="alert" className="mt-3 text-base text-blocked">
-          {errorMessage(deleteTask.error)}
-        </p>
-      )}
+      <p className="text-base">“{task.title}” will be removed from the board for everyone in the project.</p>
     </Dialog>
   )
 }
@@ -342,7 +357,6 @@ function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone, regist
 function TaskDetailsBody({ taskId, titleId, projectId, projectName, members, usernames, onClose, onMove, registerCloseGuard }) {
   const task = useTask(taskId)
   const [mode, setMode] = useState('view')
-  const toast = useToast()
   const data = task.data
 
   if (task.isPending) return <LoadingState label="Loading task" />
@@ -387,10 +401,7 @@ function TaskDetailsBody({ taskId, titleId, projectId, projectName, members, use
         task={data}
         projectId={projectId}
         onCancel={() => setMode('view')}
-        onDeleted={() => {
-          toast(`“${data.title}” was deleted.`)
-          onClose()
-        }}
+        onDeleted={onClose}
       />
     </>
   )

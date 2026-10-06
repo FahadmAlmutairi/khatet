@@ -144,12 +144,17 @@ function AccessDialog({ member, projectId, onClose }) {
 
   function save(event) {
     event.preventDefault()
+    const { userId, taskAccess: previous } = member
     update.mutate(
-      { userId: member.userId, taskAccess: value },
+      { userId, taskAccess: value },
       {
         onSuccess: (updated) => {
-          toast(`@${updated.username} now has ${taskAccessLabel(updated.taskAccess)} access.`)
           close()
+          if (updated.taskAccess === previous) return
+          toast(`@${updated.username} now has ${taskAccessLabel(updated.taskAccess)} access.`, 'info', {
+            onUndo: () =>
+              update.mutate({ userId, taskAccess: previous }, { onError: (error) => toast(errorMessage(error), 'error') }),
+          })
         },
         onError: (error) => toast(errorMessage(error), 'error'),
       },

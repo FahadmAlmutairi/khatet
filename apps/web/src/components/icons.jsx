@@ -150,3 +150,12 @@ export function InfoIcon() {
     </svg>
   )
 }
+
+export function UndoIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M5.33 3.33 2.67 6l2.66 2.67" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M2.67 6h6.66a4 4 0 0 1 0 8H6.67" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}

@@ -55,14 +55,18 @@ export default function BoardPage() {
   }
 
   // A drag already shows where the card goes, so only other moves get the glide.
-  function move(task, status, position, { dragged = false } = {}) {
+  function move(task, status, position, { dragged = false, quiet = false } = {}) {
     if (!dragged) rememberCardPositions()
     const target = (tasks.data ?? []).filter((item) => item.status === status && item.id !== task.id)
     moveTask.mutate(
       { taskId: task.id, status, position: position ?? target.length + 1 },
       {
         onSuccess: () => {
-          if (status !== task.status) toast(`“${task.title}” moved to ${statusLabel(status)}.`)
+          if (quiet || status === task.status) return
+          // Undo puts the card back in its old column and place.
+          toast(`“${task.title}” moved to ${statusLabel(status)}.`, 'info', {
+            onUndo: () => move({ ...task, status }, task.status, task.position, { quiet: true }),
+          })
         },
         onError: (error) =>
           toast(`“${task.title}” could not be moved and is back in its place. ${errorMessage(error)}`, 'error'),

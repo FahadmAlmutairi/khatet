@@ -103,7 +103,7 @@ export function useInviteMember(projectId) {
 // ---------- Tasks ----------
 
 export function useTasks(projectId) {
-  return useQuery({ queryKey: keys.tasks(projectId), queryFn: () => api.getTasks(projectId) })
+  return useQuery({ queryKey: keys.tasks(projectId), queryFn: () => api.getTasks(projectId), select: withoutPending })
 }
 
 export function useTask(taskId) {
@@ -184,15 +184,42 @@ export function applyMove(tasks, taskId, status, position) {
   return [...rest.filter((task) => !renumbered.has(task.id)), ...renumbered.values()]
 }
 
-export function useDeleteTask(projectId) {
+// Tasks deleted in the last few seconds are hidden at once but only removed on the server when
+// their Undo time ends, so Undo can bring them back as they were. A refetch meanwhile stays hidden.
+const pendingDeletes = new Set()
+const withoutPending = (tasks) => (pendingDeletes.size ? tasks.filter((task) => !pendingDeletes.has(task.id)) : tasks)
+
+export function useDeleteTaskWithUndo(projectId) {
   const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (taskId) => api.deleteTask(taskId),
-    onSuccess: ({ id }) => {
-      queryClient.setQueryData(keys.tasks(projectId), (tasks) => tasks?.filter((task) => task.id !== id))
-      queryClient.invalidateQueries({ queryKey: keys.tasks(projectId) })
-    },
-  })
+  const tasksKey = keys.tasks(projectId)
+  const drop = (id) => queryClient.setQueryData(tasksKey, (tasks) => tasks?.filter((task) => task.id !== id))
+  return (task) => {
+    pendingDeletes.add(task.id)
+    drop(task.id)
+    let settled = false
+    return {
+      restore() {
+        if (settled) return
+        settled = true
+        pendingDeletes.delete(task.id)
+        queryClient.setQueryData(tasksKey, (tasks) => (!tasks || tasks.some((item) => item.id === task.id) ? tasks : [...tasks, task]))
+        queryClient.invalidateQueries({ queryKey: tasksKey })
+      },
+      // Resolves once the server removed it; on failure the task comes back and the error is passed on.
+      async commit() {
+        if (settled) return
+        settled = true
+        try {
+          await api.deleteTask(task.id)
+          drop(task.id)
+          queryClient.removeQueries({ queryKey: keys.task(task.id), exact: true })
+        } finally {
+          pendingDeletes.delete(task.id)
+          queryClient.invalidateQueries({ queryKey: tasksKey })
+        }
+      },
+    }
+  }
 }
 
 // ---------- Notifications ----------
