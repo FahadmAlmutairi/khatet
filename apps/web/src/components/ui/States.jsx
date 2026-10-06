@@ -1,3 +1,4 @@
+import InfoTip from './InfoTip.jsx'
 import Button, { Spinner } from './Button.jsx'
 
 export function LoadingState({ label = 'Loading' }) {
@@ -30,6 +31,16 @@ export function EmptyState({ title, children, action }) {
       <div className="max-w-lg text-base text-muted">{children}</div>
       {action}
     </div>
+  )
+}
+
+// A short state label (for example "View only") whose reason sits behind an info tip.
+export function StateBadge({ label, children }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-nav-active py-1 pr-2 pl-2.5 text-xs font-medium text-heading">
+      {label}
+      <InfoTip label={`About ${label}`}>{children}</InfoTip>
+    </span>
   )
 }
 

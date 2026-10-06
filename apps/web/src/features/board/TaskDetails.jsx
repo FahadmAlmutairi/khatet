@@ -10,7 +10,8 @@ import Dialog from '../../components/ui/Dialog.jsx'
 import DiscardChangesDialog from '../../components/ui/DiscardChangesDialog.jsx'
 import { SAVE_SHORTCUT_HINT, sameValues, submitOnCtrlEnter, useFocusFirstError } from '../../components/ui/formState.js'
 import Menu from '../../components/ui/Menu.jsx'
-import { ErrorState, LoadingState, Notice } from '../../components/ui/States.jsx'
+import InfoTip from '../../components/ui/InfoTip.jsx'
+import { ErrorState, LoadingState, Notice, StateBadge } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { dueLine, formatDueDate, statusLabel } from '../../lib/domain.js'
 import { moveMenuItems } from './moveMenu.jsx'
@@ -101,11 +102,11 @@ function BlockedControl({ task }) {
   return (
     <div className="flex flex-col gap-3 rounded-[14px] border border-line p-4">
       <div className="flex items-center gap-3">
-        <div className="flex flex-1 flex-col gap-0.5">
+        <div className="flex flex-1 items-center gap-2">
           <p id={`${id}-label`} className="text-base font-medium text-body">
             Blocked
           </p>
-          <p className="text-sm leading-5 text-muted">Only for tasks in progress.</p>
+          <InfoTip label="About Blocked">For a task in progress that can't move forward. The card shows a Blocked label.</InfoTip>
         </div>
         <button
           type="button"
@@ -215,12 +216,14 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
         <h2 id={titleId} className="text-xl leading-[26px] font-bold text-body sm:text-2xl sm:leading-[30px]">
           {task.title}
         </h2>
-        <StatusControl task={task} onMove={onMove} />
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusControl task={task} onMove={onMove} />
+          {!canEdit && (
+            <StateBadge label="View only">You can view this task but not change it. Ask the project owner for edit access.</StateBadge>
+          )}
+        </div>
       </div>
 
-      {!canEdit && (
-        <Notice>You can view this task but not change it. Ask the project owner for edit access.</Notice>
-      )}
 
       <dl className="flex flex-col gap-4 rounded-[14px] border border-line p-4 sm:flex-row sm:gap-6">
         <Detail label="Assignees">

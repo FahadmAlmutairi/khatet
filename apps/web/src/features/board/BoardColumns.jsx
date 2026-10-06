@@ -15,6 +15,7 @@ import {
 import { arrayMove, rectSortingStrategy, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { ChevronIcon, PlusIcon } from '../../components/icons.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
+import InfoTip from '../../components/ui/InfoTip.jsx'
 import { ACTIVE_STATUSES, STATUSES } from '../../lib/domain.js'
 import TaskCard, { TaskCardBody } from './TaskCard.jsx'
 
@@ -92,6 +93,7 @@ function BacklogPanel({ tasks, usernames, onOpen, onMove, open, onToggle }) {
           <StatusIcon status="BACKLOG" />
           Backlog · {tasks.length}
           <span className="sr-only"> {tasks.length === 1 ? 'task' : 'tasks'}</span>
+          <InfoTip label="About Backlog">Future work. Move a task to To Do when the team is ready to start it.</InfoTip>
         </h2>
         <button
           type="button"

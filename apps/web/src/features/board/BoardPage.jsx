@@ -6,7 +6,7 @@ import Breadcrumb from '../../components/Breadcrumb.jsx'
 import { useMembers, useMoveTask, useTasks } from '../../api/hooks.js'
 import { PlusIcon } from '../../components/icons.jsx'
 import { BoardSkeleton } from '../../components/ui/Skeleton.jsx'
-import { ErrorState, Notice } from '../../components/ui/States.jsx'
+import { ErrorState, StateBadge } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { statusLabel } from '../../lib/domain.js'
 import BoardColumns from './BoardColumns.jsx'
@@ -15,8 +15,10 @@ import TaskDetails from './TaskDetails.jsx'
 
 function accessNote(project) {
   if (project.role === 'OWNER' || project.taskAccess === 'EDIT_ALL') return null
-  if (project.taskAccess === 'EDIT_ASSIGNED') return 'You can edit and move only the tasks assigned to you.'
-  return 'You can view tasks but not change them. Ask the project owner for edit access.'
+  if (project.taskAccess === 'EDIT_ASSIGNED') {
+    return { label: 'Your tasks only', text: 'You can edit and move only the tasks assigned to you.' }
+  }
+  return { label: 'View only', text: 'You can view tasks but not change them. Ask the project owner for edit access.' }
 }
 
 // US-21: tasks grouped by status, with Backlog kept apart under the lanes (Figma 324:778).
@@ -72,7 +74,10 @@ export default function BoardPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-2">
           <Breadcrumb items={crumbs} className="lg:hidden" />
-          <h1 className="text-[28px] leading-[34px] font-bold break-words text-body">{project.name}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-[28px] leading-[34px] font-bold break-words text-body">{project.name}</h1>
+            {note && <StateBadge label={note.label}>{note.text}</StateBadge>}
+          </div>
         </div>
         {project.permissions.canCreateTask && (
           <button
@@ -86,11 +91,6 @@ export default function BoardPage() {
           </button>
         )}
       </div>
-      {note && (
-        <div className="max-w-2xl">
-          <Notice>{note}</Notice>
-        </div>
-      )}
 
       <div>
         {(tasks.isPending || members.isPending) && <BoardSkeleton />}

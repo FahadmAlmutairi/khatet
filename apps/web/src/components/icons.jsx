@@ -140,3 +140,13 @@ export function ArrowLeftIcon() {
     </svg>
   )
 }
+
+export function InfoIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="6.4" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M8 7.2v4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="8" cy="4.9" r="0.85" fill="currentColor" />
+    </svg>
+  )
+}

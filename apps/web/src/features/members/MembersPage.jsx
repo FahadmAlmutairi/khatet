@@ -7,6 +7,7 @@ import { useInviteMember, useMembers, useUpdateMemberAccess } from '../../api/ho
 import Avatar from '../../components/Avatar.jsx'
 import { ChevronIcon } from '../../components/icons.jsx'
 import { Spinner } from '../../components/ui/Button.jsx'
+import InfoTip from '../../components/ui/InfoTip.jsx'
 import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import { MemberRowsSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState } from '../../components/ui/States.jsx'
@@ -188,12 +189,10 @@ function AccessDialog({ member, projectId, onClose }) {
                       onChange={() => setPicked(option.value)}
                       className="mt-px size-[18px] shrink-0 accent-action"
                     />
-                    <span className="flex flex-col gap-1.5">
-                      <span className="text-sm font-semibold text-body">
-                        {option.label}
-                        {option.tag && ` · ${option.tag}`}
-                      </span>
-                      <span className="text-sm text-muted">{option.help}</span>
+                    <span className="flex items-center gap-2 text-sm font-semibold text-body">
+                      {option.label}
+                      {option.tag && ` · ${option.tag}`}
+                      <InfoTip label={`About ${option.label}`}>{option.help}</InfoTip>
                     </span>
                   </label>
                 )
