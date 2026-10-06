@@ -4,7 +4,7 @@ import { useCreateTask } from '../../api/hooks.js'
 import { Spinner } from '../../components/ui/Button.jsx'
 import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import DiscardChangesDialog from '../../components/ui/DiscardChangesDialog.jsx'
-import { sameValues, useFocusFirstError } from '../../components/ui/formState.js'
+import { SAVE_SHORTCUT_HINT, sameValues, submitOnCtrlEnter, useFocusFirstError } from '../../components/ui/formState.js'
 import TaskFields from './TaskFields.jsx'
 import { emptyTaskValues } from './taskValues.js'
 
@@ -45,7 +45,7 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
   return (
     <Dialog open={open} onClose={requestClose} variant="page" labelledBy={titleId}>
       <MobileBackBar label="Board" onBack={requestClose} title="Create task" />
-      <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-4 px-5 pt-3 pb-6 sm:p-6">
+      <form ref={formRef} onSubmit={submit} onKeyDown={submitOnCtrlEnter} noValidate className="flex flex-col gap-4 px-5 pt-3 pb-6 sm:p-6">
         <div className="flex flex-col gap-2">
           <h2 id={titleId} className="sr-only text-2xl font-semibold text-body sm:not-sr-only">
             Create a task
@@ -59,6 +59,9 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
           </p>
         )}
         <div className="mt-2 flex justify-end gap-3 sm:mt-4">
+          <p aria-hidden="true" className="mr-auto hidden self-center text-xs text-muted lg:block">
+            {SAVE_SHORTCUT_HINT}
+          </p>
           <button
             type="button"
             onClick={requestClose}
@@ -68,6 +71,7 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
           </button>
           <button
             type="submit"
+            aria-keyshortcuts="Control+Enter Meta+Enter"
             disabled={createTask.isPending}
             aria-busy={createTask.isPending || undefined}
             className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-action px-[18px] text-sm font-semibold text-white hover:bg-heading disabled:cursor-not-allowed sm:w-auto sm:rounded-[9px] sm:text-[13px] sm:font-medium"

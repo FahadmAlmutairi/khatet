@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '../api/errors.js'
 import { createProject, createTask, failNextCall, resetMockServer } from '../api/mockServer.js'
+import { dateFromToday, formatDueDate } from '../lib/domain.js'
 import { renderApp } from '../test/renderApp.jsx'
 
 function signIn() {
@@ -222,6 +223,23 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Create task' }))
     const todo = screen.getByRole('region', { name: /^To Do/ })
     expect(await within(todo).findByText('Plan the demo')).toBeInTheDocument()
+  })
+
+  it('fills the due date with a shortcut and saves with Ctrl+Enter', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('button', { name: 'Add task' }))
+    const dialog = screen.getByRole('dialog', { name: 'Create a task' })
+    await user.click(within(dialog).getByRole('button', { name: 'Tomorrow' }))
+    expect(within(dialog).getByLabelText('Due date')).toHaveValue(dateFromToday(1))
+    expect(within(dialog).getByRole('button', { name: 'Tomorrow' })).toHaveAttribute('aria-pressed', 'true')
+    await user.click(within(dialog).getByRole('button', { name: /Add assignee/ }))
+    await user.click(within(dialog).getByRole('button', { name: '@saad' }))
+    await user.type(within(dialog).getByLabelText(/Task title/), 'Book the lab{Control>}{Enter}{/Control}')
+    const todo = screen.getByRole('region', { name: /^To Do/ })
+    expect(await within(todo).findByText('Book the lab')).toBeInTheDocument()
+    expect(within(todo).getByText(`Due ${formatDueDate(dateFromToday(1), { short: true })}`)).toBeInTheDocument()
   })
 
   it('asks before discarding a half-filled new task', async () => {

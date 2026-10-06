@@ -8,7 +8,7 @@ import StatusIcon from '../../components/StatusIcon.jsx'
 import Button from '../../components/ui/Button.jsx'
 import Dialog from '../../components/ui/Dialog.jsx'
 import DiscardChangesDialog from '../../components/ui/DiscardChangesDialog.jsx'
-import { sameValues, useFocusFirstError } from '../../components/ui/formState.js'
+import { SAVE_SHORTCUT_HINT, sameValues, submitOnCtrlEnter, useFocusFirstError } from '../../components/ui/formState.js'
 import Menu from '../../components/ui/Menu.jsx'
 import { ErrorState, LoadingState, Notice } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
@@ -287,7 +287,7 @@ function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone, regist
   }
 
   return (
-    <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-5">
+    <form ref={formRef} onSubmit={submit} onKeyDown={submitOnCtrlEnter} noValidate className="flex flex-col gap-5">
       <TopBar eyebrow={eyebrow} onClose={() => leave(onClose)} />
       <h2 id={titleId} className="text-xl leading-[30px] font-bold text-body sm:text-2xl">
         Edit task
@@ -299,11 +299,15 @@ function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone, regist
         </p>
       )}
       <div className="flex justify-end gap-3">
+        <p aria-hidden="true" className="mr-auto hidden self-center text-xs text-muted lg:block">
+          {SAVE_SHORTCUT_HINT}
+        </p>
         <button type="button" onClick={() => leave(onDone)} className={`${outlineButton} px-[18px] lg:h-11`}>
           Cancel
         </button>
         <button
           type="submit"
+          aria-keyshortcuts="Control+Enter Meta+Enter"
           disabled={updateTask.isPending}
           className="inline-flex h-11 items-center justify-center rounded-[9px] bg-action px-[18px] text-[13px] font-medium text-white hover:bg-heading disabled:opacity-60"
         >

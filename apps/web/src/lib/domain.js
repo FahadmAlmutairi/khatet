@@ -81,6 +81,12 @@ function todayKey(now = new Date()) {
   return `${now.getFullYear()}-${month}-${day}`
 }
 
+// A date a number of days from today in the viewer's time zone, as YYYY-MM-DD (T5).
+export function dateFromToday(days, now = new Date()) {
+  const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days)
+  return todayKey(date)
+}
+
 // The due line on a board card: "Due 20 Sep", "Due today" or "No due date".
 // A past due date on an unfinished task reads "Overdue · 20 Sep", so it is not shown by colour alone.
 export function dueLine(dueDate, status, now = new Date()) {

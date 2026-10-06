@@ -9,6 +9,16 @@ export function useFocusFirstError(formRef, error) {
   }, [formRef, error])
 }
 
+// T4: Ctrl+Enter (Cmd+Enter on a Mac) saves the form from any field.
+export function submitOnCtrlEnter(event) {
+  if (event.key !== 'Enter' || !(event.ctrlKey || event.metaKey)) return
+  event.preventDefault()
+  event.currentTarget.requestSubmit()
+}
+
+export const SAVE_SHORTCUT_HINT =
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent) ? '⌘ + Enter to save' : 'Ctrl + Enter to save'
+
 export function sameValues(a, b) {
   return JSON.stringify(a) === JSON.stringify(b)
 }
