@@ -10,6 +10,11 @@ export default function CodeInput({ value, onChange, error, label = 'Verificatio
   const refs = useRef([])
   const digits = Array.from({ length: LENGTH }, (_, index) => value[index] ?? '')
 
+  function placeCaret(input) {
+    const end = input.value.length
+    input.setSelectionRange(end, end)
+  }
+
   function focusBox(index) {
     refs.current[Math.min(Math.max(index, 0), LENGTH - 1)]?.focus()
   }
@@ -81,21 +86,28 @@ export default function CodeInput({ value, onChange, error, label = 'Verificatio
             value={digit}
             onChange={(event) => {
               const typed = event.target.value
-              // A full code (autofill) fills from the first box; otherwise keep the newest digit.
+              if (!typed) {
+                onChange(digits.map((item, at) => (at === index ? '' : item)).join(''))
+                return
+              }
+              // A full code (autofill) fills from the first box; otherwise keep the digit just typed,
+              // whichever side of the old digit the caret was on.
               if (typed.replace(/\D/g, '').length >= LENGTH) fill(0, typed)
-              else fill(index, typed.slice(-1))
+              else fill(index, digit ? typed.replace(digit, '') || digit : typed)
             }}
             onKeyDown={(event) => onKeyDown(event, index)}
             onPaste={(event) => {
               event.preventDefault()
               fill(index, event.clipboardData.getData('text'))
             }}
-            onFocus={(event) => event.target.select()}
+            // A blinking caret after the digit, as in any text field, instead of a highlighted digit.
+            onFocus={(event) => placeCaret(event.target)}
+            onMouseUp={(event) => placeCaret(event.target)}
             inputMode="numeric"
             autoComplete={index === 0 ? 'one-time-code' : 'off'}
             aria-label={`Digit ${index + 1} of ${LENGTH}`}
             aria-invalid={Boolean(error)}
-            className="h-14 min-w-0 flex-1 rounded-[10px] border border-line bg-white text-center text-[22px] font-semibold text-body focus:border-2 focus:border-action focus-visible:outline-none aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
+            className="h-14 min-w-0 flex-1 rounded-[10px] caret-action border border-line bg-white text-center text-[22px] font-semibold text-body focus:border-2 focus:border-action focus-visible:outline-none aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
           />
         ))}
       </div>

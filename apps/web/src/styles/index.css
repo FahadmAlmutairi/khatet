@@ -160,3 +160,20 @@
     opacity: 1;
   }
 }
+
+/* A dragged card lifts slightly when picked up and settles back to size as it lands. */
+.card-pickup {
+  transform: scale(1.03);
+  transition: transform 260ms var(--ease-apple);
+  animation: card-pickup 200ms var(--ease-apple);
+}
+
+.card-dropping .card-pickup {
+  transform: none;
+}
+
+@keyframes card-pickup {
+  from {
+    transform: none;
+  }
+}

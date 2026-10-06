@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   closestCenter,
+  defaultDropAnimationSideEffects,
   DndContext,
   DragOverlay,
   MeasuringStrategy,
@@ -17,7 +18,7 @@ import { ChevronIcon, PlusIcon } from '../../components/icons.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import InfoTip from '../../components/ui/InfoTip.jsx'
 import { ACTIVE_STATUSES, STATUSES } from '../../lib/domain.js'
-import { playCardMoves } from '../../lib/motion.js'
+import { EASE, playCardMoves } from '../../lib/motion.js'
 import TaskCard, { TaskCardBody } from './TaskCard.jsx'
 
 const ACCENTS = {
@@ -121,6 +122,13 @@ function BacklogPanel({ tasks, usernames, onOpen, onMove, open, onToggle }) {
       </div>
     </section>
   )
+}
+
+// The picked-up card rises a little; on release it settles into its slot at full size.
+const dropAnimation = {
+  duration: 260,
+  easing: EASE,
+  sideEffects: defaultDropAnimationSideEffects({ className: { dragOverlay: 'card-dropping' } }),
 }
 
 function idsByStatus(tasks) {
@@ -322,9 +330,9 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
           onToggle={() => setBacklogOpen((value) => !value)}
         />
       </div>
-      <DragOverlay dropAnimation={{ duration: 180, easing: 'cubic-bezier(0.2, 0, 0, 1)' }}>
+      <DragOverlay dropAnimation={dropAnimation}>
         {activeTask && (
-          <div className="cursor-grabbing">
+          <div className="card-pickup cursor-grabbing">
             <TaskCardBody task={activeTask} usernames={usernames} onOpen={() => {}} onMove={() => {}} isOverlay />
           </div>
         )}

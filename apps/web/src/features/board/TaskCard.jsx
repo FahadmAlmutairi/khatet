@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useSortable } from '@dnd-kit/sortable'
+import { defaultAnimateLayoutChanges, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { AvatarStack } from '../../components/Avatar.jsx'
 import { MoreIcon, OverdueIcon } from '../../components/icons.jsx'
@@ -7,6 +7,7 @@ import PriorityBadge from '../../components/PriorityBadge.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import Menu from '../../components/ui/Menu.jsx'
 import { dueLine } from '../../lib/domain.js'
+import { EASE } from '../../lib/motion.js'
 import { moveMenuItems } from './moveMenu.jsx'
 
 export function BlockedPill() {
@@ -97,6 +98,9 @@ export default function TaskCard({ task, usernames, onOpen, onMove, className = 
     id: task.id,
     data: { type: 'task', status: task.status },
     disabled: !task.permissions.canMove,
+    // Cards also glide when the dragged card leaves or joins their lane, not only within one lane.
+    animateLayoutChanges: (args) => defaultAnimateLayoutChanges({ ...args, wasDragging: true }),
+    transition: { duration: 260, easing: EASE },
   })
 
   function openFromCard(event) {
