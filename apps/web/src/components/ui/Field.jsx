@@ -52,7 +52,7 @@ export function TextField({ label, required, hint, error, className = '', ...pro
   )
 }
 
-export function TextArea({ label, required, hint, error, rows = 3, ...props }) {
+export function TextArea({ label, required, hint, error, rows = 3, className = '', ...props }) {
   const id = useId()
   return (
     <FieldShell id={id} label={label} required={required} hint={hint} error={error}>
@@ -61,7 +61,7 @@ export function TextArea({ label, required, hint, error, rows = 3, ...props }) {
         rows={rows}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy(id, hint, error)}
-        className={`${inputClass} border-surface-supporting py-2`}
+        className={`${inputClass} border-surface-supporting py-2 ${className}`}
         {...props}
       />
     </FieldShell>

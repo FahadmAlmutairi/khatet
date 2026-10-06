@@ -1,20 +1,19 @@
 import { Link, useSearchParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useProjects } from '../../api/hooks.js'
-import Button from '../../components/ui/Button.jsx'
-import { EmptyState, ErrorState, LoadingState } from '../../components/ui/States.jsx'
+import { ErrorState, LoadingState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { roleLabel } from '../../lib/domain.js'
 import CreateProjectDialog from './CreateProjectDialog.jsx'
 
+// Figma: Home 1069:2138 (projects) and 1070:2185 (no projects).
+const createButtonClass =
+  'inline-flex h-11 shrink-0 items-center justify-center rounded-[9px] bg-action px-[18px] text-[13px] leading-[18px] font-medium text-white hover:bg-heading'
+
 function RolePill({ role }) {
   const owner = role === 'OWNER'
   return (
-    <span
-      className={`inline-flex h-6 shrink-0 items-center rounded-full px-2.5 text-xs font-semibold ${
-        owner ? 'bg-action text-white' : 'bg-surface-subtle text-heading'
-      }`}
-    >
+    <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs ${owner ? 'bg-[#3b5442] text-white' : 'bg-[#e8ede5] text-[#212b24]'}`}>
       <span className="sr-only">Your role: </span>
       {roleLabel(role)}
     </span>
@@ -27,64 +26,75 @@ export default function ProjectsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const toast = useToast()
   const creating = searchParams.get('new') === 'project'
+  const empty = projects.data?.length === 0
 
   function setCreating(value) {
     setSearchParams(value ? { new: 'project' } : {}, { replace: true })
   }
 
-  const createButton = <Button onClick={() => setCreating(true)}>Create project</Button>
+  const createButton = (
+    <button type="button" onClick={() => setCreating(true)} className={createButtonClass}>
+      Create project
+    </button>
+  )
 
   return (
-    <section className="mx-auto max-w-6xl">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-semibold text-heading">Your projects</h1>
-          <p className="mt-1 text-base text-muted">Projects you own or were invited to. Open one to see its board.</p>
+    <section className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <p className="text-xs leading-4 font-medium whitespace-pre text-muted uppercase">{'Khatet  /  Home'}</p>
+          <h1 className="text-[28px] leading-[34px] font-bold text-body">Your projects</h1>
+          <p className="text-sm leading-[21px] text-muted">
+            {empty ? 'Projects you own or were invited to.' : 'Projects you own or were invited to. Open one to see its board.'}
+          </p>
         </div>
-        {projects.data?.length > 0 && createButton}
+        {projects.data && createButton}
       </div>
 
-      <div className="mt-6">
-        {projects.isPending && <LoadingState label="Loading your projects" />}
-        {projects.isError && (
-          <ErrorState title="Your projects could not be loaded" message={errorMessage(projects.error)} onRetry={() => projects.refetch()} />
-        )}
-        {projects.data?.length === 0 && (
-          <EmptyState title="No projects yet" action={createButton}>
+      {projects.isPending && <LoadingState label="Loading your projects" />}
+      {projects.isError && (
+        <ErrorState title="Your projects could not be loaded" message={errorMessage(projects.error)} onRetry={() => projects.refetch()} />
+      )}
+      {empty && (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-line bg-white px-8 py-12 text-center">
+          <h2 className="text-xl font-bold text-body">No projects yet</h2>
+          <div className="text-base text-muted">
             <p>Create a project to start planning, or wait for a teammate to invite you.</p>
             <p>Invitations appear in Notifications, where you can accept or decline them.</p>
-          </EmptyState>
-        )}
-        {projects.data?.length > 0 && (
-          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {projects.data.map((project) => (
-              <li key={project.id}>
-                <Link
-                  to={`/projects/${project.id}/board`}
-                  className="flex h-full flex-col gap-3 rounded-xl border border-line bg-white p-4 shadow-card hover:border-surface-supporting"
-                >
-                  <span className="flex items-start gap-3">
-                    <span
-                      aria-hidden="true"
-                      className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-supporting font-semibold text-heading"
-                    >
-                      {project.name.charAt(0).toUpperCase()}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-lg font-semibold text-heading">{project.name}</span>
-                      {project.description && <span className="block text-base text-muted">{project.description}</span>}
-                    </span>
-                    <RolePill role={project.role} />
+          </div>
+          {createButton}
+        </div>
+      )}
+      {projects.data?.length > 0 && (
+        <ul className="flex flex-wrap gap-4">
+          {projects.data.map((project) => (
+            <li key={project.id} className="w-full sm:w-[360px]">
+              <Link
+                to={`/projects/${project.id}/board`}
+                className="flex h-full flex-col gap-2.5 rounded-xl border border-line bg-surface p-4 hover:border-surface-supporting hover:bg-white"
+              >
+                <span className="flex items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-surface-supporting text-xs leading-4 font-medium text-heading"
+                  >
+                    {project.name.charAt(0).toUpperCase()}
                   </span>
-                  <span className="mt-auto text-sm font-medium text-action">
-                    Open board <span aria-hidden="true">→</span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="text-base leading-[21px] text-body">{project.name}</span>
+                    {project.description && <span className="text-sm leading-[18px] text-muted">{project.description}</span>}
                   </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+                  <RolePill role={project.role} />
+                </span>
+                <span className="text-xs leading-[18px] whitespace-pre text-heading">
+                  {'Open board  '}
+                  <span aria-hidden="true">→</span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <CreateProjectDialog
         open={creating}
