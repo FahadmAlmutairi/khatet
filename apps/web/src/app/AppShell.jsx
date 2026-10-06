@@ -37,7 +37,7 @@ function Sidebar({ onNavigate }) {
 
         <div className="flex flex-col gap-2">
           <div className="flex h-6 items-center justify-between">
-            <h2 className="text-xs font-medium tracking-[1px] text-[#879388] uppercase">Projects</h2>
+            <h2 className="text-xs font-medium tracking-[1px] text-muted uppercase">Projects</h2>
             <Link
               to="/projects?new=project"
               onClick={onNavigate}
