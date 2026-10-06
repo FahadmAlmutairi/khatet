@@ -1,8 +1,10 @@
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import { errorMessage } from '../../api/errors.js'
 import { useCreateTask } from '../../api/hooks.js'
 import { Spinner } from '../../components/ui/Button.jsx'
 import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
+import DiscardChangesDialog from '../../components/ui/DiscardChangesDialog.jsx'
+import { sameValues, useFocusFirstError } from '../../components/ui/formState.js'
 import TaskFields from './TaskFields.jsx'
 import { emptyTaskValues } from './taskValues.js'
 
@@ -12,12 +14,22 @@ import { emptyTaskValues } from './taskValues.js'
 export default function CreateTaskDialog({ open, onClose, projectId, members, onCreated }) {
   const createTask = useCreateTask(projectId)
   const [values, setValues] = useState(emptyTaskValues)
+  const [confirming, setConfirming] = useState(false)
   const titleId = useId()
+  const formRef = useRef(null)
+  useFocusFirstError(formRef, createTask.error)
 
   function close() {
+    setConfirming(false)
     setValues(emptyTaskValues())
     createTask.reset()
     onClose()
+  }
+
+  // T1: ask before throwing away what was typed.
+  function requestClose() {
+    if (sameValues(values, emptyTaskValues())) close()
+    else setConfirming(true)
   }
 
   function submit(event) {
@@ -31,9 +43,9 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
   }
 
   return (
-    <Dialog open={open} onClose={close} variant="page" labelledBy={titleId}>
-      <MobileBackBar label="Board" onBack={close} title="Create task" />
-      <form onSubmit={submit} noValidate className="flex flex-col gap-4 px-5 pt-3 pb-6 sm:p-6">
+    <Dialog open={open} onClose={requestClose} variant="page" labelledBy={titleId}>
+      <MobileBackBar label="Board" onBack={requestClose} title="Create task" />
+      <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-4 px-5 pt-3 pb-6 sm:p-6">
         <div className="flex flex-col gap-2">
           <h2 id={titleId} className="sr-only text-2xl font-semibold text-body sm:not-sr-only">
             Create a task
@@ -49,7 +61,7 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
         <div className="mt-2 flex justify-end gap-3 sm:mt-4">
           <button
             type="button"
-            onClick={close}
+            onClick={requestClose}
             className="hidden h-11 items-center rounded-lg border border-line bg-white px-4 text-[13px] font-medium text-heading hover:bg-surface sm:inline-flex"
           >
             Cancel
@@ -65,6 +77,7 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
           </button>
         </div>
       </form>
+      <DiscardChangesDialog open={confirming} onKeep={() => setConfirming(false)} onDiscard={close} />
     </Dialog>
   )
 }

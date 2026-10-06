@@ -177,6 +177,7 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Create task' }))
     expect(await within(dialog).findByText('Enter a task title.')).toBeInTheDocument()
     expect(within(dialog).getByText('Choose at least one assignee.')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText(/Task title/)).toHaveFocus()
 
     await user.type(within(dialog).getByLabelText(/Task title/), 'Plan the demo')
     await user.click(within(dialog).getByRole('button', { name: /Add assignee/ }))
@@ -187,6 +188,36 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Create task' }))
     const todo = screen.getByRole('region', { name: /^To Do/ })
     expect(await within(todo).findByText('Plan the demo')).toBeInTheDocument()
+  })
+
+  it('asks before discarding a half-filled new task', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('button', { name: 'Add task' }))
+    const dialog = screen.getByRole('dialog', { name: 'Create a task' })
+    await user.type(within(dialog).getByLabelText(/Task title/), 'Half a thought')
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    const confirm = await screen.findByRole('dialog', { name: 'Discard your changes?' })
+    await user.click(within(confirm).getByRole('button', { name: 'Keep editing' }))
+    expect(within(dialog).getByLabelText(/Task title/)).toHaveValue('Half a thought')
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Discard your changes?' })).getByRole('button', { name: 'Discard changes' }))
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Create a task' })).not.toBeInTheDocument())
+  })
+
+  it('asks before closing task details with unsaved edits', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/board?task=t-8')
+    const drawer = await screen.findByRole('dialog', { name: 'Define board hierarchy' })
+    await user.click(await within(drawer).findByRole('button', { name: 'Edit' }))
+    await user.type(within(drawer).getByLabelText(/Task title/), ' v2')
+    await user.click(within(drawer).getAllByRole('button', { name: 'Close' })[0])
+    const confirm = await screen.findByRole('dialog', { name: 'Discard your changes?' })
+    await user.click(within(confirm).getByRole('button', { name: 'Discard changes' }))
+    await waitFor(() => expect(router.state.location.search).toBe(''))
   })
 
   it('edits a task and keeps at least one assignee', async () => {

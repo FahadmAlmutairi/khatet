@@ -37,7 +37,13 @@ export default function BoardPage() {
   }
 
   function closeTask() {
+    const taskId = openTaskId
     setSearchParams({}, { replace: true })
+    // G11: if the control that opened the task is gone (a menu item), focus returns to its card.
+    setTimeout(() => {
+      if (document.activeElement && document.activeElement !== document.body) return
+      document.querySelector(`[data-task-id="${taskId}"] h3 button`)?.focus()
+    }, 0)
   }
 
   function move(task, status, position) {

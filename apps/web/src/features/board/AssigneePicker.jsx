@@ -37,7 +37,7 @@ export default function AssigneePicker({ members, value, onChange, error, requir
   }
 
   return (
-    <div role="group" aria-labelledby={`${id}-label`} aria-describedby={error ? `${id}-error` : undefined} className="flex flex-col gap-1.5">
+    <div role="group" data-invalid={error ? 'true' : undefined} aria-labelledby={`${id}-label`} aria-describedby={error ? `${id}-error` : undefined} className="flex flex-col gap-1.5">
       <span id={`${id}-label`} className="text-sm font-medium text-body">
         Assignees
         {required && (

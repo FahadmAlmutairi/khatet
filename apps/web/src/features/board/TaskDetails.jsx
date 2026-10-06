@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { errorMessage } from '../../api/errors.js'
 import { useDeleteTask, useTask, useUpdateTask } from '../../api/hooks.js'
 import { AvatarStack } from '../../components/Avatar.jsx'
@@ -7,6 +7,8 @@ import PriorityBadge from '../../components/PriorityBadge.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import Button from '../../components/ui/Button.jsx'
 import Dialog from '../../components/ui/Dialog.jsx'
+import DiscardChangesDialog from '../../components/ui/DiscardChangesDialog.jsx'
+import { sameValues, useFocusFirstError } from '../../components/ui/formState.js'
 import Menu from '../../components/ui/Menu.jsx'
 import { ErrorState, LoadingState, Notice } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
@@ -251,10 +253,25 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
   )
 }
 
-function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone }) {
+function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone, registerCloseGuard }) {
   const updateTask = useUpdateTask()
   const toast = useToast()
   const [values, setValues] = useState(() => taskValues(task))
+  const [pendingLeave, setPendingLeave] = useState(null)
+  const formRef = useRef(null)
+  useFocusFirstError(formRef, updateTask.error)
+  const dirty = !sameValues(values, taskValues(task))
+
+  // T1: closing the window or cancelling asks first when there are unsaved changes.
+  function leave(next) {
+    if (dirty) setPendingLeave(() => next)
+    else next()
+  }
+
+  useEffect(() => {
+    registerCloseGuard(leave)
+    return () => registerCloseGuard(null)
+  })
 
   function submit(event) {
     event.preventDefault()
@@ -270,8 +287,8 @@ function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone }) {
   }
 
   return (
-    <form onSubmit={submit} noValidate className="flex flex-col gap-5">
-      <TopBar eyebrow={eyebrow} onClose={onClose} />
+    <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-5">
+      <TopBar eyebrow={eyebrow} onClose={() => leave(onClose)} />
       <h2 id={titleId} className="text-xl leading-[30px] font-bold text-body sm:text-2xl">
         Edit task
       </h2>
@@ -282,7 +299,7 @@ function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone }) {
         </p>
       )}
       <div className="flex justify-end gap-3">
-        <button type="button" onClick={onDone} className={`${outlineButton} px-[18px] lg:h-11`}>
+        <button type="button" onClick={() => leave(onDone)} className={`${outlineButton} px-[18px] lg:h-11`}>
           Cancel
         </button>
         <button
@@ -293,11 +310,20 @@ function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone }) {
           Save changes
         </button>
       </div>
+      <DiscardChangesDialog
+        open={Boolean(pendingLeave)}
+        onKeep={() => setPendingLeave(null)}
+        onDiscard={() => {
+          const next = pendingLeave
+          setPendingLeave(null)
+          next()
+        }}
+      />
     </form>
   )
 }
 
-function TaskDetailsBody({ taskId, titleId, projectId, projectName, members, usernames, onClose, onMove }) {
+function TaskDetailsBody({ taskId, titleId, projectId, projectName, members, usernames, onClose, onMove, registerCloseGuard }) {
   const task = useTask(taskId)
   const [mode, setMode] = useState('view')
   const toast = useToast()
@@ -326,6 +352,7 @@ function TaskDetailsBody({ taskId, titleId, projectId, projectName, members, use
           members={members}
           onClose={onClose}
           onDone={() => setMode('view')}
+          registerCloseGuard={registerCloseGuard}
         />
       ) : (
         <TaskView
@@ -358,9 +385,17 @@ function TaskDetailsBody({ taskId, titleId, projectId, projectName, members, use
 // opened task always starts in view mode.
 export default function TaskDetails({ taskId, onClose, ...props }) {
   const titleId = useId()
+  // The edit form sets this so Esc and the backdrop also ask before discarding changes.
+  const closeGuard = useRef(null)
+  const requestClose = () => (closeGuard.current ? closeGuard.current(onClose) : onClose())
+  const registerCloseGuard = (guard) => {
+    closeGuard.current = guard
+  }
   return (
-    <Dialog open={Boolean(taskId)} onClose={onClose} variant="panel" labelledBy={titleId}>
-      {taskId && <TaskDetailsBody key={taskId} taskId={taskId} titleId={titleId} onClose={onClose} {...props} />}
+    <Dialog open={Boolean(taskId)} onClose={requestClose} variant="panel" labelledBy={titleId}>
+      {taskId && (
+        <TaskDetailsBody key={taskId} taskId={taskId} titleId={titleId} onClose={onClose} registerCloseGuard={registerCloseGuard} {...props} />
+      )}
     </Dialog>
   )
 }

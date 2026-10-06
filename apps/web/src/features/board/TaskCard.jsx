@@ -87,6 +87,7 @@ export default function TaskCard({ task, usernames, onOpen, onMove, className = 
   return (
     <li
       ref={setNodeRef}
+      data-task-id={task.id}
       {...listeners}
       onClick={openFromCard}
       style={{ transform: CSS.Translate.toString(transform), transition }}
