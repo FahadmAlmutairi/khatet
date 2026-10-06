@@ -88,7 +88,13 @@ export default function BoardPage() {
           <ErrorState title="The board could not be loaded" message={errorMessage(tasks.error)} onRetry={() => tasks.refetch()} />
         )}
         {tasks.data && members.data && (
-          <BoardColumns tasks={tasks.data} usernames={usernames} onOpen={openTask} onMove={move} />
+          <BoardColumns
+            tasks={tasks.data}
+            usernames={usernames}
+            onOpen={openTask}
+            onMove={move}
+            onCreate={project.permissions.canCreateTask ? () => setCreating(true) : undefined}
+          />
         )}
       </div>
 

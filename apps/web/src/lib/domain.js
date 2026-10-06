@@ -82,10 +82,12 @@ function todayKey(now = new Date()) {
 }
 
 // The due line on a board card: "Due 20 Sep", "Due today" or "No due date".
-// A past due date on an unfinished task is marked overdue.
+// A past due date on an unfinished task reads "Overdue · 20 Sep", so it is not shown by colour alone.
 export function dueLine(dueDate, status, now = new Date()) {
   if (!dueDate) return { text: 'No due date', overdue: false }
   const today = todayKey(now)
   if (dueDate === today) return { text: 'Due today', overdue: false }
-  return { text: `Due ${formatDueDate(dueDate, { short: true })}`, overdue: dueDate < today && status !== 'DONE' }
+  const overdue = dueDate < today && status !== 'DONE'
+  const date = formatDueDate(dueDate, { short: true })
+  return { text: overdue ? `Overdue · ${date}` : `Due ${date}`, overdue }
 }

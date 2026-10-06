@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   closestCenter,
   DndContext,
@@ -13,7 +13,7 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import { arrayMove, rectSortingStrategy, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { ChevronIcon } from '../../components/icons.jsx'
+import { ChevronIcon, PlusIcon } from '../../components/icons.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import { ACTIVE_STATUSES, STATUSES } from '../../lib/domain.js'
 import TaskCard, { TaskCardBody } from './TaskCard.jsx'
@@ -28,7 +28,7 @@ const ACCENTS = {
 const COLUMN_PREFIX = 'column:'
 const isColumnId = (id) => String(id).startsWith(COLUMN_PREFIX)
 
-function Lane({ status, tasks, usernames, onOpen, onMove }) {
+function Lane({ status, tasks, usernames, onOpen, onMove, onCreate }) {
   const { setNodeRef, isOver } = useDroppable({ id: `${COLUMN_PREFIX}${status.value}`, data: { type: 'column', status: status.value } })
   const headingId = `column-${status.value}`
 
@@ -36,7 +36,7 @@ function Lane({ status, tasks, usernames, onOpen, onMove }) {
     <section
       ref={setNodeRef}
       aria-labelledby={headingId}
-      className={`relative flex min-h-40 w-[274px] shrink-0 snap-start flex-col gap-3 overflow-hidden rounded-[var(--radius-card)] border border-line p-3 transition-colors duration-150 lg:min-h-[460px] lg:w-auto lg:min-w-0 lg:flex-1 ${
+      className={`relative flex min-h-40 w-full shrink-0 snap-start sm:w-[274px] flex-col gap-3 overflow-hidden rounded-[var(--radius-card)] border border-line p-3 transition-colors duration-150 lg:min-h-[460px] lg:w-auto lg:min-w-0 lg:flex-1 ${
         isOver ? 'bg-nav-active' : 'bg-surface'
       }`}
     >
@@ -53,6 +53,21 @@ function Lane({ status, tasks, usernames, onOpen, onMove }) {
           {tasks.map((task) => (
             <TaskCard key={task.id} task={task} usernames={usernames} onOpen={onOpen} onMove={onMove} />
           ))}
+          {tasks.length === 0 && (
+            <li className="flex flex-col items-start gap-2 rounded-[10px] border border-dashed border-line px-3 py-4 text-sm leading-[21px] text-muted">
+              No tasks yet.
+              {onCreate && (
+                <button
+                  type="button"
+                  onClick={onCreate}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-[9px] border border-line bg-white px-3 text-[13px] font-medium text-heading hover:bg-surface lg:min-h-9"
+                >
+                  <PlusIcon />
+                  Add task
+                </button>
+              )}
+            </li>
+          )}
         </ul>
       </SortableContext>
     </section>
@@ -116,7 +131,10 @@ function idsByStatus(tasks) {
   return ids
 }
 
-export default function BoardColumns({ tasks, usernames, onOpen, onMove }) {
+export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreate }) {
+  // Phone: the status chips work as tabs for the lane in view (one lane per screen).
+  const scrollerRef = useRef(null)
+  const [visibleLane, setVisibleLane] = useState(0)
   const [backlogOpen, setBacklogOpen] = useState(false)
   const [activeId, setActiveId] = useState(null)
   // While a card is dragged, this holds the live order so cards make room as it moves.
@@ -220,6 +238,20 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove }) {
     onMove(task, status, position)
   }
 
+  function onScrollLanes(event) {
+    const scroller = event.currentTarget
+    const lane = scroller.querySelector('section')
+    if (!lane) return
+    const step = lane.getBoundingClientRect().width + 16
+    setVisibleLane(Math.min(ACTIVE_STATUSES.length - 1, Math.max(0, Math.round(scroller.scrollLeft / step))))
+  }
+
+  function showLane(index) {
+    const lane = scrollerRef.current?.querySelectorAll('section')[index]
+    lane?.scrollIntoView({ inline: 'start', block: 'nearest', behavior: 'smooth' })
+    setVisibleLane(index)
+  }
+
   const announcements = {
     onDragStart: ({ active }) => `Picked up ${byId.get(active.id)?.title}.`,
     onDragOver: () => undefined,
@@ -243,14 +275,15 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove }) {
     >
       <nav aria-label="Board columns" className="-mx-4 mb-3 overflow-x-auto px-4 lg:hidden">
         <ul className="flex gap-2">
-          {ACTIVE_STATUSES.map((status) => (
+          {ACTIVE_STATUSES.map((status, index) => (
             <li key={status.value}>
               <button
                 type="button"
-                onClick={() =>
-                  document.getElementById(`column-${status.value}`)?.closest('section')?.scrollIntoView({ inline: 'start', block: 'nearest' })
-                }
-                className="inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full border border-line bg-white px-3 text-sm font-medium text-heading"
+                onClick={() => showLane(index)}
+                aria-current={visibleLane === index ? 'true' : undefined}
+                className={`inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-sm font-medium text-heading ${
+                  visibleLane === index ? 'border-action bg-nav-active' : 'border-line bg-white'
+                }`}
               >
                 <StatusIcon status={status.value} />
                 {status.label} · {ids[status.value].length}
@@ -259,7 +292,11 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove }) {
           ))}
         </ul>
       </nav>
-      <div className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-1 lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0">
+      <div
+        ref={scrollerRef}
+        onScroll={onScrollLanes}
+        className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-1 lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0"
+      >
         {ACTIVE_STATUSES.map((status) => (
           <Lane
             key={status.value}
@@ -268,6 +305,7 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove }) {
             usernames={usernames}
             onOpen={onOpen}
             onMove={onMove}
+            onCreate={status.value === 'TODO' ? onCreate : undefined}
           />
         ))}
       </div>

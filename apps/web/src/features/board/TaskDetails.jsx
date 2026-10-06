@@ -2,7 +2,7 @@ import { useId, useState } from 'react'
 import { errorMessage } from '../../api/errors.js'
 import { useDeleteTask, useTask, useUpdateTask } from '../../api/hooks.js'
 import { AvatarStack } from '../../components/Avatar.jsx'
-import { ChevronIcon, CloseIcon, MoreIcon } from '../../components/icons.jsx'
+import { ChevronIcon, CloseIcon, MoreIcon, OverdueIcon } from '../../components/icons.jsx'
 import PriorityBadge from '../../components/PriorityBadge.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -227,9 +227,10 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
         </Detail>
         <Detail label="Priority">{task.priority ? <PriorityBadge priority={task.priority} /> : 'No priority'}</Detail>
         <Detail label="Due date">
-          <span className={due.overdue ? 'text-attention' : ''}>
+          <span className={due.overdue ? 'inline-flex items-center gap-1 text-blocked' : ''}>
+            {due.overdue && <OverdueIcon />}
             {task.dueDate ? formatDueDate(task.dueDate) : 'No due date'}
-            {due.overdue && <span className="sr-only">, overdue</span>}
+            {due.overdue && <span className="font-medium"> · Overdue</span>}
           </span>
         </Detail>
       </dl>

@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { AvatarStack } from '../../components/Avatar.jsx'
-import { MoreIcon } from '../../components/icons.jsx'
+import { MoreIcon, OverdueIcon } from '../../components/icons.jsx'
 import PriorityBadge from '../../components/PriorityBadge.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import Menu from '../../components/ui/Menu.jsx'
@@ -26,6 +26,8 @@ export function TaskCardBody({ task, usernames, onOpen, onMove, isOverlay = fals
   return (
     <div
       className={`flex flex-col items-start gap-2 rounded-[var(--radius-card)] border border-line bg-white p-3 ${
+        task.isBlocked ? 'border-l-4 border-l-blocked' : ''
+      } ${
         isOverlay ? 'shadow-[0_12px_24px_rgba(48,65,54,0.16)]' : 'shadow-[0_2px_4px_rgba(48,65,54,0.05)] hover:border-surface-supporting'
       }`}
     >
@@ -38,9 +40,9 @@ export function TaskCardBody({ task, usernames, onOpen, onMove, isOverlay = fals
           {task.title}
         </button>
       </h3>
-      <p className={`text-xs font-medium leading-4 ${due.overdue ? 'text-attention' : 'text-muted'}`}>
+      <p className={`inline-flex items-center gap-1 text-xs font-medium leading-4 ${due.overdue ? 'text-blocked' : 'text-muted'}`}>
+        {due.overdue && <OverdueIcon />}
         {due.text}
-        {due.overdue && <span className="sr-only">, overdue</span>}
       </p>
       {task.isBlocked && <BlockedPill />}
       <div className="flex w-full items-center justify-between">

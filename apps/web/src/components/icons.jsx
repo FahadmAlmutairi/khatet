@@ -97,6 +97,17 @@ export function CalendarIcon() {
   )
 }
 
+// Clock with an alert mark, shown next to overdue dates.
+export function OverdueIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <circle cx="7" cy="7" r="5.6" stroke="currentColor" strokeWidth="1.3" />
+      <path d="M7 4v3.4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="7" cy="9.8" r="0.8" fill="currentColor" />
+    </svg>
+  )
+}
+
 export function SignOutIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">

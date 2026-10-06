@@ -2,7 +2,7 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { ApiError } from '../api/errors.js'
-import { failNextCall, resetMockServer } from '../api/mockServer.js'
+import { createProject, createTask, failNextCall, resetMockServer } from '../api/mockServer.js'
 import { renderApp } from '../test/renderApp.jsx'
 
 function signIn() {
@@ -124,6 +124,36 @@ describe('board (US-16, US-21)', () => {
     expect(await screen.findByText(/could not be moved and is back in its place/)).toBeInTheDocument()
     const todo = screen.getByRole('region', { name: /^To Do/ })
     await waitFor(() => expect(within(todo).getByText('Prepare usability test script')).toBeInTheDocument())
+  })
+
+  it('labels an overdue date in words, not only by colour', async () => {
+    signIn()
+    renderApp('/projects/p-khatet/board')
+    const review = await screen.findByRole('region', { name: /^Ready for Review/ })
+    expect(within(review).getByText('Overdue · 20 Sep')).toBeInTheDocument()
+  })
+
+  it('shows empty lanes with an Add task action in To Do', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const project = await createProject({ name: 'Empty project' })
+    renderApp(`/projects/${project.id}/board`)
+    const todo = await screen.findByRole('region', { name: /^To Do/ })
+    expect(within(todo).getByText('No tasks yet.')).toBeInTheDocument()
+    expect(within(screen.getByRole('region', { name: /^Done/ })).queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument()
+    await user.click(within(todo).getByRole('button', { name: 'Add task' }))
+    expect(await screen.findByRole('dialog', { name: /Create a task/ })).toBeInTheDocument()
+  })
+
+  it('shows a board of 30 tasks (NFR-07)', async () => {
+    signIn()
+    for (let index = 1; index <= 22; index += 1) {
+      await createTask('p-khatet', { title: `Sample task ${index}`, assigneeIds: ['u-fahad'] })
+    }
+    renderApp('/projects/p-khatet/board')
+    const todo = await screen.findByRole('region', { name: /^To Do/ })
+    expect(within(todo).getAllByRole('listitem')).toHaveLength(25)
+    expect(within(todo).getByText('Sample task 22')).toBeInTheDocument()
   })
 
   it('shows a member without edit access no move or create controls', async () => {

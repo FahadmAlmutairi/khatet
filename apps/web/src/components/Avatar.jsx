@@ -27,7 +27,7 @@ export function AvatarStack({ users, max = 3 }) {
   const label = `Assigned to ${users.map((user) => `@${user.username}`).join(', ')}`
 
   return (
-    <span role="img" aria-label={label} className="flex -space-x-2">
+    <span role="img" aria-label={label} className="flex -space-x-1">
       {shown.map((user) => (
         <Avatar key={user.id} username={user.username} />
       ))}
