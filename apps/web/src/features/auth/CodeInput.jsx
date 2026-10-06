@@ -1,4 +1,4 @@
-import { useId, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 
 const LENGTH = 6
 
@@ -12,6 +12,11 @@ export default function CodeInput({ value, onChange, error, label = 'Verificatio
   function focusBox(index) {
     refs.current[Math.min(Math.max(index, 0), LENGTH - 1)]?.focus()
   }
+
+  // A wrong or expired code puts the cursor back in the first box, ready for a new code.
+  useEffect(() => {
+    if (error) refs.current[0]?.focus()
+  }, [error])
 
   function fill(start, text) {
     const incoming = text.replace(/\D/g, '')

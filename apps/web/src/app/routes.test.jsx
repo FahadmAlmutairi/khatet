@@ -29,6 +29,7 @@ describe('sign in (US-01, US-02)', () => {
     await user.click(screen.getByRole('button', { name: 'Verify code' }))
     expect(await screen.findByText('That code is not right. Check the email and try again.')).toBeInTheDocument()
     expect(firstDigit).toHaveAttribute('aria-invalid', 'true')
+    expect(firstDigit).toHaveFocus()
 
     await user.type(firstDigit, '123456')
     await user.click(screen.getByRole('button', { name: 'Verify code' }))

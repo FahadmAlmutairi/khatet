@@ -63,7 +63,11 @@ export default function VerifyCodePage() {
           Verify code
         </button>
       </form>
-      <div className="-mt-1 flex justify-center text-[13px] leading-[18px] text-muted" aria-live="polite">
+      {/* Only the moment a new code can be requested is announced, not every second. */}
+      <p className="sr-only" aria-live="polite">
+        {secondsLeft > 0 ? '' : 'You can now request a new code.'}
+      </p>
+      <div className="-mt-1 flex justify-center text-[13px] leading-[18px] text-muted">
         {secondsLeft > 0 ? (
           <p>
             You can request a new code in {secondsLeft} seconds (00:{String(secondsLeft).padStart(2, '0')}).
