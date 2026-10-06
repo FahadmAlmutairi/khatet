@@ -36,7 +36,7 @@ function Lane({ status, tasks, usernames, onOpen, onMove, onCreate }) {
     <section
       ref={setNodeRef}
       aria-labelledby={headingId}
-      className={`relative flex min-h-40 w-full shrink-0 snap-start sm:w-[274px] flex-col gap-3 overflow-hidden rounded-[var(--radius-card)] border border-line p-3 transition-colors duration-150 lg:min-h-[460px] lg:w-auto lg:min-w-0 lg:flex-1 ${
+      className={`relative flex min-h-40 w-full shrink-0 snap-start sm:w-[274px] flex-col gap-3 overflow-hidden rounded-[var(--radius-card)] border border-line p-3 transition-colors duration-150 lg:min-h-60 lg:w-auto lg:min-w-0 lg:flex-1 ${
         isOver ? 'bg-nav-active' : 'bg-surface'
       }`}
     >
@@ -51,7 +51,7 @@ function Lane({ status, tasks, usernames, onOpen, onMove, onCreate }) {
       <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
         <ul className="flex flex-1 flex-col gap-3">
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} usernames={usernames} onOpen={onOpen} onMove={onMove} />
+            <TaskCard key={task.id} task={task} usernames={usernames} onOpen={onOpen} onMove={onMove} quiet={status.value === 'DONE'} />
           ))}
           {tasks.length === 0 && (
             <li className="flex flex-col items-start gap-2 rounded-[10px] border border-dashed border-line px-3 py-4 text-sm leading-[21px] text-muted">
@@ -295,7 +295,7 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
       <div
         ref={scrollerRef}
         onScroll={onScrollLanes}
-        className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 pb-1 lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0"
+        className={`relative -mx-4 flex ${activeId ? '' : 'snap-x snap-mandatory'} scroll-px-4 gap-4 overflow-x-auto px-4 pb-1 lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0`}
       >
         {ACTIVE_STATUSES.map((status) => (
           <Lane
