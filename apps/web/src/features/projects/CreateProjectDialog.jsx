@@ -39,15 +39,9 @@ export default function CreateProjectDialog({ open, onClose, onCreated }) {
     <Dialog open={open} onClose={close} variant="page" width={560} labelledBy={titleId}>
       <MobileBackBar label="Home" onBack={close} />
       <form onSubmit={submit} noValidate className="flex flex-col gap-4 px-5 pt-3 pb-6 sm:p-7">
-        <div className="flex flex-col gap-1.5 leading-normal">
-          <h2 id={titleId} className="text-[26px] font-bold text-body sm:text-2xl">
-            Create a project
-          </h2>
-          <p className="text-sm text-muted">
-            <span className="sm:hidden">You become the Project Owner and can invite teammates after creation.</span>
-            <span className="max-sm:hidden">You can change any of this later in Project settings.</span>
-          </p>
-        </div>
+        <h2 id={titleId} className="text-[26px] leading-normal font-bold text-body sm:text-2xl">
+          Create a project
+        </h2>
         <TextField
           label="Project name"
           required

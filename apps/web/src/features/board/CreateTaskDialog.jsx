@@ -46,12 +46,9 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
     <Dialog open={open} onClose={requestClose} variant="page" labelledBy={titleId}>
       <MobileBackBar label="Board" onBack={requestClose} title="Create task" />
       <form ref={formRef} onSubmit={submit} onKeyDown={submitOnCtrlEnter} noValidate className="flex flex-col gap-4 px-5 pt-3 pb-6 sm:p-6">
-        <div className="flex flex-col gap-2">
-          <h2 id={titleId} className="sr-only text-2xl font-semibold text-body sm:not-sr-only">
-            Create a task
-          </h2>
-          <p className="text-sm text-muted">Add the details the team needs to start confidently.</p>
-        </div>
+        <h2 id={titleId} className="sr-only text-2xl font-semibold text-body sm:not-sr-only">
+          Create a task
+        </h2>
         <TaskFields values={values} onChange={setValues} members={members} error={createTask.error} />
         {createTask.isError && !createTask.error.fieldErrors?.length && (
           <p role="alert" className="text-sm text-blocked">

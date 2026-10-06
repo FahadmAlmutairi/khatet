@@ -105,7 +105,7 @@ function BlockedControl({ task }) {
           <p id={`${id}-label`} className="text-base font-medium text-body">
             Blocked
           </p>
-          <p className="text-sm leading-5 text-muted">Only for tasks in progress. The card shows a Blocked label.</p>
+          <p className="text-sm leading-5 text-muted">Only for tasks in progress.</p>
         </div>
         <button
           type="button"

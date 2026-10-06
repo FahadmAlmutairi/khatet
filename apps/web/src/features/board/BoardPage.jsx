@@ -86,7 +86,6 @@ export default function BoardPage() {
           </button>
         )}
       </div>
-      <p className="text-sm leading-[21px] text-muted">Open a task for details or move it between stages.</p>
       {note && (
         <div className="max-w-2xl">
           <Notice>{note}</Notice>

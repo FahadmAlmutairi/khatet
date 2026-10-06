@@ -27,9 +27,7 @@ export default function ChooseUsernamePage() {
 
   return (
     <AuthLayout step="Step 3 of 3" title="Choose your username">
-      <p className="text-sm leading-[21px] text-muted">
-        Your email is verified. Choose a unique username for invitations and your Khatet profile.
-      </p>
+      <p className="text-sm leading-[21px] text-muted">Teammates use it to invite you.</p>
       <form onSubmit={submit} noValidate className="flex flex-col gap-6">
         <TextField
           label="Unique username"

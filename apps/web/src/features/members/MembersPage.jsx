@@ -21,31 +21,19 @@ const ACCESS_OPTIONS = [
   {
     value: 'VIEW_ONLY',
     label: 'View tasks only',
-    help: 'View project details and tasks. Cannot create, edit, or move tasks.',
+    help: 'Can view tasks but not change them.',
   },
   {
     value: 'EDIT_ASSIGNED',
     label: 'Edit assigned tasks',
     tag: 'Default',
-    help: 'Edit or move tasks assigned to you. Cannot create tasks, change assignees, or edit other tasks.',
+    help: 'Can edit and move tasks assigned to them.',
   },
   {
     value: 'EDIT_ALL',
     label: 'Edit all tasks',
-    help: 'Create, edit, and move any project task.',
+    help: 'Can create, edit and move any task.',
   },
-]
-
-const ACCESS_SUMMARY = [
-  {
-    label: 'View tasks only',
-    help: 'Can see every task and use chat, but not edit.',
-  },
-  {
-    label: 'Edit assigned tasks',
-    help: 'Can edit and move tasks assigned to them.',
-  },
-  { label: 'Edit all tasks', help: 'Can edit, move and create any task.' },
 ]
 
 const secondaryButton =
@@ -87,9 +75,7 @@ function InviteDialog({ open, onClose, projectId }) {
           <h2 id={`${id}-title`} className="text-[26px] leading-8 font-bold text-body">
             Invite a team member
           </h2>
-          <p className="text-sm leading-5 text-muted">
-            Invite a registered user by their username. They join with Edit assigned tasks access. Every member can use project chat.
-          </p>
+          <p className="text-sm leading-5 text-muted">They join with Edit assigned tasks access.</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor={`${id}-username`} className="text-xs leading-4 font-semibold text-body">
@@ -109,16 +95,12 @@ function InviteDialog({ open, onClose, projectId }) {
             autoFocus
             aria-required="true"
             aria-invalid={Boolean(usernameError)}
-            aria-describedby={`${id}-${usernameError ? 'error' : 'hint'}`}
+            aria-describedby={usernameError ? `${id}-error` : undefined}
             className="h-11 w-full rounded-[10px] border border-surface-supporting bg-white px-[14px] text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
           />
-          {usernameError ? (
+          {usernameError && (
             <p id={`${id}-error`} className="text-sm font-medium text-blocked">
               {usernameError}
-            </p>
-          ) : (
-            <p id={`${id}-hint`} className="text-xs leading-4 text-muted">
-              Enter the unique username of an existing Khatet user.
             </p>
           )}
         </div>
@@ -187,7 +169,6 @@ function AccessDialog({ member, projectId, onClose }) {
               </span>
             </h2>
             <p className="mt-3 text-[15px] font-semibold text-body sm:hidden">@{member.username} · Team Member</p>
-            <p className="mt-3 text-sm text-muted sm:mt-2">Choose one task access level. Every Team Member can use project chat.</p>
             <fieldset className="mt-4 flex flex-col gap-3 sm:mt-6">
               <legend className="sr-only">Task access for @{member.username}</legend>
               {ACCESS_OPTIONS.map((option) => {
@@ -218,7 +199,6 @@ function AccessDialog({ member, projectId, onClose }) {
                 )
               })}
             </fieldset>
-            <p className="mt-3 hidden text-xs text-muted sm:block">Only the Project Owner can change task access or remove members.</p>
             <div className="mt-4 flex justify-end gap-2">
               <button type="button" onClick={close} className={`max-sm:hidden ${secondaryButton}`}>
                 Cancel
@@ -302,10 +282,7 @@ export default function MembersPage() {
   return (
     <section>
       <Breadcrumb items={crumbs} className="lg:hidden" />
-      <h1 className="mt-2 text-[26px] font-bold text-body lg:text-[32px] lg:leading-[38px]">Members</h1>
-      <p className="mt-2 text-sm leading-[21px] text-muted lg:mt-4">
-        {isOwner ? 'Invite people, review their roles, and set their task access.' : 'View project members and their task access.'}
-      </p>
+      <h1 className="mt-2 text-[26px] font-bold text-body lg:mt-0 lg:text-[32px] lg:leading-[38px]">Members</h1>
 
       {members.isPending && <MemberRowsSkeleton />}
       {members.isError && (
@@ -347,61 +324,29 @@ export default function MembersPage() {
             </ul>
           </div>
 
-          <div className="mt-4 flex flex-col gap-4">
-            {/* Mobile (737:2) shows pending invitations before this note; desktop shows it first. */}
-            <p className="order-last rounded-[10px] bg-[#f6f8f6] px-3.5 py-3 text-sm leading-[18px] text-muted lg:order-none">
-              All Team Members can use project chat. Task access controls which tasks each member can edit.
-            </p>
-
-            {isOwner && (
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-                <section
-                  aria-labelledby="pending-invitations"
-                  className="flex flex-1 flex-col gap-3 rounded-[14px] border border-line bg-white p-4 lg:rounded-2xl lg:p-5"
-                >
-                  <h2
-                    id="pending-invitations"
-                    className="text-xs font-medium text-muted uppercase lg:text-base lg:font-semibold lg:text-body lg:normal-case"
-                  >
-                    Pending invitations
-                  </h2>
-                  {invitations.length === 0 && <p className="text-sm text-muted">No invitations are waiting for a reply.</p>}
-                  {invitations.length > 0 && (
-                    <ul className="flex flex-col">
-                      {invitations.map((invitation) => (
-                        <li key={invitation.id} className="flex flex-col gap-0.5 py-1 lg:border-t lg:border-line lg:py-2.5">
-                          <p className="text-[15px] font-semibold text-body lg:text-sm lg:font-medium">@{invitation.username}</p>
-                          <p className="text-xs leading-[18px] text-muted">
-                            Invited{' '}
-                            {formatDueDate(invitation.createdAt.slice(0, 10), {
-                              short: true,
-                            })}{' '}
-                            · Waiting for a reply
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </section>
-                <section
-                  aria-labelledby="access-levels"
-                  className="hidden flex-1 flex-col gap-3 rounded-2xl border border-line bg-surface p-5 lg:flex"
-                >
-                  <h2 id="access-levels" className="text-base font-semibold text-body">
-                    Task access levels
-                  </h2>
-                  <dl className="flex flex-col gap-3">
-                    {ACCESS_SUMMARY.map((level) => (
-                      <div key={level.label} className="flex flex-col gap-0.5 leading-normal">
-                        <dt className="text-sm font-medium text-body">{level.label}</dt>
-                        <dd className="text-sm text-muted">{level.help}</dd>
-                      </div>
-                    ))}
-                  </dl>
-                </section>
-              </div>
-            )}
-          </div>
+          {isOwner && invitations.length > 0 && (
+            <section
+              aria-labelledby="pending-invitations"
+              className="mt-4 flex flex-col gap-3 rounded-[14px] border border-line bg-white p-4 lg:max-w-xl lg:rounded-2xl lg:p-5"
+            >
+              <h2
+                id="pending-invitations"
+                className="text-xs font-medium text-muted uppercase lg:text-base lg:font-semibold lg:text-body lg:normal-case"
+              >
+                Pending invitations
+              </h2>
+              <ul className="flex flex-col">
+                {invitations.map((invitation) => (
+                  <li key={invitation.id} className="flex flex-col gap-0.5 py-1 lg:border-t lg:border-line lg:py-2.5">
+                    <p className="text-[15px] font-semibold text-body lg:text-sm lg:font-medium">@{invitation.username}</p>
+                    <p className="text-xs leading-[18px] text-muted">
+                      Invited {formatDueDate(invitation.createdAt.slice(0, 10), { short: true })} · Waiting for a reply
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </>
       )}
 

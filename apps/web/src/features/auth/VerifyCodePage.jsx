@@ -46,7 +46,7 @@ export default function VerifyCodePage() {
   return (
     <AuthLayout step="Step 2 of 3" title="Check your email" after={<SampleSignInNote />}>
       <p className="text-sm leading-[21px] text-muted">
-        We sent a six-digit code to {email}. The code expires in 10 minutes and works once.
+        We sent a 6-digit code to {email}. It expires in 10 minutes.
       </p>
       <Link to="/sign-in" className="-my-3 inline-flex min-h-11 items-center self-start text-[13px] font-semibold text-action hover:underline">
         Wrong email? Change it
@@ -70,7 +70,7 @@ export default function VerifyCodePage() {
       <div className="-mt-1 flex justify-center text-[13px] leading-[18px] text-muted">
         {secondsLeft > 0 ? (
           <p>
-            You can request a new code in {secondsLeft} seconds (00:{String(secondsLeft).padStart(2, '0')}).
+            Send a new code in 0:{String(secondsLeft).padStart(2, '0')}
           </p>
         ) : (
           <button

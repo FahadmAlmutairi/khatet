@@ -46,9 +46,6 @@ export default function ProjectsPage() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-2">
           <h1 className="text-[28px] leading-[34px] font-bold text-body">Your projects</h1>
-          <p className="text-sm leading-[21px] text-muted">
-            {empty ? 'Projects you own or were invited to.' : 'Projects you own or were invited to. Open one to see its board.'}
-          </p>
         </div>
         {projects.data && createButton}
       </div>
@@ -61,8 +58,7 @@ export default function ProjectsPage() {
         <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-line bg-white px-8 py-12 text-center">
           <h2 className="text-xl font-bold text-body">No projects yet</h2>
           <div className="text-base text-muted">
-            <p>Create a project to start planning, or wait for a teammate to invite you.</p>
-            <p>Invitations appear in Notifications, where you can accept or decline them.</p>
+            <p>Create one, or accept an invitation from Notifications.</p>
           </div>
           {createButton}
         </div>

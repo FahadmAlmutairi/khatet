@@ -22,7 +22,7 @@ describe('sign in (US-01, US-02)', () => {
     renderApp('/sign-in')
     await user.type(await screen.findByLabelText(/Email/), 'fahad@example.com')
     await user.click(screen.getByRole('button', { name: 'Continue with email' }))
-    expect(await screen.findByText(/The code expires in 10 minutes and works once/)).toBeInTheDocument()
+    expect(await screen.findByText(/It expires in 10 minutes/)).toBeInTheDocument()
 
     expect(screen.getByRole('group', { name: /Verification code/ })).toBeInTheDocument()
     const firstDigit = screen.getByRole('textbox', { name: 'Digit 1 of 6' })
