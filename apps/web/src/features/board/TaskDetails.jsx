@@ -258,8 +258,11 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
         <Detail label="Due date">
           <span className={due.overdue ? 'inline-flex items-center gap-1 text-blocked' : ''}>
             {due.overdue && <OverdueIcon />}
-            {task.dueDate ? formatDueDate(task.dueDate) : 'No due date'}
-            {due.overdue && <span className="font-medium"> · Overdue</span>}
+            {/* One text run, so the date and "Overdue" stay on a line and wrap as words, not as columns. */}
+            <span>
+              {task.dueDate ? formatDueDate(task.dueDate) : 'No due date'}
+              {due.overdue && <span className="font-medium whitespace-nowrap"> · Overdue</span>}
+            </span>
           </span>
         </Detail>
       </dl>
