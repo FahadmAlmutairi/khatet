@@ -22,6 +22,7 @@ export function ToastProvider({ children }) {
         {toast && (
           <p
             key={toast.id}
+            data-motion="enter"
             className={`pointer-events-auto max-w-md rounded-lg px-4 py-3 text-base shadow-lg ${
               toast.tone === 'error' ? 'bg-blocked text-white' : 'bg-heading text-white'
             }`}

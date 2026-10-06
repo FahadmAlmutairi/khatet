@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
+import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
+import Breadcrumb from '../../components/Breadcrumb.jsx'
 import { useMembers, useMoveTask, useTasks } from '../../api/hooks.js'
 import { PlusIcon } from '../../components/icons.jsx'
 import { ErrorState, LoadingState, Notice } from '../../components/ui/States.jsx'
@@ -26,6 +28,8 @@ export default function BoardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [creating, setCreating] = useState(false)
   const openTaskId = searchParams.get('task')
+  const crumbs = useBreadcrumb()
+  useDocumentTitle('Board', project.name)
 
   const usernames = useMemo(
     () => new Map((members.data?.members ?? []).map((member) => [member.userId, member.username])),
@@ -66,8 +70,8 @@ export default function BoardPage() {
     <section className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-2">
-          <p className="text-xs font-medium whitespace-pre text-muted uppercase">{`${project.name}  /  Board`}</p>
-          <h1 className="text-[28px] leading-[34px] font-bold text-body">Project board</h1>
+          <Breadcrumb items={crumbs} className="lg:hidden" />
+          <h1 className="text-[28px] leading-[34px] font-bold break-words text-body">{project.name}</h1>
         </div>
         {project.permissions.canCreateTask && (
           <button

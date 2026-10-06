@@ -1,7 +1,9 @@
+import { useDocumentTitle } from '../../app/pageMeta.js'
 import Logo from '../../components/Logo.jsx'
 
 // Figma: Sign in 946:1624, Verify 946:1634, Username 946:1646 (desktop) and 778:94, 778:66, 954:774 (mobile).
 export default function AuthLayout({ step, title, children, after }) {
+  useDocumentTitle(title)
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
       <header className="flex h-16 items-center bg-white px-5 sm:h-[72px] sm:px-16">

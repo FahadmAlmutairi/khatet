@@ -1,6 +1,8 @@
 import { useId, useState } from 'react'
 import { useOutletContext } from 'react-router'
 import { errorMessage, fieldError } from '../../api/errors.js'
+import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
+import Breadcrumb from '../../components/Breadcrumb.jsx'
 import { useInviteMember, useMembers, useUpdateMemberAccess } from '../../api/hooks.js'
 import Avatar from '../../components/Avatar.jsx'
 import { ChevronIcon } from '../../components/icons.jsx'
@@ -293,10 +295,12 @@ export default function MembersPage() {
   const isOwner = project.permissions.canManageMembers
   const list = members.data?.members ?? []
   const invitations = members.data?.invitations ?? []
+  const crumbs = useBreadcrumb()
+  useDocumentTitle('Members', project.name)
 
   return (
     <section>
-      <p className="text-xs font-medium whitespace-pre text-muted uppercase">{`${project.name}  /  Members`}</p>
+      <Breadcrumb items={crumbs} className="lg:hidden" />
       <h1 className="mt-2 text-[26px] font-bold text-body lg:text-[32px] lg:leading-[38px]">Members</h1>
       <p className="mt-2 text-sm leading-[21px] text-muted lg:mt-4">
         {isOwner ? 'Invite people, review their roles, and set their task access.' : 'View project members and their task access.'}

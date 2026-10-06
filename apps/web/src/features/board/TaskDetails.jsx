@@ -32,7 +32,7 @@ const outlineButton =
 function TopBar({ eyebrow, children, onClose }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <p className="text-xs font-medium whitespace-pre text-muted uppercase">{eyebrow}</p>
+      <p className="text-xs font-medium whitespace-pre text-muted">{eyebrow}</p>
       <div className="flex items-center gap-2">
         {children}
         <button type="button" onClick={onClose} aria-label="Close" className={`${outlineButton} w-11 lg:w-10`}>

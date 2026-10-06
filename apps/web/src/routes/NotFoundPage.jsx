@@ -1,6 +1,8 @@
 import { Link } from 'react-router'
+import { useDocumentTitle } from '../app/pageMeta.js'
 
 export default function NotFoundPage() {
+  useDocumentTitle('Page not found')
   return (
     <section>
       <h1 className="text-2xl font-bold text-heading">Page not found</h1>

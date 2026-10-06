@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
+import { useDocumentTitle } from '../../app/pageMeta.js'
 import { useProjects } from '../../api/hooks.js'
 import { ErrorState, LoadingState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
@@ -27,6 +28,7 @@ export default function ProjectsPage() {
   const toast = useToast()
   const creating = searchParams.get('new') === 'project'
   const empty = projects.data?.length === 0
+  useDocumentTitle('Your projects')
 
   function setCreating(value) {
     setSearchParams(value ? { new: 'project' } : {}, { replace: true })
@@ -42,7 +44,6 @@ export default function ProjectsPage() {
     <section className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-2">
-          <p className="text-xs leading-4 font-medium whitespace-pre text-muted uppercase">{'Khatet  /  Home'}</p>
           <h1 className="text-[28px] leading-[34px] font-bold text-body">Your projects</h1>
           <p className="text-sm leading-[21px] text-muted">
             {empty ? 'Projects you own or were invited to.' : 'Projects you own or were invited to. Open one to see its board.'}

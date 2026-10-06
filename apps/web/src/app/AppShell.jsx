@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useNavigate, useParams } from 'react-router'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
+import Breadcrumb from '../components/Breadcrumb.jsx'
 import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PlusIcon, SignOutIcon } from '../components/icons.jsx'
 import Logo from '../components/Logo.jsx'
 import NotificationsButton from '../features/notifications/NotificationsButton.jsx'
+import { useBreadcrumb } from './pageMeta.js'
 
 // Sizes and colours from the Figma "Project Sidebar" (page 08, Board 324:778).
 function subNavClass({ isActive }) {
@@ -116,6 +118,7 @@ function Sidebar({ onNavigate }) {
 
 export default function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const crumbs = useBreadcrumb()
   useEffect(() => {
     if (!menuOpen) return undefined
     function onKeyDown(event) {
@@ -167,7 +170,7 @@ export default function AppShell() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-[#e3e5de] bg-white px-4 lg:justify-end lg:px-8">
+        <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-[#e3e5de] bg-white px-4 lg:px-8">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
@@ -183,6 +186,7 @@ export default function AppShell() {
               <Logo label="Khatet home" />
             </Link>
           </span>
+          <Breadcrumb items={crumbs} className="hidden flex-1 lg:block" />
           <NotificationsButton />
         </header>
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 lg:p-8">

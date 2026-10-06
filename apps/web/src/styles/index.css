@@ -50,6 +50,20 @@
     outline-offset: 2px;
   }
 
+  /* G9: one motion standard. Windows, menus and toasts fade and rise in 180ms, ease-out. */
+  dialog[open] {
+    animation: enter 180ms ease-out;
+  }
+
+  dialog[open]::backdrop {
+    animation: fade-in 180ms ease-out;
+  }
+
+  [role='menu'],
+  [data-motion='enter'] {
+    animation: enter 150ms ease-out;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -59,5 +73,18 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
   }
 }
