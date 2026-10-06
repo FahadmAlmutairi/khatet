@@ -11,7 +11,14 @@ export default function TaskFields({ values, onChange, members, error }) {
 
   return (
     <div className="flex flex-col gap-5">
-      <TextField label="Task title" required value={values.title} onChange={set('title')} error={fieldError(error, 'title')} />
+      <TextField
+        label="Task title"
+        required
+        value={values.title}
+        onChange={set('title')}
+        placeholder="e.g. Prepare usability session"
+        error={fieldError(error, 'title')}
+      />
       <AssigneePicker
         required
         members={members}
@@ -20,6 +27,7 @@ export default function TaskFields({ values, onChange, members, error }) {
         error={fieldError(error, 'assigneeIds')}
       />
       <div className="grid gap-4 sm:grid-cols-2">
+        <TextField label="Due date" type="date" value={values.dueDate} onChange={set('dueDate')} error={fieldError(error, 'dueDate')} />
         <SelectField
           label="Priority"
           value={values.priority}
@@ -27,9 +35,14 @@ export default function TaskFields({ values, onChange, members, error }) {
           options={[{ value: '', label: 'No priority' }, ...PRIORITIES]}
           error={fieldError(error, 'priority')}
         />
-        <TextField label="Due date" type="date" value={values.dueDate} onChange={set('dueDate')} error={fieldError(error, 'dueDate')} />
       </div>
-      <TextArea label="Description" rows={4} value={values.description} onChange={set('description')} />
+      <TextArea
+        label="Description"
+        rows={3}
+        value={values.description}
+        onChange={set('description')}
+        placeholder="Add context, requirements, or useful links…"
+      />
     </div>
   )
 }
