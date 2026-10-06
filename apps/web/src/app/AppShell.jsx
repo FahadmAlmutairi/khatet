@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link, NavLink, Outlet, useNavigate, useParams } from 'react-router'
+import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
 import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SignOutIcon } from '../components/icons.jsx'
 import Logo from '../components/Logo.jsx'
 import NotificationsButton from '../features/notifications/NotificationsButton.jsx'
+import { EASE } from '../lib/motion.js'
 import { useBreadcrumb } from './pageMeta.js'
 
 // Sizes and colours from the Figma "Project Sidebar" (page 08, Board 324:778).
@@ -151,7 +152,7 @@ function Rail({ onExpand, expandButtonRef }) {
         onClick={onExpand}
         aria-label="Expand sidebar"
         aria-keyshortcuts={'Control+\\ Meta+\\'}
-        className={railItem}
+        className={railItem.replace('cursor-pointer', 'cursor-e-resize')}
       >
         <span className="inline-flex group-hover:hidden group-focus-visible:hidden">
           <Logo label="" size={28} />
@@ -231,8 +232,8 @@ export default function AppShell() {
     if (!window.matchMedia?.('(min-width: 64rem)').matches) return
     const shift = SIDEBAR_WIDTH - RAIL_WIDTH
     content.animate([{ transform: `translateX(${collapsed ? shift : -shift}px)` }, { transform: 'translateX(0)' }], {
-      duration: 220,
-      easing: 'cubic-bezier(0.2, 0, 0, 1)',
+      duration: 280,
+      easing: EASE,
     })
   }, [collapsed])
 
@@ -269,6 +270,7 @@ export default function AppShell() {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [])
   const crumbs = useBreadcrumb()
+  const pageKey = useLocation().pathname
   useEffect(() => {
     if (!menuOpen) return undefined
     function onKeyDown(event) {
@@ -300,7 +302,7 @@ export default function AppShell() {
               onClick={toggleSidebar}
               aria-label="Collapse sidebar"
               aria-keyshortcuts={'Control+\\ Meta+\\'}
-              className={`group relative ${panelButton}`}
+              className={`group relative cursor-w-resize ${panelButton}`}
             >
               <PanelLeftIcon />
               <span
@@ -361,7 +363,10 @@ export default function AppShell() {
           <NotificationsButton />
         </header>
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 lg:p-8">
-          <Outlet />
+          {/* A new page settles in with a short fade; opening a task keeps the page still. */}
+          <div key={pageKey} className="page-enter">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

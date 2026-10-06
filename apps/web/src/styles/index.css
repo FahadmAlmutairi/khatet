@@ -32,6 +32,8 @@
 
   --shadow-card: 0 2px 8px rgba(48, 65, 54, 0.05);
 
+  --ease-apple: cubic-bezier(0.32, 0.72, 0, 1); /* quick start, soft landing (lib/motion.js) */
+
   --font-sans: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -50,18 +52,18 @@
     outline-offset: 2px;
   }
 
-  /* G9: one motion standard. Windows, menus and toasts fade and rise in 180ms, ease-out. */
+  /* G9: one motion standard. Windows, menus and toasts fade and rise in quickly and land softly. */
   dialog[open] {
-    animation: enter 180ms ease-out;
+    animation: enter 240ms var(--ease-apple);
   }
 
   dialog[open]::backdrop {
-    animation: fade-in 180ms ease-out;
+    animation: fade-in 200ms ease-out;
   }
 
   [role='menu'],
   [data-motion='enter'] {
-    animation: enter 150ms ease-out;
+    animation: enter 200ms var(--ease-apple);
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -98,5 +100,63 @@
 }
 
 .sidebar-enter > * {
-  animation: sidebar-enter 220ms cubic-bezier(0.2, 0, 0, 1);
+  animation: sidebar-enter 280ms var(--ease-apple);
+}
+
+/* A new page settles in: a short fade and a 4px rise. */
+.page-enter {
+  animation: page-enter 280ms var(--ease-apple);
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* Revealed content (the opened Backlog) fades down into place. */
+.motion-reveal {
+  animation: reveal 280ms var(--ease-apple);
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+/* Cards rise 1px under the mouse. Only transform changes, so hovering costs no layout. */
+@media (hover: hover) and (pointer: fine) {
+  .card-lift {
+    transition:
+      transform 200ms var(--ease-apple),
+      border-color 200ms ease-out;
+  }
+
+  /* The lift makes the card a stacking context, so it rises above its neighbours to keep its open menu on top. */
+  .card-lift:hover,
+  .card-lift:has([aria-expanded='true']) {
+    transform: translateY(-1px);
+    z-index: 20;
+  }
+}
+
+/* A newly blocked card glows once along its edge; a ring fades in and out (opacity only). */
+.blocked-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  box-shadow: 0 0 0 3px rgb(166 58 50 / 0.35);
+  opacity: 0;
+  pointer-events: none;
+  animation: blocked-pulse 900ms var(--ease-apple);
+}
+
+@keyframes blocked-pulse {
+  30% {
+    opacity: 1;
+  }
 }

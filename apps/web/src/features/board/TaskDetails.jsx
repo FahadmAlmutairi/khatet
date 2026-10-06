@@ -14,6 +14,7 @@ import InfoTip from '../../components/ui/InfoTip.jsx'
 import { ErrorState, LoadingState, Notice, StateBadge } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { dueLine, formatDueDate, statusLabel } from '../../lib/domain.js'
+import { fadeOutCard, rememberCardPositions } from '../../lib/motion.js'
 import { moveMenuItems } from './moveMenu.jsx'
 import TaskFields from './TaskFields.jsx'
 import { taskValues } from './taskValues.js'
@@ -49,7 +50,7 @@ function StatusControl({ task, onMove }) {
   const tone = STATUS_TONES[task.status]
   if (!task.permissions.canMove) {
     return (
-      <span className={`inline-flex h-9 w-fit items-center gap-1.5 rounded-full px-3 text-sm font-medium ${tone}`}>
+      <span className={`inline-flex h-9 w-fit items-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors duration-300 ${tone}`}>
         <StatusIcon status={task.status} />
         {statusLabel(task.status)}
       </span>
@@ -67,7 +68,7 @@ function StatusControl({ task, onMove }) {
           <ChevronIcon direction="down" size={12} />
         </>
       }
-      buttonClassName={`inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-medium lg:h-9 ${tone}`}
+      buttonClassName={`inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-sm font-medium transition-colors duration-300 lg:h-9 ${tone}`}
       items={moveMenuItems(task, onMove, { heading: 'Change status', note: true })}
     />
   )
@@ -171,7 +172,15 @@ function DeleteTaskDialog({ open, task, onCancel, onDeleted, projectId }) {
           <Button variant="secondary" onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="danger" loading={deleteTask.isPending} onClick={() => deleteTask.mutate(task.id, { onSuccess: onDeleted })}>
+          <Button
+            variant="danger"
+            loading={deleteTask.isPending}
+            onClick={() => {
+              rememberCardPositions()
+              const fade = fadeOutCard(task.id)
+              deleteTask.mutate(task.id, { onSuccess: onDeleted, onError: () => fade?.cancel() })
+            }}
+          >
             Delete task
           </Button>
         </>

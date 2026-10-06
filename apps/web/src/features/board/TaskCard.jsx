@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { AvatarStack } from '../../components/Avatar.jsx'
@@ -21,17 +22,27 @@ export function BlockedPill() {
 // then priority on the left and assignees with the actions button on the right.
 // Done cards sit flatter so the work still open stands out (B3).
 export function TaskCardBody({ task, usernames, onOpen, onMove, isOverlay = false, quiet = false }) {
+  // A card that has just been flagged gives one soft pulse on its red edge (not on page load).
+  const wasBlocked = useRef(task.isBlocked)
+  const [pulse, setPulse] = useState(false)
+  useEffect(() => {
+    if (task.isBlocked && !wasBlocked.current) setPulse(true)
+    wasBlocked.current = task.isBlocked
+  }, [task.isBlocked])
   const assignees = task.assigneeIds.map((id) => ({ id, username: usernames.get(id) ?? 'unknown' }))
   const due = dueLine(task.dueDate, task.status)
 
   return (
     <div
-      className={`group flex flex-col items-start gap-2 rounded-[var(--radius-card)] border border-line p-3 ${quiet ? 'bg-surface' : 'bg-white'} ${
+      onAnimationEnd={() => setPulse(false)}
+      className={`group relative flex flex-col items-start gap-2 rounded-[var(--radius-card)] border border-line p-3 ${quiet ? 'bg-surface' : 'bg-white'} ${
+        pulse ? 'blocked-pulse' : ''
+      } ${
         task.isBlocked ? 'border-l-4 border-l-blocked' : ''
       } ${
         isOverlay
           ? 'shadow-[0_12px_24px_rgba(48,65,54,0.16)]'
-          : `${quiet ? '' : 'shadow-[0_2px_4px_rgba(48,65,54,0.05)]'} hover:border-surface-supporting`
+          : `${quiet ? '' : 'shadow-[0_2px_4px_rgba(48,65,54,0.05)]'} card-lift hover:border-surface-supporting`
       }`}
     >
       {/* B2: the title and its due date read as one group. */}

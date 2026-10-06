@@ -9,6 +9,7 @@ import { BoardSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState, StateBadge } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { statusLabel } from '../../lib/domain.js'
+import { rememberCardPositions } from '../../lib/motion.js'
 import BoardColumns from './BoardColumns.jsx'
 import CreateTaskDialog from './CreateTaskDialog.jsx'
 import TaskDetails from './TaskDetails.jsx'
@@ -53,7 +54,9 @@ export default function BoardPage() {
     }, 0)
   }
 
-  function move(task, status, position) {
+  // A drag already shows where the card goes, so only other moves get the glide.
+  function move(task, status, position, { dragged = false } = {}) {
+    if (!dragged) rememberCardPositions()
     const target = (tasks.data ?? []).filter((item) => item.status === status && item.id !== task.id)
     moveTask.mutate(
       { taskId: task.id, status, position: position ?? target.length + 1 },

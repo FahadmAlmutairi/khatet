@@ -69,7 +69,7 @@ export default function ProjectsPage() {
             <li key={project.id} className="w-full sm:w-[360px]">
               <Link
                 to={`/projects/${project.id}/board`}
-                className="flex h-full flex-col gap-2.5 rounded-xl border border-line bg-surface p-4 hover:border-surface-supporting hover:bg-white"
+                className="card-lift flex h-full flex-col gap-2.5 rounded-xl border border-line bg-surface p-4 hover:border-surface-supporting hover:bg-white"
               >
                 <span className="flex items-start gap-3">
                   <span

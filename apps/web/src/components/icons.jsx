@@ -82,7 +82,7 @@ export function MenuIcon() {
 export function ChevronIcon({ direction = 'right', size = 16 }) {
   const rotate = { right: 0, down: 90, left: 180, up: 270 }[direction]
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ transform: `rotate(${rotate}deg)` }}>
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true" style={{ transform: `rotate(${rotate}deg)`, transition: 'transform 240ms cubic-bezier(0.32, 0.72, 0, 1)' }}>
       <path d="M6 3.5 10.5 8 6 12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )

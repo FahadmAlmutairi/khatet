@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react'
+import { animate } from '../../lib/motion.js'
 
 const LENGTH = 6
 
@@ -13,16 +14,34 @@ export default function CodeInput({ value, onChange, error, label = 'Verificatio
     refs.current[Math.min(Math.max(index, 0), LENGTH - 1)]?.focus()
   }
 
-  // A wrong or expired code puts the cursor back in the first box, ready for a new code.
+  const rowRef = useRef(null)
+
+  // A wrong or expired code gives the boxes one small shake and puts the cursor back in the first box.
   useEffect(() => {
-    if (error) refs.current[0]?.focus()
+    if (!error) return
+    animate(
+      rowRef.current,
+      [
+        { transform: 'translateX(0)' },
+        { transform: 'translateX(-4px)' },
+        { transform: 'translateX(3px)' },
+        { transform: 'translateX(-2px)' },
+        { transform: 'translateX(0)' },
+      ],
+      { duration: 320, easing: 'ease-out' },
+    )
+    refs.current[0]?.focus()
   }, [error])
 
   function fill(start, text) {
     const incoming = text.replace(/\D/g, '')
     if (!incoming) return
     const next = [...digits]
-    for (let i = 0; i < incoming.length && start + i < LENGTH; i += 1) next[start + i] = incoming[i]
+    for (let i = 0; i < incoming.length && start + i < LENGTH; i += 1) {
+      next[start + i] = incoming[i]
+      // Each digit settles into its box.
+      animate(refs.current[start + i], [{ transform: 'scale(0.94)' }, { transform: 'scale(1)' }], { duration: 180 })
+    }
     onChange(next.join('').slice(0, LENGTH))
     focusBox(start + incoming.length)
   }
@@ -52,7 +71,7 @@ export default function CodeInput({ value, onChange, error, label = 'Verificatio
       <span id={`${id}-label`} className="text-xs leading-normal font-medium text-body">
         {label}
       </span>
-      <div className="flex gap-1.5 sm:gap-2.5">
+      <div ref={rowRef} className="flex gap-1.5 sm:gap-2.5">
         {digits.map((digit, index) => (
           <input
             key={index}

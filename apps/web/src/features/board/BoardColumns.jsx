@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   closestCenter,
   DndContext,
@@ -17,6 +17,7 @@ import { ChevronIcon, PlusIcon } from '../../components/icons.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import InfoTip from '../../components/ui/InfoTip.jsx'
 import { ACTIVE_STATUSES, STATUSES } from '../../lib/domain.js'
+import { playCardMoves } from '../../lib/motion.js'
 import TaskCard, { TaskCardBody } from './TaskCard.jsx'
 
 const ACCENTS = {
@@ -109,7 +110,7 @@ function BacklogPanel({ tasks, usernames, onOpen, onMove, open, onToggle }) {
       <div id="backlog-tasks" hidden={!open}>
         {open && (
           <SortableContext items={tasks.map((task) => task.id)} strategy={rectSortingStrategy}>
-            <ul className="mt-3 flex flex-wrap gap-3">
+            <ul className="motion-reveal mt-3 flex flex-wrap gap-3">
               {tasks.map((task) => (
                 <TaskCard key={task.id} className="w-[250px] max-w-full" task={task} usernames={usernames} onOpen={onOpen} onMove={onMove} />
               ))}
@@ -143,6 +144,11 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
   )
 
   const byId = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks])
+
+  // Moves from a menu or the status pill, new tasks and deletions glide into place.
+  useLayoutEffect(() => {
+    playCardMoves(document)
+  }, [tasks])
   const savedIds = useMemo(() => idsByStatus(tasks), [tasks])
   const ids = dragIds ?? savedIds
   const columnTasks = (status) => ids[status].map((id) => byId.get(id)).filter(Boolean)
@@ -232,7 +238,7 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
 
     const savedPosition = savedIds[task.status].indexOf(task.id) + 1
     if (status === task.status && position === savedPosition) return
-    onMove(task, status, position)
+    onMove(task, status, position, { dragged: true })
   }
 
   function onScrollLanes(event) {

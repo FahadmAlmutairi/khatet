@@ -5,6 +5,7 @@ import { Spinner } from '../../components/ui/Button.jsx'
 import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import DiscardChangesDialog from '../../components/ui/DiscardChangesDialog.jsx'
 import { SAVE_SHORTCUT_HINT, sameValues, submitOnCtrlEnter, useFocusFirstError } from '../../components/ui/formState.js'
+import { rememberCardPositions } from '../../lib/motion.js'
 import TaskFields from './TaskFields.jsx'
 import { emptyTaskValues } from './taskValues.js'
 
@@ -34,6 +35,7 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
 
   function submit(event) {
     event.preventDefault()
+    rememberCardPositions()
     createTask.mutate(values, {
       onSuccess: (task) => {
         close()

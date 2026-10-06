@@ -20,7 +20,7 @@ function InvitationActions({ notification }) {
 
   if (notification.invitationStatus !== 'PENDING') {
     return (
-      <p className="text-sm text-muted lg:text-nav">
+      <p data-motion="enter" className="text-sm text-muted lg:text-nav">
         {notification.invitationStatus === 'ACCEPTED' ? 'You joined this project.' : 'You declined this invitation.'}
       </p>
     )
