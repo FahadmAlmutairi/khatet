@@ -1,15 +1,20 @@
-export default function AuthLayout({ step, title, children }) {
+import Logo from '../../components/Logo.jsx'
+
+// Figma: Sign in 946:1624, Verify 946:1634, Username 946:1646 (desktop) and 778:94, 778:66, 954:774 (mobile).
+export default function AuthLayout({ step, title, children, after }) {
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
-      <header className="bg-white px-6 py-5 sm:px-12">
-        <p className="text-2xl font-bold text-heading">khatet</p>
+      <header className="flex h-16 items-center bg-white px-5 sm:h-[72px] sm:px-16">
+        <Logo />
       </header>
-      <main id="main" className="flex flex-1 items-start justify-center px-4 py-10 sm:items-center">
-        <section className="w-full max-w-md rounded-2xl border border-line bg-white p-4 shadow-card sm:p-8">
-          {step && <p className="text-xs font-semibold uppercase tracking-wide text-muted">{step}</p>}
-          <h1 className="mt-2 text-2xl font-semibold text-heading">{title}</h1>
+      <main id="main" className="flex flex-1 flex-col items-center justify-start px-5 py-12 sm:justify-center sm:px-4 sm:py-10">
+        {/* Mobile drops the card and sits on the page background (Figma 778:94). */}
+        <section className="flex w-full max-w-[440px] flex-col gap-6 sm:rounded-[20px] sm:border sm:border-line sm:bg-white sm:p-10 sm:shadow-[0_2px_8px_rgba(48,64,54,0.05)]">
+          {step && <p className="text-xs leading-normal font-semibold tracking-[0.66px] text-muted uppercase">{step}</p>}
+          <h1 className="text-[26px] leading-tight font-bold text-body sm:text-xl sm:leading-[26px] sm:font-semibold">{title}</h1>
           {children}
         </section>
+        {after}
       </main>
     </div>
   )
@@ -18,9 +23,12 @@ export default function AuthLayout({ step, title, children }) {
 // Explains how the sample sign-in works until Supabase Auth is connected.
 export function SampleSignInNote() {
   return (
-    <p className="mt-6 rounded-lg bg-surface px-3 py-2.5 text-sm text-muted">
+    <p className="mt-4 w-full max-w-[440px] rounded-lg px-3 py-2.5 text-sm text-muted">
       <strong className="font-semibold text-heading">Sample data.</strong> Use fahad@example.com and any 6 digits. 000000
       shows the wrong-code message and 111111 the expired one. Any other email creates a new account.
     </p>
   )
 }
+
+export const authButton =
+  'inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-action px-[18px] text-sm font-semibold text-white hover:bg-heading disabled:cursor-not-allowed sm:h-11 sm:rounded-[9px] sm:text-[13px] sm:leading-[18px] sm:font-medium'

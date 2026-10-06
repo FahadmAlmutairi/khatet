@@ -43,12 +43,11 @@ export default function CodeInput({ value, onChange, error, label = 'Verificatio
   }
 
   return (
-    <div role="group" aria-labelledby={`${id}-label`} aria-describedby={error ? `${id}-error` : undefined} className="flex flex-col gap-1.5">
-      <span id={`${id}-label`} className="text-sm font-medium text-heading">
+    <div role="group" aria-labelledby={`${id}-label`} aria-describedby={error ? `${id}-error` : undefined} className="flex flex-col gap-2">
+      <span id={`${id}-label`} className="text-xs leading-normal font-medium text-body">
         {label}
-        <span aria-hidden="true"> *</span>
       </span>
-      <div className="flex gap-1.5 sm:gap-2">
+      <div className="flex gap-1.5 sm:gap-2.5">
         {digits.map((digit, index) => (
           <input
             key={index}
@@ -72,7 +71,7 @@ export default function CodeInput({ value, onChange, error, label = 'Verificatio
             autoComplete={index === 0 ? 'one-time-code' : 'off'}
             aria-label={`Digit ${index + 1} of ${LENGTH}`}
             aria-invalid={Boolean(error)}
-            className="size-12 min-w-0 flex-1 rounded-lg border border-line bg-white text-center font-mono text-2xl text-heading focus:border-action aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked sm:size-14 sm:flex-none"
+            className="h-14 min-w-0 flex-1 rounded-[10px] border border-line bg-white text-center text-[22px] font-semibold text-body focus:border-2 focus:border-action focus-visible:outline-none aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
           />
         ))}
       </div>

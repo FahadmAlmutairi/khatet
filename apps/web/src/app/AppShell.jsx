@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useNavigate, useParams } from 'react-router'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
 import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PlusIcon, SignOutIcon } from '../components/icons.jsx'
+import Logo from '../components/Logo.jsx'
 import NotificationsButton from '../features/notifications/NotificationsButton.jsx'
 
 // Sizes and colours from the Figma "Project Sidebar" (page 08, Board 324:778).
@@ -134,7 +135,9 @@ export default function AppShell() {
       </a>
 
       <aside className="sticky top-0 hidden h-dvh w-[232px] shrink-0 flex-col gap-6 border-r border-line bg-white p-4 lg:flex">
-        <p className="text-[28px] leading-[34px] font-bold text-body">khatet</p>
+        <Link to="/projects" className="inline-flex size-8 items-center justify-center">
+          <Logo label="Khatet home" />
+        </Link>
         <Sidebar />
       </aside>
 
@@ -147,7 +150,7 @@ export default function AppShell() {
             className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col gap-6 bg-white p-4 shadow-xl"
           >
             <div className="-my-1.5 flex items-center justify-between">
-              <p className="text-[28px] leading-[34px] font-bold text-body">khatet</p>
+              <Logo />
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}
@@ -175,9 +178,11 @@ export default function AppShell() {
           >
             <MenuIcon />
           </button>
-          <Link to="/projects" className="inline-flex min-h-11 flex-1 items-center text-xl font-bold text-heading lg:hidden">
-            khatet
-          </Link>
+          <span className="flex flex-1 lg:hidden">
+            <Link to="/projects" className="inline-flex size-11 items-center justify-center">
+              <Logo label="Khatet home" />
+            </Link>
+          </span>
           <NotificationsButton />
         </header>
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 lg:p-8">
