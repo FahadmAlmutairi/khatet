@@ -112,3 +112,20 @@ export function CheckIcon() {
     </svg>
   )
 }
+
+// Figma "Icon / task" (Notifications panel).
+export function TaskCheckIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+      <path d="M6.75 8.25 9 10.5 16.5 3M15.75 9v5.25a1.5 1.5 0 0 1-1.5 1.5H3.75a1.5 1.5 0 0 1-1.5-1.5V3.75a1.5 1.5 0 0 1 1.5-1.5H12" stroke="currentColor" strokeWidth="1.275" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function ArrowLeftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M12.67 8H3.33M8 12.67 3.33 8 8 3.33" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}

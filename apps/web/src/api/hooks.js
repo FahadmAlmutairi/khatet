@@ -209,6 +209,15 @@ export function useMarkNotificationRead() {
   })
 }
 
+// The API marks one notification at a time, so "Mark all as read" sends one request per unread item.
+export function useMarkAllNotificationsRead() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (ids) => Promise.all(ids.map((id) => api.markNotificationRead(id))),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.notifications }),
+  })
+}
+
 export function useRespondToInvitation() {
   const queryClient = useQueryClient()
   return useMutation({

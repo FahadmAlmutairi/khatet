@@ -55,6 +55,26 @@ export function formatTimestamp(value) {
   return value ? timeFormat.format(new Date(value)) : ''
 }
 
+function dayStart(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
+}
+
+// Notification times as in Figma: "2m", "5m", "1h" in the desktop list, and
+// "08:15", "Yesterday" or "3 Oct" on the mobile page.
+export function notificationTime(value, now = new Date()) {
+  const date = new Date(value)
+  const minutes = Math.max(0, Math.floor((now - date) / 60_000))
+  const days = Math.round((dayStart(now) - dayStart(date)) / 86_400_000)
+  const clock = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  const dayLabel = days === 0 ? clock : days === 1 ? 'Yesterday' : `${date.getDate()} ${MONTHS[date.getMonth()]}`
+  let short
+  if (minutes < 1) short = 'now'
+  else if (minutes < 60) short = `${minutes}m`
+  else if (minutes < 24 * 60) short = `${Math.floor(minutes / 60)}h`
+  else short = days === 1 ? '1d' : `${date.getDate()} ${MONTHS[date.getMonth()]}`
+  return { short, long: dayLabel }
+}
+
 function todayKey(now = new Date()) {
   const month = String(now.getMonth() + 1).padStart(2, '0')
   const day = String(now.getDate()).padStart(2, '0')
