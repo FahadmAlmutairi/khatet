@@ -58,6 +58,26 @@ describe('sign in (US-01, US-02)', () => {
     await user.click(screen.getByRole('button', { name: 'Finish account' }))
     expect(await screen.findByRole('heading', { name: 'No projects yet' })).toBeInTheDocument()
   })
+
+  it('lets a signed-in user change to a unique username and rejects a taken one', async () => {
+    const user = userEvent.setup()
+    signIn()
+    renderApp('/account')
+
+    const username = await screen.findByLabelText(/Username/)
+    expect(username).toHaveValue('fahad')
+
+    await user.clear(username)
+    await user.type(username, 'saad')
+    await user.click(screen.getByRole('button', { name: 'Save username' }))
+    expect(await screen.findByText('@saad is taken. Try another username.')).toBeInTheDocument()
+
+    await user.clear(username)
+    await user.type(username, 'fahad_2')
+    await user.click(screen.getByRole('button', { name: 'Save username' }))
+    expect(await screen.findByText('Username saved.')).toBeInTheDocument()
+    expect(screen.getByText('@fahad_2')).toBeInTheDocument()
+  })
 })
 
 describe('projects (US-04, US-05)', () => {
