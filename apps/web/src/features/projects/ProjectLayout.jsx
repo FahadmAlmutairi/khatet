@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Link, Outlet, useParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useProject } from '../../api/hooks.js'
@@ -20,5 +21,9 @@ export default function ProjectLayout() {
       </div>
     )
   }
-  return <Outlet context={{ project: project.data }} />
+  return (
+    <Suspense fallback={<PageSkeleton label="Opening project" />}>
+      <Outlet context={{ project: project.data }} />
+    </Suspense>
+  )
 }

@@ -15,7 +15,7 @@ export default function Breadcrumb({ items, className = '' }) {
                   {item.label}
                 </span>
               ) : (
-                <Link to={item.to} className="inline-flex min-h-11 items-center truncate hover:text-heading hover:underline lg:min-h-6">
+                <Link to={item.to} className="inline-flex min-h-11 min-w-11 items-center justify-center truncate hover:text-heading hover:underline lg:min-h-6 lg:min-w-0">
                   {item.label}
                 </Link>
               )}
