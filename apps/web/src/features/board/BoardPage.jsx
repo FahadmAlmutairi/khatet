@@ -3,7 +3,7 @@ import { useOutletContext, useSearchParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
-import { useMembers, useMoveTask, useTasks } from '../../api/hooks.js'
+import { useMembers, useMoveTask, useTasks, useUpdateTask } from '../../api/hooks.js'
 import { PlusIcon } from '../../components/icons.jsx'
 import { BoardSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState, StateBadge } from '../../components/ui/States.jsx'
@@ -28,6 +28,7 @@ export default function BoardPage() {
   const tasks = useTasks(project.id)
   const members = useMembers(project.id)
   const moveTask = useMoveTask(project.id)
+  const updateTask = useUpdateTask()
   const toast = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const [creating, setCreating] = useState(false)
@@ -55,17 +56,28 @@ export default function BoardPage() {
   }
 
   // A drag already shows where the card goes, so only other moves get the glide.
-  function move(task, status, position, { dragged = false, quiet = false } = {}) {
+  function move(task, status, position, { dragged = false, quiet = false, restoreBlocked = null } = {}) {
     if (!dragged) rememberCardPositions()
     const target = (tasks.data ?? []).filter((item) => item.status === status && item.id !== task.id)
     moveTask.mutate(
       { taskId: task.id, status, position: position ?? target.length + 1 },
       {
         onSuccess: () => {
+          // Leaving In Progress clears the Blocked flag, so Undo sets it and its reason again.
+          if (restoreBlocked) {
+            updateTask.mutate(
+              { taskId: task.id, patch: restoreBlocked },
+              { onError: (error) => toast(`The Blocked flag on “${task.title}” could not be restored. ${errorMessage(error)}`, 'error') },
+            )
+          }
           if (quiet || status === task.status) return
           // Undo puts the card back in its old column and place.
           toast(`“${task.title}” moved to ${statusLabel(status)}.`, 'info', {
-            onUndo: () => move({ ...task, status }, task.status, task.position, { quiet: true }),
+            onUndo: () =>
+              move({ ...task, status }, task.status, task.position, {
+                quiet: true,
+                restoreBlocked: task.isBlocked ? { isBlocked: true, blockedReason: task.blockedReason } : null,
+              }),
           })
         },
         onError: (error) =>

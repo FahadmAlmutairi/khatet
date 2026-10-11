@@ -214,6 +214,22 @@ describe('board (US-16, US-21)', () => {
     expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
   })
 
+  it('keeps the Blocked flag and reason when a move out of In Progress is undone', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('button', { name: 'More actions for Fix CSV validation errors' }))
+    await user.click(screen.getByRole('menuitem', { name: /Done/ }))
+    await screen.findByText('“Fix CSV validation errors” moved to Done.', { selector: '[aria-live]' })
+    await user.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(async () => {
+      const task = (await getTasks('p-khatet')).find((item) => item.id === 't-6')
+      expect(task).toMatchObject({ status: 'IN_PROGRESS', isBlocked: true, blockedReason: 'Waiting for sample file' })
+    })
+    const inProgress = screen.getByRole('region', { name: /^In Progress/ })
+    await waitFor(() => expect(within(inProgress).getByText('Blocked')).toBeInTheDocument())
+  })
+
   it('puts the card back and explains when a move fails', async () => {
     signIn()
     const user = userEvent.setup()
