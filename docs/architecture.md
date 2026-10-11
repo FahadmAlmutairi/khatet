@@ -104,7 +104,7 @@ The backend should remain easy to test without starting the entire system for ev
 | Form state | React Hook Form | Task edit, invitation, settings, import mapping. |
 | Derived state | Pure selectors/memos only when useful | Progress percentage, grouped tasks, filtered results. |
 
-Sprint 1 status: the Sprint 1 forms (sign-in, create project, create and edit task, invite) use component state with `components/ui/formState.js`, and React Hook Form and Zod are not installed in `apps/web` yet. The team decides whether to add them before the settings and import forms in Sprint 2, and updates this table either way. The API still validates every request with Zod.
+Sprint 1 status: the Sprint 1 forms (sign-in, create project, create and edit task, invite) use plain component state (the task forms share `components/ui/formState.js`), and React Hook Form and Zod are not installed in `apps/web` yet. The team decides whether to add them before the settings and import forms in Sprint 2, and updates this table either way. The API still validates every request with Zod.
 
 Use stable query keys such as `['project', projectId]`, `['tasks', { projectId, filters }]`, and `['notifications']`. Choose stale times, retries, and invalidation deliberately. Optimistic board movement is allowed only with rollback; use server-confirmed data for permissions, imports, AI output, and destructive actions.
 
