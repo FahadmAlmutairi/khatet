@@ -104,13 +104,6 @@ function Sidebar({ onNavigate, openProjects, onToggleProject }) {
       </nav>
       <div className="flex flex-col gap-2">
         <div className="h-px bg-line" />
-        <Link
-          to="/account"
-          onClick={onNavigate}
-          className="flex h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-xs text-nav hover:bg-surface lg:h-9"
-        >
-          <span className="font-medium text-heading">Account settings</span>
-        </Link>
         <button
           type="button"
           onClick={() => signOut.mutate(undefined, { onSuccess: () => navigate('/sign-in', { replace: true }) })}
