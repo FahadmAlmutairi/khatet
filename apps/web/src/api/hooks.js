@@ -1,6 +1,7 @@
 // TanStack Query hooks with the query keys from docs/api-contract.md.
 // The screens only use these hooks, so swapping the sample API for the real
 // Express client later changes this file and ./client.js, not the screens.
+import { useRef } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './client.js'
 
@@ -137,10 +138,16 @@ export function useUpdateTask() {
 
 // Moves the card at once, then keeps the server's order; on failure the board goes
 // back to where it was (docs/api-contract.md, Board movement contract).
+// When moves overlap, an earlier answer would undo the later card on screen, so only the
+// last move to finish writes the server's order; the board then refetches once.
 export function useMoveTask(projectId) {
   const queryClient = useQueryClient()
   const tasksKey = keys.tasks(projectId)
+  const mutationKey = ['moveTask', projectId]
+  const othersMoving = () => queryClient.isMutating({ mutationKey }) > 1
+  const overlapped = useRef(false)
   return useMutation({
+    mutationKey,
     mutationFn: ({ taskId, status, position }) => api.moveTask(taskId, { status, position }),
     onMutate: async ({ taskId, status, position }) => {
       // Set the new order before awaiting, so a dropped card never flashes back to its old place.
@@ -152,12 +159,26 @@ export function useMoveTask(projectId) {
       return { previous }
     },
     onError: (_error, _variables, context) => {
+      if (othersMoving()) {
+        overlapped.current = true
+        return
+      }
       if (context?.previous) queryClient.setQueryData(tasksKey, context.previous)
     },
     onSuccess: (tasks, { taskId }) => {
-      queryClient.setQueryData(tasksKey, tasks)
       const moved = tasks.find((task) => task.id === taskId)
       if (moved) queryClient.setQueryData(keys.task(taskId), moved)
+      if (othersMoving()) {
+        overlapped.current = true
+        return
+      }
+      queryClient.setQueryData(tasksKey, tasks)
+    },
+    onSettled: () => {
+      if (othersMoving() || !overlapped.current) return
+      // Answers skipped above (a failed one too) are settled by one fresh copy from the server.
+      overlapped.current = false
+      queryClient.invalidateQueries({ queryKey: tasksKey })
     },
   })
 }
