@@ -228,7 +228,7 @@ const columns = 'lg:grid lg:grid-cols-[minmax(0,400fr)_170px_minmax(0,370fr)_164
 
 function MemberRow({ member, isOwner, onManage }) {
   const owner = member.role === 'OWNER'
-  const access = owner ? 'Owner' : taskAccessLabel(member.taskAccess)
+  const access = owner ? 'Full access' : taskAccessLabel(member.taskAccess)
   return (
     <li
       className={`flex min-h-16 items-center gap-3 rounded-[14px] border border-line bg-white px-[14px] py-3 lg:h-[78px] lg:gap-0 lg:rounded-none lg:border-0 lg:border-b lg:px-5 lg:py-0 ${columns}`}
@@ -303,7 +303,7 @@ export default function MembersPage() {
               <button
                 type="button"
                 onClick={() => setInviting(true)}
-                className="inline-flex h-11 items-center rounded-[14px] bg-action px-[18px] text-[13px] font-semibold text-white hover:bg-heading lg:rounded-[9px] lg:font-medium"
+                className="inline-flex h-11 items-center justify-center rounded-[14px] bg-action px-[18px] text-[13px] font-semibold text-white hover:bg-heading lg:rounded-[9px] lg:font-medium"
               >
                 Invite member
               </button>

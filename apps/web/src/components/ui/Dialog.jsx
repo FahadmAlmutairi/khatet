@@ -3,7 +3,7 @@ import { ArrowLeftIcon, CloseIcon } from '../icons.jsx'
 
 // Built on the native <dialog> element: it traps focus, closes with Esc and
 // returns focus to the control that opened it.
-// variant "panel" is the centred mini page from Figma (task details): it draws its own header.
+// variant "panel" is the centred mini page from Figma (task details) from sm up and a full page on mobile; it draws its own header.
 // variant "popover" drops down under the header buttons on desktop and fills the
 // screen on mobile (Figma: Notifications panel 1035:1912 and mobile page 741:2).
 // variant "page" is a centred window from sm up and a full page on mobile (Figma: Create task 1068:11244 and 736:2).
@@ -23,7 +23,7 @@ export default function Dialog({ open, onClose, title, description, children, fo
     drawer: 'ml-auto mr-0 h-dvh max-h-dvh w-full max-w-full sm:max-w-[30rem] rounded-none sm:border-l backdrop:bg-heading/40',
     modal: 'm-auto w-[calc(100%-2rem)] max-w-xl rounded-2xl backdrop:bg-heading/40',
     panel:
-      'mx-auto mt-4 mb-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[640px] rounded-2xl border outline-none sm:m-auto sm:max-h-none sm:overflow-visible sm:rounded-[20px] shadow-[0_24px_48px_rgba(38,54,41,0.18)] backdrop:bg-heading/40',
+      'm-0 h-dvh max-h-dvh w-full max-w-full outline-none backdrop:bg-heading/40 sm:m-auto sm:h-auto sm:max-h-none sm:w-[calc(100%-2rem)] sm:max-w-[640px] sm:overflow-visible sm:rounded-[20px] sm:border sm:shadow-[0_24px_48px_rgba(38,54,41,0.18)]',
     page:
       'm-0 h-dvh max-h-dvh w-full max-w-full bg-surface outline-none backdrop:bg-heading/40 sm:m-auto sm:h-fit sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:max-w-[var(--dialog-width,558px)] sm:overflow-visible sm:rounded-[16px] sm:border sm:bg-white sm:shadow-[0_10px_24px_rgba(20,31,23,0.12)]',
     popover:

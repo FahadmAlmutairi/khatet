@@ -45,7 +45,8 @@ function Lane({ status, tasks, usernames, onOpen, onMove, onCreate }) {
     >
       {/* No overflow clipping on the lane, so a card menu can open past its bottom edge. */}
       <span aria-hidden="true" className={`absolute -inset-x-px -top-px h-1 rounded-t-[var(--radius-card)] ${ACCENTS[status.value]}`} />
-      <h2 id={headingId} className="flex h-6 items-center gap-1.5 text-sm leading-[21px] font-normal text-body">
+      {/* Below lg the status chips above the lanes already name each lane, so the heading is kept for screen readers only. */}
+      <h2 id={headingId} className="flex h-6 items-center gap-1.5 text-sm leading-[21px] font-normal text-body max-lg:sr-only">
         <StatusIcon status={status.value} />
         <span>
           {status.label} · {tasks.length}
@@ -142,6 +143,17 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
   // Phone: the status chips work as tabs for the lane in view (one lane per screen).
   const scrollerRef = useRef(null)
   const [visibleLane, setVisibleLane] = useState(0)
+  const chipsRef = useRef(null)
+  const [chipsAtEnd, setChipsAtEnd] = useState(false)
+  function checkChipsEnd() {
+    const nav = chipsRef.current
+    if (nav) setChipsAtEnd(nav.scrollLeft + nav.clientWidth >= nav.scrollWidth - 1)
+  }
+  useLayoutEffect(() => {
+    checkChipsEnd()
+    window.addEventListener('resize', checkChipsEnd)
+    return () => window.removeEventListener('resize', checkChipsEnd)
+  }, [])
   const [backlogOpen, setBacklogOpen] = useState(false)
   const [activeId, setActiveId] = useState(null)
   // While a card is dragged, this holds the live order so cards make room as it moves.
@@ -285,25 +297,36 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
         screenReaderInstructions: { draggable: 'Use Move to in the task menu to move a task between stages.' },
       }}
     >
-      <nav aria-label="Board columns" className="-mx-4 mb-3 overflow-x-auto px-4 lg:hidden">
-        <ul className="flex gap-2">
-          {ACTIVE_STATUSES.map((status, index) => (
-            <li key={status.value}>
-              <button
-                type="button"
-                onClick={() => showLane(index)}
-                aria-current={visibleLane === index ? 'true' : undefined}
-                className={`inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-sm font-medium text-heading ${
-                  visibleLane === index ? 'border-action bg-nav-active' : 'border-line bg-white'
-                }`}
-              >
-                <StatusIcon status={status.value} />
-                {status.label} · {ids[status.value].length}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+      {/* A soft fade at the right edge shows the chip row scrolls; it goes once the last chip is in view. */}
+      <div className="relative -mx-4 mb-3 lg:hidden">
+        <nav
+          aria-label="Board columns"
+          ref={chipsRef}
+          onScroll={checkChipsEnd}
+          className="overflow-x-auto px-4"
+        >
+          <ul className="flex gap-2">
+            {ACTIVE_STATUSES.map((status, index) => (
+              <li key={status.value}>
+                <button
+                  type="button"
+                  onClick={() => showLane(index)}
+                  aria-current={visibleLane === index ? 'true' : undefined}
+                  className={`inline-flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-sm font-medium text-heading ${
+                    visibleLane === index ? 'border-action bg-nav-active' : 'border-line bg-white'
+                  }`}
+                >
+                  <StatusIcon status={status.value} />
+                  {status.label} · {ids[status.value].length}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        {!chipsAtEnd && (
+          <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-surface to-transparent" />
+        )}
+      </div>
       <div
         ref={scrollerRef}
         onScroll={onScrollLanes}

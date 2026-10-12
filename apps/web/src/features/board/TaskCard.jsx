@@ -20,7 +20,7 @@ export function BlockedPill() {
 }
 
 // Card layout from Figma page 08, Board (324:778): title, due line, blocked pill,
-// then priority on the left and assignees with the actions button on the right.
+// then priority on the left and assignees on the right (with the actions button on touch screens).
 // Done cards sit flatter so the work still open stands out (B3).
 export function TaskCardBody({ task, usernames, onOpen, onMove, isOverlay = false, quiet = false }) {
   // A card that has just been flagged gives one soft pulse on its red edge (not on page load).
@@ -68,12 +68,13 @@ export function TaskCardBody({ task, usernames, onOpen, onMove, isOverlay = fals
         <div className="flex items-center gap-1.5">
           <AvatarStack users={assignees} />
           {isOverlay ? (
-            <span aria-hidden="true" className="inline-flex size-11 items-center lg:size-8 justify-center rounded-lg border border-line bg-white text-heading">
+            <span aria-hidden="true" className="inline-flex size-11 items-center lg:size-8 justify-center rounded-lg border border-line bg-white text-heading [@media(hover:hover)_and_(pointer:fine)]:absolute [@media(hover:hover)_and_(pointer:fine)]:top-2 [@media(hover:hover)_and_(pointer:fine)]:right-2">
               <MoreIcon />
             </span>
           ) : (
-            // B1: with a mouse the menu button appears on hover or focus; touch screens always show it.
-            <span className="[@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:group-focus-within:opacity-100">
+            // B1: with a mouse the menu button appears on hover or focus, in the card's top-right corner,
+            // so the avatars keep the right edge; touch screens always show it next to the avatars.
+            <span className="[@media(hover:hover)_and_(pointer:fine)]:absolute [@media(hover:hover)_and_(pointer:fine)]:top-2 [@media(hover:hover)_and_(pointer:fine)]:right-2 [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:group-focus-within:opacity-100">
               <Menu
                 label={`More actions for ${task.title}`}
                 buttonContent={<MoreIcon />}

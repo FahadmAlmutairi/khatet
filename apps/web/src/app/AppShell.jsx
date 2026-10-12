@@ -11,7 +11,7 @@ import { useBreadcrumb } from './pageMeta.js'
 
 // Sizes and colours from the Figma "Project Sidebar" (page 08, Board 324:778).
 function subNavClass({ isActive }) {
-  return `flex h-11 items-center gap-2 rounded-md px-2 text-xs lg:h-[30px] ${
+  return `flex h-11 items-center gap-2 rounded-md px-2 text-sm lg:h-[30px] ${
     isActive ? 'bg-nav-active font-medium text-[#26352a]' : 'text-nav hover:bg-surface'
   }`
 }
@@ -31,7 +31,7 @@ function Sidebar({ onNavigate, openProjects, onToggleProject }) {
           end
           onClick={onNavigate}
           className={({ isActive }) =>
-            `flex h-11 items-center gap-2 rounded-md px-2 text-xs lg:h-10 ${isActive ? 'bg-nav-active font-medium text-[#26352a]' : 'text-nav hover:bg-surface'}`
+            `flex h-11 items-center gap-2 rounded-md px-2 text-sm lg:h-10 ${isActive ? 'bg-nav-active font-medium text-[#26352a]' : 'text-nav hover:bg-surface'}`
           }
         >
           <HomeIcon />
@@ -63,7 +63,7 @@ function Sidebar({ onNavigate, openProjects, onToggleProject }) {
                     onClick={() => onToggleProject(project.id)}
                     aria-expanded={open}
                     aria-controls={listId}
-                    className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg p-2 text-left text-xs font-medium lg:h-10 text-[#26352a] ${
+                    className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg p-2 text-left text-sm font-medium lg:h-10 text-[#26352a] ${
                       current ? 'bg-[#f7faf6]' : 'hover:bg-surface'
                     }`}
                   >
@@ -107,14 +107,14 @@ function Sidebar({ onNavigate, openProjects, onToggleProject }) {
         <button
           type="button"
           onClick={() => signOut.mutate(undefined, { onSuccess: () => navigate('/sign-in', { replace: true }) })}
-          className="flex h-11 w-full items-center gap-2 rounded-lg px-2 lg:h-9 text-left text-xs text-nav hover:bg-surface"
+          className="flex h-11 w-full items-center gap-2 rounded-lg px-2 lg:h-9 text-left text-sm text-nav hover:bg-surface"
         >
           <SignOutIcon />
           Sign out
         </button>
         <div className="flex h-10 items-center gap-2">
           {me.data && <Avatar username={me.data.username} />}
-          <span className="truncate text-xs font-medium text-body">@{me.data?.username}</span>
+          <span className="truncate text-sm font-medium text-body">@{me.data?.username}</span>
         </div>
       </div>
     </div>
@@ -210,7 +210,7 @@ function readCollapsed() {
   }
 }
 
-const SIDEBAR_WIDTH = 232
+const SIDEBAR_WIDTH = 248
 const RAIL_WIDTH = 64
 
 const panelButton = 'inline-flex size-8 items-center justify-center rounded-md text-nav hover:bg-surface hover:text-heading'
@@ -320,7 +320,7 @@ export default function AppShell() {
 
       {collapsed && <Rail onExpand={toggleSidebar} onOpenProject={openProjectFromRail} expandButtonRef={showButtonRef} />}
       {!collapsed && (
-        <aside className="sidebar-enter sticky top-0 z-30 hidden h-dvh w-[232px] shrink-0 flex-col gap-6 border-r border-line bg-white p-4 lg:flex">
+        <aside className="sidebar-enter sticky top-0 z-30 hidden h-dvh w-[248px] shrink-0 flex-col gap-6 border-r border-line bg-white p-4 lg:flex">
           <div className="flex items-center justify-between">
             <Link to="/projects" className="inline-flex size-8 items-center justify-center">
               <Logo label="Khatet home" />
