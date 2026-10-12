@@ -6,7 +6,7 @@ import Breadcrumb from '../../components/Breadcrumb.jsx'
 import { useInviteMember, useMembers, useUpdateMemberAccess } from '../../api/hooks.js'
 import Avatar from '../../components/Avatar.jsx'
 import { ChevronIcon } from '../../components/icons.jsx'
-import { Spinner } from '../../components/ui/Button.jsx'
+import Button from '../../components/ui/Button.jsx'
 import InfoTip from '../../components/ui/InfoTip.jsx'
 import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import { MemberRowsSkeleton } from '../../components/ui/Skeleton.jsx'
@@ -37,10 +37,6 @@ const ACCESS_OPTIONS = [
   },
 ]
 
-const secondaryButton =
-  'inline-flex h-11 items-center rounded-xl border border-line bg-white px-[14px] text-[13px] font-medium text-body hover:bg-surface sm:h-10'
-const primaryButton =
-  'inline-flex h-11 items-center justify-center gap-2 rounded-[9px] bg-action px-[18px] text-[13px] font-medium text-white hover:bg-heading disabled:cursor-not-allowed'
 
 // US-07: the owner invites a registered user by username.
 function InviteDialog({ open, onClose, projectId }) {
@@ -111,18 +107,12 @@ function InviteDialog({ open, onClose, projectId }) {
           </p>
         )}
         <div className="flex items-center justify-end gap-2.5">
-          <button type="button" onClick={close} className={`max-sm:hidden ${secondaryButton}`}>
+          <Button variant="secondary" onClick={close} className="max-sm:hidden">
             Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={invite.isPending}
-            aria-busy={invite.isPending || undefined}
-            className={`w-full sm:w-auto ${primaryButton}`}
-          >
-            {invite.isPending && <Spinner />}
+          </Button>
+          <Button type="submit" loading={invite.isPending} fullOnPhone>
             Send invitation
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>
@@ -204,18 +194,12 @@ function AccessDialog({ member, projectId, onClose }) {
               })}
             </fieldset>
             <div className="mt-4 flex justify-end gap-2">
-              <button type="button" onClick={close} className={`max-sm:hidden ${secondaryButton}`}>
+              <Button variant="secondary" onClick={close} className="max-sm:hidden">
                 Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={update.isPending}
-                aria-busy={update.isPending || undefined}
-                className={`w-full sm:h-10 sm:w-auto sm:rounded-lg ${primaryButton}`}
-              >
-                {update.isPending && <Spinner />}
+              </Button>
+              <Button type="submit" loading={update.isPending} fullOnPhone>
                 Save access
-              </button>
+              </Button>
             </div>
           </form>
         </>
@@ -231,7 +215,7 @@ function MemberRow({ member, isOwner, onManage }) {
   const access = owner ? 'Full access' : taskAccessLabel(member.taskAccess)
   return (
     <li
-      className={`flex min-h-16 items-center gap-3 rounded-[14px] border border-line bg-white px-[14px] py-3 lg:h-[78px] lg:gap-0 lg:rounded-none lg:border-0 lg:border-b lg:px-5 lg:py-0 ${columns}`}
+      className={`flex min-h-16 items-center gap-3 rounded-card border border-line bg-white px-[14px] py-3 lg:h-[78px] lg:gap-0 lg:rounded-none lg:border-0 lg:border-b lg:px-5 lg:py-0 ${columns}`}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Avatar username={member.username} size="lg" />
@@ -285,7 +269,22 @@ export default function MembersPage() {
   return (
     <section>
       <Breadcrumb items={crumbs} className="lg:hidden" />
-      <h1 className="mt-2 text-[26px] font-bold text-body lg:mt-0 lg:text-[32px] lg:leading-[38px]">Members</h1>
+      {/* The main action sits beside the page title, as on Home and the board. */}
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-4 lg:mt-0">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-title font-bold text-body">Members</h1>
+          {members.data && (
+            <p className="text-sm text-muted">
+              {list.length} project {list.length === 1 ? 'member' : 'members'}
+            </p>
+          )}
+        </div>
+        {members.data && isOwner && (
+          <Button onClick={() => setInviting(true)} fullOnPhone>
+            Invite member
+          </Button>
+        )}
+      </div>
 
       {members.isPending && <MemberRowsSkeleton />}
       {members.isError && (
@@ -295,22 +294,7 @@ export default function MembersPage() {
       )}
       {members.data && (
         <>
-          <div className="mt-4 flex flex-col gap-3 lg:h-[52px] lg:flex-row lg:items-center lg:justify-between">
-            <p className="text-base leading-[22px] font-semibold text-body">
-              {list.length} project {list.length === 1 ? 'member' : 'members'}
-            </p>
-            {isOwner && (
-              <button
-                type="button"
-                onClick={() => setInviting(true)}
-                className="inline-flex h-11 items-center justify-center rounded-[14px] bg-action px-[18px] text-[13px] font-semibold text-white hover:bg-heading lg:rounded-[9px] lg:font-medium"
-              >
-                Invite member
-              </button>
-            )}
-          </div>
-
-          <div className="mt-4 lg:overflow-hidden lg:rounded-[14px] lg:border lg:border-line lg:bg-white">
+          <div className="mt-6 lg:overflow-hidden lg:rounded-card lg:border lg:border-line lg:bg-white">
             <div
               aria-hidden="true"
               className={`hidden h-12 border-b border-line bg-[#f6f8f6] px-5 text-xs leading-4 font-semibold text-muted ${columns}`}

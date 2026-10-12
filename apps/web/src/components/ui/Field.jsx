@@ -67,24 +67,3 @@ export function TextArea({ label, required, hint, error, rows = 3, className = '
     </FieldShell>
   )
 }
-
-export function SelectField({ label, required, hint, error, options, ...props }) {
-  const id = useId()
-  return (
-    <FieldShell id={id} label={label} required={required} hint={hint} error={error}>
-      <select
-        id={id}
-        aria-invalid={Boolean(error)}
-        aria-describedby={describedBy(id, hint, error)}
-        className={`${inputClass} border-surface-supporting`}
-        {...props}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </FieldShell>
-  )
-}

@@ -29,7 +29,7 @@ const STATUS_TONES = {
 }
 
 const outlineButton =
-  'inline-flex h-11 items-center justify-center rounded-[9px] border border-line bg-white text-[13px] font-medium text-heading hover:bg-surface lg:h-10'
+  'inline-flex h-11 items-center justify-center rounded-control border border-line bg-white text-label font-medium text-heading hover:bg-surface lg:h-10'
 
 function TopBar({ eyebrow, children, onClose }) {
   return (
@@ -88,14 +88,34 @@ function BlockedControl({ task }) {
   const updateTask = useUpdateTask()
   const toast = useToast()
   const [reason, setReason] = useState(task.blockedReason ?? '')
+  const [savedReason, setSavedReason] = useState(false)
+  // When the reason changes elsewhere (Undo, another member), the field follows it.
+  const [knownReason, setKnownReason] = useState(task.blockedReason ?? '')
+  if ((task.blockedReason ?? '') !== knownReason) {
+    setKnownReason(task.blockedReason ?? '')
+    setReason(task.blockedReason ?? '')
+  }
   const id = useId()
 
-  function save(isBlocked, blockedReason = reason, { quiet = false } = {}) {
+  // The reason saves itself when the field loses focus or on Enter, and says "Saved" for a moment.
+  function saveReason() {
+    if (reason === (task.blockedReason ?? '') || updateTask.isPending) return
+    save(true, reason, { quiet: true, onSaved: () => setSavedReason(true) })
+  }
+
+  useEffect(() => {
+    if (!savedReason) return undefined
+    const timer = setTimeout(() => setSavedReason(false), 2000)
+    return () => clearTimeout(timer)
+  }, [savedReason])
+
+  function save(isBlocked, blockedReason = reason, { quiet = false, onSaved } = {}) {
     const before = { isBlocked: task.isBlocked, blockedReason: task.blockedReason }
     updateTask.mutate(
       { taskId: task.id, patch: { isBlocked, blockedReason } },
       {
         onSuccess: () => {
+          onSaved?.()
           if (quiet) return
           const message = isBlocked ? 'The task is flagged as blocked.' : 'The blocked flag was removed.'
           // Saving only the reason needs no Undo; turning the flag on or off does.
@@ -113,7 +133,7 @@ function BlockedControl({ task }) {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-[14px] border border-line p-4">
+    <div className="flex flex-col gap-3 rounded-card border border-line p-4">
       <div className="flex items-center gap-3">
         <div className="flex flex-1 items-center gap-2">
           <p id={`${id}-label`} className="text-base font-medium text-body">
@@ -145,27 +165,29 @@ function BlockedControl({ task }) {
           className="flex flex-col gap-1.5"
           onSubmit={(event) => {
             event.preventDefault()
-            save(true)
+            saveReason()
           }}
         >
-          <label htmlFor={`${id}-reason`} className="text-xs font-medium text-body">
-            Reason (optional)
-          </label>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              id={`${id}-reason`}
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              className="h-11 w-full rounded-lg border border-surface-supporting bg-white px-3 text-sm text-body sm:flex-1"
-            />
-            <button
-              type="submit"
-              disabled={reason === (task.blockedReason ?? '') || updateTask.isPending}
-              className={`${outlineButton} px-4 disabled:text-muted lg:h-11`}
-            >
-              Save reason
-            </button>
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor={`${id}-reason`} className="text-xs font-medium text-body">
+              Reason (optional)
+            </label>
+            <p aria-live="polite" className="text-xs font-medium text-action">
+              {savedReason ? 'Saved' : ''}
+            </p>
           </div>
+          <input
+            id={`${id}-reason`}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            onBlur={(event) => {
+              // Turning the flag off from here clears the reason anyway, so only that change is sent.
+              if (event.relatedTarget?.getAttribute('role') === 'switch') return
+              saveReason()
+            }}
+            enterKeyHint="done"
+            className="h-11 w-full rounded-lg border border-surface-supporting bg-white px-3 text-sm text-body"
+          />
         </form>
       )}
     </div>
@@ -249,7 +271,7 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
       </div>
 
 
-      <dl className="flex flex-col gap-4 rounded-[14px] border border-line p-4 sm:flex-row sm:gap-6">
+      <dl className="flex flex-col gap-4 rounded-card border border-line p-4 sm:flex-row sm:gap-6">
         <Detail label="Assignees">
           <AvatarStack users={assignees} />
           <span className="min-w-0">{assignees.map((user) => `@${user.username}`).join(', ')}</span>
@@ -267,7 +289,7 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
         </Detail>
       </dl>
 
-      {task.status === 'IN_PROGRESS' && canEdit && <BlockedControl key={task.blockedReason ?? ''} task={task} />}
+      {task.status === 'IN_PROGRESS' && canEdit && <BlockedControl task={task} />}
       {task.isBlocked && !canEdit && (
         <Notice tone="warning">
           <strong className="font-semibold">Blocked</strong>
@@ -332,17 +354,12 @@ function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone, regist
         <p aria-hidden="true" className="mr-auto hidden self-center text-xs text-muted lg:block">
           {SAVE_SHORTCUT_HINT}
         </p>
-        <button type="button" onClick={() => leave(onDone)} className={`${outlineButton} px-[18px] lg:h-11`}>
+        <Button variant="secondary" onClick={() => leave(onDone)}>
           Cancel
-        </button>
-        <button
-          type="submit"
-          aria-keyshortcuts="Control+Enter Meta+Enter"
-          disabled={updateTask.isPending}
-          className="inline-flex h-11 items-center justify-center rounded-[9px] bg-action px-[18px] text-[13px] font-medium text-white hover:bg-heading disabled:opacity-60"
-        >
+        </Button>
+        <Button type="submit" aria-keyshortcuts="Control+Enter Meta+Enter" loading={updateTask.isPending}>
           Save changes
-        </button>
+        </Button>
       </div>
       <DiscardChangesDialog
         open={Boolean(pendingLeave)}

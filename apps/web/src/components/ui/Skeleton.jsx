@@ -73,12 +73,12 @@ export function ProjectCardsSkeleton({ label = 'Loading your projects' }) {
 
 export function MemberRowsSkeleton({ label = 'Loading members', rows = 4 }) {
   return (
-    <Loading label={label} className="mt-6 flex flex-col gap-2.5 lg:gap-0 lg:overflow-hidden lg:rounded-[14px] lg:border lg:border-line lg:bg-white">
+    <Loading label={label} className="mt-6 flex flex-col gap-2.5 lg:gap-0 lg:overflow-hidden lg:rounded-card lg:border lg:border-line lg:bg-white">
       {Array.from({ length: rows }, (_, index) => (
         <span
           key={index}
           aria-hidden="true"
-          className="flex min-h-16 items-center gap-3 rounded-[14px] border border-line bg-white px-[14px] lg:h-[78px] lg:rounded-none lg:border-0 lg:border-b lg:px-5"
+          className="flex min-h-16 items-center gap-3 rounded-card border border-line bg-white px-[14px] lg:h-[78px] lg:rounded-none lg:border-0 lg:border-b lg:px-5"
         >
           <Bar className="size-10 shrink-0 rounded-full" />
           <span className="flex flex-1 flex-col gap-2">

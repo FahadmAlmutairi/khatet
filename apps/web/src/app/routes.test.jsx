@@ -327,6 +327,27 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
     expect(within(todo).getByText(`Due ${formatDueDate(dateFromToday(1), { short: true })}`)).toBeInTheDocument()
   })
 
+  it('picks a priority from the pills and writes the picked date in words', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('button', { name: 'Add task' }))
+    const dialog = screen.getByRole('dialog', { name: 'Create a task' })
+    const priority = within(dialog).getByRole('group', { name: 'Priority' })
+    expect(within(priority).getByRole('radio', { name: 'None' })).toBeChecked()
+    await user.click(within(priority).getByRole('radio', { name: 'High' }))
+    expect(within(priority).getByRole('radio', { name: 'High' })).toBeChecked()
+    await user.click(within(dialog).getByRole('button', { name: 'Tomorrow' }))
+    expect(within(dialog).getByText(new RegExp(`day ${formatDueDate(dateFromToday(1))}$`))).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: /Add assignee/ }))
+    await user.click(within(dialog).getByRole('button', { name: '@saad' }))
+    await user.type(within(dialog).getByLabelText(/Task title/), 'Print the consent forms')
+    await user.click(within(dialog).getByRole('button', { name: 'Create task' }))
+    const todo = screen.getByRole('region', { name: /^To Do/ })
+    const card = (await within(todo).findByText('Print the consent forms')).closest('li')
+    expect(within(card).getByText('High')).toBeInTheDocument()
+  })
+
   it('asks before discarding a half-filled new task', async () => {
     signIn()
     const user = userEvent.setup()
@@ -401,6 +422,22 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
     await waitFor(() => expect(toggle).toHaveAttribute('aria-checked', 'true'))
     const inProgress = screen.getByRole('region', { name: /^In Progress/ })
     expect(within(inProgress).getAllByText(/^Blocked/)).toHaveLength(2)
+  })
+
+  it('saves the blocked reason when the field loses focus', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board?task=t-7')
+    const toggle = await screen.findByRole('switch', { name: 'Blocked' })
+    await user.click(toggle)
+    await user.type(await screen.findByLabelText('Reason (optional)'), 'Waiting for the lab key')
+    await user.tab()
+    expect(await screen.findByText('Saved')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Save reason' })).not.toBeInTheDocument()
+    await waitFor(async () => {
+      const tasks = await getTasks('p-khatet')
+      expect(tasks.find((task) => task.id === 't-7').blockedReason).toBe('Waiting for the lab key')
+    })
   })
 
   it('deletes a task after confirmation', async () => {
@@ -498,6 +535,17 @@ describe('notifications (US-08, US-30)', () => {
     expect(await within(panel).findByText('You joined this project.')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Notifications, 1 unread' })).toBeInTheDocument()
     expect(await screen.findByRole('link', { name: /Mobile App Study.*Member/ })).toBeInTheDocument()
+  })
+
+  it('shows a pending invitation on Home and accepts it there', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects')
+    const invitations = await screen.findByRole('region', { name: 'Invitations' })
+    expect(within(invitations).getByText(/@ali invited you to join/)).toBeInTheDocument()
+    await user.click(within(invitations).getByRole('button', { name: 'Accept' }))
+    expect(await screen.findByRole('link', { name: /Mobile App Study.*Member/ })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'Invitations' })).not.toBeInTheDocument())
   })
 
   it('filters unread notifications and marks them all as read', async () => {

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { errorMessage, fieldError } from '../../api/errors.js'
 import { useRequestCode, useVerifyCode } from '../../api/hooks.js'
-import { Spinner } from '../../components/ui/Button.jsx'
-import AuthLayout, { authButton, SampleSignInNote } from './AuthLayout.jsx'
+import Button, { Spinner } from '../../components/ui/Button.jsx'
+import AuthLayout, { SampleSignInNote } from './AuthLayout.jsx'
 import CodeInput from './CodeInput.jsx'
 
 const RESEND_SECONDS = 30
@@ -48,7 +48,7 @@ export default function VerifyCodePage() {
       <p className="text-sm leading-[21px] text-muted">
         We sent a 6-digit code to {email}. It expires in 10 minutes.
       </p>
-      <Link to="/sign-in" className="-my-3 inline-flex min-h-11 items-center self-start text-[13px] font-semibold text-action hover:underline">
+      <Link to="/sign-in" className="-my-3 inline-flex min-h-11 items-center self-start text-label font-semibold text-action hover:underline">
         Wrong email? Change it
       </Link>
       <form onSubmit={submit} noValidate className="flex flex-col gap-6">
@@ -58,16 +58,15 @@ export default function VerifyCodePage() {
             {errorMessage(verify.error)}
           </p>
         )}
-        <button type="submit" disabled={verify.isPending} aria-busy={verify.isPending || undefined} className={authButton}>
-          {verify.isPending && <Spinner />}
+        <Button type="submit" loading={verify.isPending} fullOnPhone className="w-full max-sm:h-12">
           Verify code
-        </button>
+        </Button>
       </form>
       {/* Only the moment a new code can be requested is announced, not every second. */}
       <p className="sr-only" aria-live="polite">
         {secondsLeft > 0 ? '' : 'You can now request a new code.'}
       </p>
-      <div className="-mt-1 flex justify-center text-[13px] leading-[18px] text-muted">
+      <div className="-mt-1 flex justify-center text-label text-muted">
         {secondsLeft > 0 ? (
           <p>
             Send a new code in 0:{String(secondsLeft).padStart(2, '0')}

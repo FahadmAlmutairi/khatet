@@ -11,7 +11,7 @@ export default function AuthLayout({ step, title, children, after }) {
       </header>
       <main id="main" className="flex flex-1 flex-col items-center justify-start px-5 py-12 sm:justify-center sm:px-4 sm:py-10">
         {/* Mobile drops the card and sits on the page background (Figma 778:94). */}
-        <section className="flex w-full max-w-[440px] flex-col gap-6 sm:rounded-[20px] sm:border sm:border-line sm:bg-white sm:p-10 sm:shadow-[0_2px_8px_rgba(48,64,54,0.05)]">
+        <section className="flex w-full max-w-[440px] flex-col gap-6 sm:rounded-dialog sm:border sm:border-line sm:bg-white sm:p-10 sm:shadow-[0_2px_8px_rgba(48,64,54,0.05)]">
           {step && <p className="text-xs leading-normal font-semibold tracking-[0.66px] text-muted uppercase">{step}</p>}
           <h1 className="text-[26px] leading-tight font-bold text-body sm:text-xl sm:leading-[26px] sm:font-semibold">{title}</h1>
           {children}
@@ -31,6 +31,3 @@ export function SampleSignInNote() {
     </p>
   )
 }
-
-export const authButton =
-  'inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] bg-action px-[18px] text-sm font-semibold text-white hover:bg-heading disabled:cursor-not-allowed sm:h-11 sm:rounded-[9px] sm:text-[13px] sm:leading-[18px] sm:font-medium'

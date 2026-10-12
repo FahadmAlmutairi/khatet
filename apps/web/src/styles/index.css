@@ -28,7 +28,16 @@
   --color-priority-low-bg: #e3f0e0;
   --color-priority-low-text: #2e5c33;
 
+  /* Three corner sizes: controls (buttons, fields), cards, and windows. */
+  --radius-control: 9px;
   --radius-card: 14px;
+  --radius-dialog: 20px;
+
+  /* Type scale: 12px captions (text-xs), 13px button labels, 14px body (text-sm), 16px (text-base), 20px (text-xl), 28px page titles. */
+  --text-label: 13px;
+  --text-label--line-height: 18px;
+  --text-title: 28px;
+  --text-title--line-height: 34px;
 
   --shadow-card: 0 2px 8px rgba(48, 65, 54, 0.05);
 
@@ -50,6 +59,14 @@
   :focus-visible {
     outline: 3px solid var(--color-focus);
     outline-offset: 2px;
+  }
+
+  /* Text fields take a lighter 2px ring that hugs the border (still well above 3:1 on white). */
+  input:not([type='checkbox'], [type='radio']):focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--color-action);
+    outline-offset: 0;
   }
 
   /* G9: one motion standard. Windows, menus and toasts fade and rise in quickly and land softly. */

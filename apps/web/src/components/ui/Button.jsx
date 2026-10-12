@@ -1,21 +1,24 @@
 const VARIANTS = {
-  primary: 'bg-action text-white hover:bg-heading disabled:bg-surface-supporting',
+  primary: 'bg-action text-white hover:bg-heading disabled:opacity-60',
   secondary: 'border border-line bg-white text-heading hover:bg-surface disabled:text-muted',
   ghost: 'text-heading hover:bg-surface-subtle disabled:text-muted',
   danger: 'bg-blocked text-white hover:bg-priority-high-text disabled:opacity-60',
 }
 
 const SIZES = {
-  md: 'min-h-11 px-4 text-base',
-  icon: 'size-11 justify-center',
+  md: 'h-11 px-[18px]',
+  icon: 'size-11',
 }
 
-// Every button is at least 44px high (NFR-05) and keeps its label while loading.
+// One button for the whole app (Figma page 08): 44px high (NFR-05), 9px corners, 13px label.
+// fullOnPhone: below 640px the button fills the row with the larger phone label and corners
+// (Figma mobile pages). The label stays while loading, with a spinner before it.
 export default function Button({
   variant = 'primary',
   size = 'md',
   loading = false,
   disabled = false,
+  fullOnPhone = false,
   type = 'button',
   className = '',
   children,
@@ -26,7 +29,9 @@ export default function Button({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`inline-flex items-center gap-2 rounded-lg font-medium transition-colors duration-150 disabled:cursor-not-allowed ${VARIANTS[variant]} ${SIZES[size]} ${className}`}
+      className={`inline-flex shrink-0 items-center justify-center gap-2 rounded-control text-label font-medium transition-colors duration-150 disabled:cursor-not-allowed ${VARIANTS[variant]} ${SIZES[size]} ${
+        fullOnPhone ? 'max-sm:w-full max-sm:rounded-card max-sm:text-sm max-sm:font-semibold' : ''
+      } ${className}`}
       {...props}
     >
       {loading && <Spinner />}

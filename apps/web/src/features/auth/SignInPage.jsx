@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { fieldError, errorMessage } from '../../api/errors.js'
 import { useMe, useRequestCode } from '../../api/hooks.js'
-import { Spinner } from '../../components/ui/Button.jsx'
+import Button from '../../components/ui/Button.jsx'
 import { TextField } from '../../components/ui/Field.jsx'
-import AuthLayout, { authButton, SampleSignInNote } from './AuthLayout.jsx'
+import AuthLayout, { SampleSignInNote } from './AuthLayout.jsx'
 
 // US-01 and US-02: one email form for new and returning users.
 export default function SignInPage() {
@@ -44,10 +44,9 @@ export default function SignInPage() {
             {errorMessage(requestCode.error)}
           </p>
         )}
-        <button type="submit" disabled={requestCode.isPending} aria-busy={requestCode.isPending || undefined} className={authButton}>
-          {requestCode.isPending && <Spinner />}
+        <Button type="submit" loading={requestCode.isPending} fullOnPhone className="w-full max-sm:h-12">
           Continue with email
-        </button>
+        </Button>
       </form>
     </AuthLayout>
   )

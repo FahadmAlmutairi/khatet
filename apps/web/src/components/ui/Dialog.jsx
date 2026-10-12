@@ -23,7 +23,7 @@ export default function Dialog({ open, onClose, title, description, children, fo
     drawer: 'ml-auto mr-0 h-dvh max-h-dvh w-full max-w-full sm:max-w-[30rem] rounded-none sm:border-l backdrop:bg-heading/40',
     modal: 'm-auto w-[calc(100%-2rem)] max-w-xl rounded-2xl backdrop:bg-heading/40',
     panel:
-      'm-0 h-dvh max-h-dvh w-full max-w-full outline-none backdrop:bg-heading/40 sm:m-auto sm:h-auto sm:max-h-none sm:w-[calc(100%-2rem)] sm:max-w-[640px] sm:overflow-visible sm:rounded-[20px] sm:border sm:shadow-[0_24px_48px_rgba(38,54,41,0.18)]',
+      'm-0 h-dvh max-h-dvh w-full max-w-full outline-none backdrop:bg-heading/40 sm:m-auto sm:h-fit sm:max-h-none sm:w-[calc(100%-2rem)] sm:max-w-[640px] sm:overflow-visible sm:rounded-dialog sm:border sm:shadow-[0_24px_48px_rgba(38,54,41,0.18)]',
     page:
       'm-0 h-dvh max-h-dvh w-full max-w-full bg-surface outline-none backdrop:bg-heading/40 sm:m-auto sm:h-fit sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:max-w-[var(--dialog-width,558px)] sm:overflow-visible sm:rounded-[16px] sm:border sm:bg-white sm:shadow-[0_10px_24px_rgba(20,31,23,0.12)]',
     popover:

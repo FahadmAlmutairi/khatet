@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { errorMessage, fieldError } from '../../api/errors.js'
 import { useMe, useSetUsername } from '../../api/hooks.js'
-import { Spinner } from '../../components/ui/Button.jsx'
+import Button from '../../components/ui/Button.jsx'
 import { TextField } from '../../components/ui/Field.jsx'
 import { LoadingState } from '../../components/ui/States.jsx'
-import AuthLayout, { authButton } from './AuthLayout.jsx'
+import AuthLayout from './AuthLayout.jsx'
 
 // US-01: a new user picks a unique username before using projects.
 export default function ChooseUsernamePage() {
@@ -45,10 +45,9 @@ export default function ChooseUsernamePage() {
             {errorMessage(setUsername.error)}
           </p>
         )}
-        <button type="submit" disabled={setUsername.isPending} aria-busy={setUsername.isPending || undefined} className={authButton}>
-          {setUsername.isPending && <Spinner />}
+        <Button type="submit" loading={setUsername.isPending} fullOnPhone className="w-full max-sm:h-12">
           Finish account
-        </button>
+        </Button>
       </form>
     </AuthLayout>
   )

@@ -65,7 +65,7 @@ function Lane({ status, tasks, usernames, onOpen, onMove, onCreate }) {
                 <button
                   type="button"
                   onClick={onCreate}
-                  className="inline-flex min-h-11 items-center gap-1.5 rounded-[9px] border border-line bg-white px-3 text-[13px] font-medium text-heading hover:bg-surface lg:min-h-9"
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-control border border-line bg-white px-3 text-label font-medium text-heading hover:bg-surface lg:min-h-9"
                 >
                   <PlusIcon />
                   Add task
@@ -104,7 +104,7 @@ function BacklogPanel({ tasks, usernames, onOpen, onMove, open, onToggle }) {
           onClick={onToggle}
           aria-expanded={open}
           aria-controls="backlog-tasks"
-          className="inline-flex items-center gap-1.5 rounded-[9px] border border-line bg-white px-[18px] py-[13px] text-[13px] leading-[18px] font-medium text-heading hover:bg-surface"
+          className="inline-flex items-center gap-1.5 rounded-control border border-line bg-white px-[18px] py-[13px] text-label font-medium text-heading hover:bg-surface"
         >
           {open ? 'Hide backlog' : 'Show backlog'}
           <ChevronIcon direction={open ? 'up' : 'down'} />

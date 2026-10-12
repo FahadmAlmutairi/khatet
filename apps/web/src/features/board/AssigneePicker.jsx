@@ -68,7 +68,7 @@ export default function AssigneePicker({ members, value, onChange, error, requir
           aria-expanded={open}
           aria-controls={open ? `${id}-popover` : undefined}
           onClick={() => (open ? close() : setOpen(true))}
-          className="inline-flex h-11 items-center gap-1 rounded-full border border-line bg-white px-3 text-[13px] font-medium text-heading hover:bg-surface lg:h-8"
+          className="inline-flex h-11 items-center gap-1 rounded-full border border-line bg-white px-3 text-label font-medium text-heading hover:bg-surface lg:h-8"
         >
           + Add
         </button>

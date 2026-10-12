@@ -12,9 +12,9 @@ import { notificationTime } from '../../lib/domain.js'
 // mobile "Notifications / Mobile / Populated" (741:2) fills the screen.
 // States from "Notifications / Desktop / Supporting States" (305:673).
 
-const smallButton = 'inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-medium lg:h-9 lg:px-[14px] lg:text-[13px]'
+const smallButton = 'inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-medium lg:h-9 lg:px-[14px] lg:text-label'
 
-function InvitationActions({ notification }) {
+export function InvitationActions({ notification }) {
   const respond = useRespondToInvitation()
   const toast = useToast()
 
@@ -98,12 +98,12 @@ function NotificationItem({ notification, onOpenTask }) {
 
   return (
     <li
-      className={`flex items-start gap-3 rounded-[14px] border border-line bg-white p-[14px] lg:gap-[11px] lg:rounded-none lg:border-0 lg:border-b lg:px-[15px] lg:py-[14px] ${
+      className={`flex items-start gap-3 rounded-card border border-line bg-white p-[14px] lg:gap-[11px] lg:rounded-none lg:border-0 lg:border-b lg:px-[15px] lg:py-[14px] ${
         notification.read ? '' : 'lg:bg-[#f9fbf8]'
       }`}
     >
       {notification.read ? <span aria-hidden="true" className="size-2 shrink-0 lg:hidden" /> : <UnreadDot className="mt-1 size-2 lg:hidden" />}
-      <span aria-hidden="true" className={`hidden size-9 shrink-0 items-center justify-center rounded-[9px] bg-nav-active lg:flex ${isInvitation ? 'text-nav' : 'text-action'}`}>
+      <span aria-hidden="true" className={`hidden size-9 shrink-0 items-center justify-center rounded-control bg-nav-active lg:flex ${isInvitation ? 'text-nav' : 'text-action'}`}>
         {isInvitation ? <MembersIcon /> : <TaskCheckIcon />}
       </span>
       <div className={`flex min-w-0 flex-1 flex-col ${isInvitation ? 'gap-[5px] lg:gap-1.5' : 'gap-[5px] lg:gap-1'}`}>
@@ -131,7 +131,7 @@ function PanelState({ role, title, children, action }) {
 }
 
 const stateText = 'max-w-[340px] text-sm text-muted lg:text-nav'
-const stateButton = 'inline-flex h-11 items-center rounded-[9px] px-[18px] text-[13px] leading-[18px] font-medium'
+const stateButton = 'inline-flex h-11 items-center rounded-control px-[18px] text-label font-medium'
 
 function CaughtUpBadge() {
   return (
@@ -175,7 +175,7 @@ export default function NotificationsPanel({ open, onClose, query }) {
   }
 
   function tabClass(active) {
-    return `inline-flex h-11 items-center justify-center rounded-[10px] border text-[13px] lg:h-7 lg:w-auto lg:rounded-lg lg:border-0 lg:px-[14px] ${
+    return `inline-flex h-11 items-center justify-center rounded-[10px] border text-label lg:h-7 lg:w-auto lg:rounded-lg lg:border-0 lg:px-[14px] ${
       active
         ? 'border-action bg-action text-white lg:bg-white lg:font-semibold lg:text-body'
         : 'border-line bg-white text-body lg:bg-transparent lg:text-muted'
@@ -217,7 +217,7 @@ export default function NotificationsPanel({ open, onClose, query }) {
               type="button"
               onClick={markAllRead}
               disabled={unread === 0 || markAll.isPending}
-              className="inline-flex h-11 w-full items-center rounded-[14px] border border-line bg-white px-4 text-xs font-semibold text-body hover:bg-surface disabled:cursor-not-allowed disabled:text-muted lg:col-start-2 lg:row-start-1 lg:h-10 lg:w-[116px] lg:justify-center lg:rounded-lg lg:border-0 lg:px-0 lg:text-[13px] lg:font-medium lg:text-nav"
+              className="inline-flex h-11 w-full items-center rounded-card border border-line bg-white px-4 text-xs font-semibold text-body hover:bg-surface disabled:cursor-not-allowed disabled:text-muted lg:col-start-2 lg:row-start-1 lg:h-10 lg:w-[116px] lg:justify-center lg:rounded-lg lg:border-0 lg:px-0 lg:text-label lg:font-medium lg:text-nav"
             >
               Mark all as read
             </button>

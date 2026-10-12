@@ -5,6 +5,7 @@ import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
 import { useMembers, useMoveTask, useTasks, useUpdateTask } from '../../api/hooks.js'
 import { PlusIcon } from '../../components/icons.jsx'
+import Button from '../../components/ui/Button.jsx'
 import { BoardSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState, StateBadge } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
@@ -94,20 +95,15 @@ export default function BoardPage() {
         <div className="flex min-w-0 flex-col gap-2">
           <Breadcrumb items={crumbs} className="lg:hidden" />
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-[28px] leading-[34px] font-bold break-words text-body">{project.name}</h1>
+            <h1 className="text-title font-bold break-words text-body">{project.name}</h1>
             {note && <StateBadge label={note.label}>{note.text}</StateBadge>}
           </div>
         </div>
         {project.permissions.canCreateTask && (
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            disabled={!members.data}
-            className="inline-flex items-center justify-center gap-1.5 rounded-[9px] bg-action px-[18px] py-[13px] text-[13px] leading-[18px] font-medium text-white hover:bg-heading disabled:opacity-60"
-          >
+          <Button onClick={() => setCreating(true)} disabled={!members.data} className="gap-1.5">
             <PlusIcon />
             Add task
-          </button>
+          </Button>
         )}
       </div>
 

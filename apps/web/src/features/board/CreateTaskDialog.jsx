@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from 'react'
 import { errorMessage } from '../../api/errors.js'
 import { useCreateTask } from '../../api/hooks.js'
-import { Spinner } from '../../components/ui/Button.jsx'
+import Button from '../../components/ui/Button.jsx'
 import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import DiscardChangesDialog from '../../components/ui/DiscardChangesDialog.jsx'
 import { SAVE_SHORTCUT_HINT, sameValues, submitOnCtrlEnter, useFocusFirstError } from '../../components/ui/formState.js'
@@ -61,23 +61,12 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
           <p aria-hidden="true" className="mr-auto hidden self-center text-xs text-muted lg:block">
             {SAVE_SHORTCUT_HINT}
           </p>
-          <button
-            type="button"
-            onClick={requestClose}
-            className="hidden h-11 items-center rounded-lg border border-line bg-white px-4 text-[13px] font-medium text-heading hover:bg-surface sm:inline-flex"
-          >
+          <Button variant="secondary" onClick={requestClose} className="max-sm:hidden">
             Cancel
-          </button>
-          <button
-            type="submit"
-            aria-keyshortcuts="Control+Enter Meta+Enter"
-            disabled={createTask.isPending}
-            aria-busy={createTask.isPending || undefined}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-action px-[18px] text-sm font-semibold text-white hover:bg-heading disabled:cursor-not-allowed sm:w-auto sm:rounded-[9px] sm:text-[13px] sm:font-medium"
-          >
-            {createTask.isPending && <Spinner />}
+          </Button>
+          <Button type="submit" aria-keyshortcuts="Control+Enter Meta+Enter" loading={createTask.isPending} fullOnPhone>
             Create task
-          </button>
+          </Button>
         </div>
       </form>
       <DiscardChangesDialog open={confirming} onKeep={() => setConfirming(false)} onDiscard={close} />
