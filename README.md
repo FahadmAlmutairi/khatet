@@ -4,7 +4,10 @@ Khatet is a collaborative web platform for student teams to plan projects, organ
 
 ## Current status
 
-The repository contains the agreed project documentation and the frontend project in `apps/web`. The backend will be added in `apps/api`.
+The repository contains the agreed project documentation, the frontend project in `apps/web` and the backend project in `apps/api`.
+
+- Frontend: https://khatet.vercel.app
+- Backend health check: https://khatet.onrender.com/api/health
 
 ## First release at a glance
 
@@ -27,7 +30,8 @@ For the complete current scope and boundaries, read [Project Overview](docs/proj
 ├── README.md
 ├── AGENTS.md
 ├── apps/
-│   └── web/          React frontend (Vite, JavaScript)
+│   ├── web/          React frontend (Vite, JavaScript)
+│   └── api/          Express backend (Node.js, JavaScript)
 └── docs/
     ├── project-overview.md
     ├── architecture.md
@@ -88,4 +92,22 @@ Until the API exists, the screens run on sample data in `src/api/mockServer.js`.
 | `npm run lint` | Runs the linter. |
 | `npm run build` | Builds the production bundle into `dist/`. |
 
-Backend setup commands will be added with the API project.
+## Running the backend
+
+Requires Node.js 22 or later.
+
+```bash
+cd apps/api
+npm install
+npm run dev
+```
+
+The API starts at http://localhost:3000. Check that it is running at http://localhost:3000/api/health, which returns `{"status":"ok"}`. The port can be changed with the `PORT` setting (see `apps/api/.env.example`).
+
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Starts the API and restarts it when a file changes. |
+| `npm start` | Starts the API. Render uses this command. |
+| `npm test` | Runs the Vitest and Supertest tests. |
+
+The deployed API runs on Render (free plan) from `apps/api`, with build command `npm ci` and start command `npm start`. The free service sleeps after 15 minutes without traffic, so the first request after that can take about a minute.
