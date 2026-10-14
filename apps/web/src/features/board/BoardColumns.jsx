@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   closestCenter,
   defaultDropAnimationSideEffects,
@@ -39,11 +39,13 @@ function Lane({ status, tasks, usernames, onOpen, onMove, onCreate }) {
     <section
       ref={setNodeRef}
       aria-labelledby={headingId}
-      className={`relative flex min-h-40 w-[calc(100%-24px)] shrink-0 snap-center sm:w-[274px] sm:snap-start flex-col gap-3 rounded-[var(--radius-card)] border border-line p-3 transition-colors duration-150 lg:min-h-60 lg:w-auto lg:min-w-0 lg:flex-1 ${
+      className={`relative flex min-h-40 w-[calc(100%-24px)] shrink-0 snap-center max-lg:[transform:translateZ(0)] sm:w-[274px] sm:snap-start flex-col gap-3 rounded-[var(--radius-card)] border border-line p-3 transition-colors duration-150 lg:min-h-60 lg:w-auto lg:min-w-0 lg:flex-1 ${
         isOver ? 'bg-nav-active' : 'bg-surface'
       }`}
     >
-      {/* No overflow clipping on the lane, so a card menu can open past its bottom edge. */}
+      {/* No overflow clipping on the lane, so a card menu can open past its bottom edge.
+          Below lg the lane gets its own layer (translateZ), so iPhone Safari moves its cards with it while swiping
+          instead of drawing them a step behind the lane's border and colour bar. */}
       {/* The accent is clipped to the lane's rounded corners so it lines up with the border below it. */}
       <span aria-hidden="true" className="pointer-events-none absolute -inset-px overflow-hidden rounded-[var(--radius-card)]">
         <span className={`absolute inset-x-0 top-0 h-1 ${ACCENTS[status.value]}`} />
@@ -157,6 +159,13 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
     window.addEventListener('resize', checkChipsEnd)
     return () => window.removeEventListener('resize', checkChipsEnd)
   }, [])
+  // Keep the chip of the lane in view centred in the chip row, so it is never cut off after a swipe.
+  useEffect(() => {
+    const nav = chipsRef.current
+    const chip = nav?.querySelectorAll('li')[visibleLane]
+    if (!nav || !chip || nav.scrollWidth <= nav.clientWidth) return
+    nav.scrollTo({ left: chip.offsetLeft - (nav.clientWidth - chip.offsetWidth) / 2, behavior: 'smooth' })
+  }, [visibleLane])
   const [backlogOpen, setBacklogOpen] = useState(false)
   const [activeId, setActiveId] = useState(null)
   // While a card is dragged, this holds the live order so cards make room as it moves.
@@ -330,9 +339,9 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
           aria-label="Board columns"
           ref={chipsRef}
           onScroll={checkChipsEnd}
-          className="overflow-x-auto px-4"
+          className="relative overflow-x-auto px-4"
         >
-          <ul className="flex gap-2">
+          <ul className="flex w-max gap-2">
             {ACTIVE_STATUSES.map((status, index) => (
               <li key={status.value}>
                 <button
