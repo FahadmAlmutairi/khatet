@@ -24,6 +24,7 @@ Use semantic roles in component APIs instead of raw color names.
 | `action.primary` / active | Olive `#40533F` | Primary actions, selected navigation, active filters. |
 | `surface.supporting` | Sage `#AEB79D` | Progress and supporting surfaces. |
 | `surface.subtle` | Light sage `#DCE1D2` | Panels and soft backgrounds. |
+| `border.input` | Grey green `#7F8A80` | Borders of text fields and code boxes (3.6:1 on white, so the field edge stays visible). |
 | `status.attention` / AI / blocked | Terracotta `#C86C4D` | AI, warnings, blockers, overdue tasks, important deadlines. |
 | `text.body` | Dark neutral `#242522` | General reading text. |
 | `focus.ring` | 3px dark green `#26362A` ring | Keyboard focus must remain visible on every surface. |
