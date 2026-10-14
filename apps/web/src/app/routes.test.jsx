@@ -523,6 +523,8 @@ describe('members (US-07, US-09, US-10)', () => {
     expect(screen.queryByRole('button', { name: /Manage access/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Invite member' })).not.toBeInTheDocument()
     expect(screen.getAllByText('Edit assigned tasks')).toHaveLength(2)
+    expect(screen.getByText('Only the project owner can invite people or change access.')).toBeInTheDocument()
+    expect(screen.getByText('You')).toBeInTheDocument()
   })
 })
 

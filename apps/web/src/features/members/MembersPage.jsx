@@ -3,11 +3,10 @@ import { useOutletContext } from 'react-router'
 import { errorMessage, fieldError } from '../../api/errors.js'
 import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
-import { useInviteMember, useMembers, useUpdateMemberAccess } from '../../api/hooks.js'
+import { useInviteMember, useMe, useMembers, useUpdateMemberAccess } from '../../api/hooks.js'
 import Avatar from '../../components/Avatar.jsx'
 import { ChevronIcon } from '../../components/icons.jsx'
 import Button from '../../components/ui/Button.jsx'
-import InfoTip from '../../components/ui/InfoTip.jsx'
 import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import { MemberRowsSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState } from '../../components/ui/States.jsx'
@@ -18,26 +17,25 @@ import { FieldError } from '../../components/ui/Field.jsx'
 // Figma: owner 211:198, member 216:199, access window 219:327, invite window 220:344;
 // mobile list 737:2, manage access 900:691.
 
-// Wording from the Figma access window (219:327) and "Task access levels" card (211:198).
+// Wording from the task access table in docs/project-overview.md, shown under each option.
 const ACCESS_OPTIONS = [
   {
     value: 'VIEW_ONLY',
     label: 'View tasks only',
-    help: 'Can view tasks but not change them.',
+    help: 'View tasks. Cannot create, edit, or move tasks.',
   },
   {
     value: 'EDIT_ASSIGNED',
     label: 'Edit assigned tasks',
     tag: 'Default',
-    help: 'Can edit and move tasks assigned to them.',
+    help: 'Edit and move only the tasks assigned to them.',
   },
   {
     value: 'EDIT_ALL',
     label: 'Edit all tasks',
-    help: 'Can create, edit and move any task.',
+    help: 'Create, edit, move, and delete any task.',
   },
 ]
-
 
 // US-07: the owner invites a registered user by username.
 function InviteDialog({ open, onClose, projectId }) {
@@ -93,10 +91,16 @@ function InviteDialog({ open, onClose, projectId }) {
             autoFocus
             aria-required="true"
             aria-invalid={Boolean(usernameError)}
-            aria-describedby={usernameError ? `${id}-error` : undefined}
+            aria-describedby={usernameError ? `${id}-error` : `${id}-hint`}
             className="h-11 w-full rounded-[10px] border border-input bg-white px-[14px] text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
           />
-          {usernameError && <FieldError id={`${id}-error`}>{usernameError}</FieldError>}
+          {usernameError ? (
+            <FieldError id={`${id}-error`}>{usernameError}</FieldError>
+          ) : (
+            <p id={`${id}-hint`} className="text-sm text-muted">
+              They will see the invitation on Home and in Notifications.
+            </p>
+          )}
         </div>
         {otherError && (
           <FieldError role="alert">{otherError}</FieldError>
@@ -167,7 +171,7 @@ function AccessDialog({ member, projectId, onClose }) {
                 return (
                   <label
                     key={option.value}
-                    className={`flex cursor-pointer gap-3.5 rounded-xl border px-[15px] py-[15px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus ${
+                    className={`flex cursor-pointer gap-3 rounded-[10px] border px-4 py-3 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-focus ${
                       checked ? 'border-[#668a66] bg-nav-active' : 'border-line bg-white hover:bg-surface'
                     }`}
                   >
@@ -177,12 +181,17 @@ function AccessDialog({ member, projectId, onClose }) {
                       value={option.value}
                       checked={checked}
                       onChange={() => setPicked(option.value)}
+                      aria-describedby={`${id}-${option.value}-help`}
                       className="mt-px size-[18px] shrink-0 accent-action"
                     />
-                    <span className="flex items-center gap-2 text-sm font-semibold text-body">
-                      {option.label}
-                      {option.tag && ` · ${option.tag}`}
-                      <InfoTip label={`About ${option.label}`}>{option.help}</InfoTip>
+                    <span className="flex flex-col gap-0.5">
+                      <span className="text-[15px] leading-[19px] font-semibold text-body">
+                        {option.label}
+                        {option.tag && ` · ${option.tag}`}
+                      </span>
+                      <span id={`${id}-${option.value}-help`} className="text-label leading-4 text-muted">
+                        {option.help}
+                      </span>
                     </span>
                   </label>
                 )
@@ -205,7 +214,7 @@ function AccessDialog({ member, projectId, onClose }) {
 
 const columns = 'lg:grid lg:grid-cols-[minmax(0,400fr)_170px_minmax(0,370fr)_164px] lg:items-center'
 
-function MemberRow({ member, isOwner, onManage }) {
+function MemberRow({ member, isOwner, isYou, onManage }) {
   const owner = member.role === 'OWNER'
   const access = owner ? 'Full access' : taskAccessLabel(member.taskAccess)
   return (
@@ -215,7 +224,10 @@ function MemberRow({ member, isOwner, onManage }) {
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Avatar username={member.username} size="lg" />
         <div className="min-w-0">
-          <p className="truncate text-[15px] leading-5 font-semibold text-body lg:text-sm">@{member.username}</p>
+          <p className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-[15px] leading-5 font-semibold text-body lg:text-sm">@{member.username}</span>
+            {isYou && <span className="shrink-0 rounded-full bg-[#f1f3f0] px-2 py-0.5 text-xs font-medium text-body">You</span>}
+          </p>
           <p className="text-xs text-muted lg:hidden">{owner ? 'Project Owner · Full access' : `Team Member · ${access}`}</p>
         </div>
       </div>
@@ -257,6 +269,7 @@ export default function MembersPage() {
   const [inviting, setInviting] = useState(false)
   const [managing, setManaging] = useState(null)
   const isOwner = project.permissions.canManageMembers
+  const me = useMe()
   const list = members.data?.members ?? []
   const crumbs = useBreadcrumb()
   useDocumentTitle('Members', project.name)
@@ -269,7 +282,7 @@ export default function MembersPage() {
         <div className="flex flex-col gap-1">
           <h1 className="text-title font-bold text-body">Members</h1>
           {members.data && (
-            <p className="text-sm text-muted">
+            <p className={`text-sm text-muted ${isOwner ? '' : 'lg:hidden'}`}>
               {list.length} project {list.length === 1 ? 'member' : 'members'}
             </p>
           )}
@@ -281,6 +294,15 @@ export default function MembersPage() {
         )}
       </div>
 
+      {/* A Team Member sees why the page has no Invite or Manage access buttons (Figma: Members, Team Member). */}
+      {members.data && !isOwner && (
+        <div className="mt-4 hidden flex-col gap-1 lg:flex">
+          <p className="text-base font-semibold text-body">
+            {list.length} project {list.length === 1 ? 'member' : 'members'}
+          </p>
+          <p className="text-sm text-muted">Only the project owner can invite people or change access.</p>
+        </div>
+      )}
       {members.isPending && <MemberRowsSkeleton />}
       {members.isError && (
         <div className="mt-6">
@@ -301,7 +323,13 @@ export default function MembersPage() {
             </div>
             <ul aria-label="Project members" className="flex flex-col gap-2.5 lg:gap-0">
               {list.map((member) => (
-                <MemberRow key={member.userId} member={member} isOwner={isOwner} onManage={setManaging} />
+                <MemberRow
+                  key={member.userId}
+                  member={member}
+                  isOwner={isOwner}
+                  isYou={!isOwner && member.userId === me.data?.id}
+                  onManage={setManaging}
+                />
               ))}
             </ul>
           </div>
