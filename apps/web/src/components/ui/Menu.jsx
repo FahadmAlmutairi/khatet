@@ -102,7 +102,7 @@ export default function Menu({ label, buttonContent, buttonClassName = '', items
                 {item.heading}
               </li>
             ) : item.note ? (
-              <li key={item.key} role="presentation" className="px-2 pt-2 pb-1 text-xs leading-4 text-muted">
+              <li key={item.key} role="presentation" className={`px-2 pt-2 pb-1 text-xs leading-4 ${item.tone === 'warning' ? 'text-blocked' : 'text-muted'}`}>
                 {item.note}
               </li>
             ) : (

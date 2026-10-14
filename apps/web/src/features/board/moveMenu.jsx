@@ -15,6 +15,16 @@ export function moveMenuItems(task, onMove, { heading = 'Move to', note = false 
         if (task.status !== status.value) onMove(task, status.value)
       },
     })),
-    ...(note ? [{ key: 'note', note: 'Backlog keeps the task’s details and assignees.' }] : []),
+    ...(note
+      ? [
+          task.isBlocked
+            ? {
+                key: 'note',
+                tone: 'warning',
+                note: 'Moving this task out of In Progress removes its Blocked flag and reason. Undo brings them back.',
+              }
+            : { key: 'note', note: 'Backlog keeps the task’s details and assignees.' },
+        ]
+      : []),
   ]
 }

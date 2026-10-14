@@ -46,13 +46,13 @@ export function TaskCardBody({ task, usernames, onOpen, onMove, isOverlay = fals
           : `${quiet ? '' : 'shadow-[0_2px_4px_rgba(48,65,54,0.05)]'} card-lift hover:border-surface-supporting`
       }`}
     >
-      {/* B2: the title and its due date read as one group. */}
+      {/* B2: the title and its due date read as one group. On a phone the whole card is the tap target. */}
       <div className="flex w-full flex-col gap-1">
         <h3 className="w-full">
           <button
             type="button"
             onClick={() => onOpen(task.id)}
-            className="-my-0.5 line-clamp-2 min-h-11 w-full py-0.5 text-left text-sm leading-[21px] text-body lg:min-h-0"
+            className="-my-0.5 line-clamp-2 w-full py-0.5 text-left text-sm leading-[21px] text-body"
           >
             {task.title}
           </button>

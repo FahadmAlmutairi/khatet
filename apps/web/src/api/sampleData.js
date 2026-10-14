@@ -89,6 +89,7 @@ export function createSampleData() {
         dueDate: '2026-10-08',
         isBlocked: true,
         blockedReason: 'Waiting for sample file',
+        description: 'The import shows a raw error when a column is missing. Show which row and column failed.',
       }),
       task('t-7', 'p-khatet', 'Build the board columns', 'IN_PROGRESS', 2, ['u-fahad', 'u-omar'], {
         priority: 'MEDIUM',

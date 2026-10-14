@@ -48,7 +48,7 @@ export default function AssigneePicker({ members, value, onChange, error, requir
           </>
         )}
       </span>
-      <div className={`relative flex flex-wrap items-center gap-2 rounded-lg ${error ? 'outline-2 outline-offset-2 outline-blocked' : ''}`}>
+      <div data-field="assigneeIds" className={`relative flex flex-wrap items-center gap-2 rounded-lg ${error ? 'border-2 border-blocked p-0.5' : ''}`}>
         {selected.map((member) => (
           <span key={member.userId} className="inline-flex h-11 items-center gap-1.5 rounded-full bg-nav-active pr-1 pl-1 text-sm text-body lg:h-8">
             <Avatar username={member.username} size="xs" />@{member.username}

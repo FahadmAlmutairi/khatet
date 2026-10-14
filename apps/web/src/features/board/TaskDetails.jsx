@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { errorMessage } from '../../api/errors.js'
 import { useDeleteTaskWithUndo, useTask, useUpdateTask } from '../../api/hooks.js'
 import { AvatarStack } from '../../components/Avatar.jsx'
-import { ChevronIcon, CloseIcon, MoreIcon, OverdueIcon } from '../../components/icons.jsx'
+import { ChevronIcon, CloseIcon, ErrorIcon, MoreIcon, OverdueIcon, SmallCheckIcon } from '../../components/icons.jsx'
 import PriorityBadge from '../../components/PriorityBadge.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -169,14 +169,9 @@ function BlockedControl({ task }) {
             saveReason()
           }}
         >
-          <div className="flex items-center justify-between gap-2">
-            <label htmlFor={`${id}-reason`} className="text-xs font-medium text-body">
-              Reason (optional)
-            </label>
-            <p aria-live="polite" className="text-xs font-medium text-action">
-              {savedReason ? 'Saved' : ''}
-            </p>
-          </div>
+          <label htmlFor={`${id}-reason`} className="text-xs font-medium text-body">
+            Reason (optional)
+          </label>
           <input
             id={`${id}-reason`}
             value={reason}
@@ -189,6 +184,15 @@ function BlockedControl({ task }) {
             enterKeyHint="done"
             className="h-11 w-full rounded-lg border border-input bg-white px-3 text-sm text-body"
           />
+          {/* There is no Save button: the reason saves itself and says so under the field. */}
+          <p aria-live="polite" className="flex min-h-4 items-center gap-1 text-xs text-muted">
+            {savedReason && (
+              <>
+                <SmallCheckIcon />
+                Saved
+              </>
+            )}
+          </p>
         </form>
       )}
     </div>
@@ -232,6 +236,7 @@ function DeleteTaskDialog({ open, task, onCancel, onDeleted, projectId }) {
       }
     >
       <p className="text-base">“{task.title}” will be removed from the board for everyone in the project.</p>
+      <p className="mt-2 text-sm text-muted">You can bring it back with Undo in the message that appears for a few seconds.</p>
     </Dialog>
   )
 }
@@ -293,8 +298,15 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
       {task.status === 'IN_PROGRESS' && canEdit && <BlockedControl task={task} />}
       {task.isBlocked && !canEdit && (
         <Notice tone="warning">
-          <strong className="font-semibold">Blocked</strong>
-          {task.blockedReason ? `: ${task.blockedReason}` : ''}
+          <span className="flex items-start gap-2">
+            <span className="flex h-5 items-center text-blocked">
+              <ErrorIcon />
+            </span>
+            <span>
+              <strong className="font-semibold">Blocked{task.blockedReason ? ':' : ''}</strong>
+              {task.blockedReason ? ` ${task.blockedReason}` : ''}
+            </span>
+          </span>
         </Notice>
       )}
 
