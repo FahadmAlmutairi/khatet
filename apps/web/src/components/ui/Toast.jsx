@@ -4,6 +4,10 @@ import { ToastContext } from './toastContext.js'
 
 const DURATION = { info: 6000, undo: 5000, error: 10000 }
 
+function durationOf(toast) {
+  return DURATION[toast.tone === 'error' ? 'error' : toast.onUndo ? 'undo' : 'info']
+}
+
 function isTyping(element) {
   return element?.closest?.('input, textarea, select, [contenteditable="true"]')
 }
@@ -40,7 +44,7 @@ export function ToastProvider({ children }) {
 
   useEffect(() => {
     if (!toast || paused) return undefined
-    const timer = setTimeout(() => finish(false), DURATION[toast.tone === 'error' ? 'error' : toast.onUndo ? 'undo' : 'info'])
+    const timer = setTimeout(() => finish(false), durationOf(toast))
     return () => clearTimeout(timer)
   }, [toast, paused, finish])
 
@@ -84,7 +88,7 @@ export function ToastProvider({ children }) {
             onBlur={(event) => {
               if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false)
             }}
-            className={`pointer-events-auto flex max-w-md items-center gap-1 rounded-lg py-1 pr-1 pl-4 text-base text-white shadow-lg ${
+            className={`pointer-events-auto relative flex max-w-md items-center gap-1 overflow-hidden rounded-lg py-1 pr-1 pl-4 text-base text-white shadow-lg ${
               toast.tone === 'error' ? 'bg-blocked' : 'bg-heading'
             }`}
           >
@@ -105,6 +109,12 @@ export function ToastProvider({ children }) {
                 </span>
               </button>
             )}
+            {/* A thin bar shrinks as the time runs out and stops while the timer is paused. */}
+            <span
+              aria-hidden="true"
+              className="toast-timer absolute bottom-0 left-0 h-[3px] w-full origin-left bg-white/55 motion-reduce:hidden"
+              style={{ animationDuration: `${durationOf(toast)}ms`, animationPlayState: paused ? 'paused' : 'running' }}
+            />
             <button
               type="button"
               onClick={() => finish(false)}

@@ -161,6 +161,19 @@
   }
 }
 
+/* The time bar under a message shrinks from full width to nothing (transform only). */
+.toast-timer {
+  animation-name: toast-timer;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes toast-timer {
+  to {
+    transform: scaleX(0);
+  }
+}
+
 /* A newly blocked card glows once along its edge; a ring fades in and out (opacity only). */
 .blocked-pulse::after {
   content: '';

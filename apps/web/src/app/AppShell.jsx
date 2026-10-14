@@ -10,13 +10,20 @@ import { EASE } from '../lib/motion.js'
 import { useBreadcrumb } from './pageMeta.js'
 
 // Sizes and colours from the Figma "Project Sidebar" (page 08, Board 324:778).
-function subNavClass({ isActive }) {
-  return `flex h-11 items-center gap-2 rounded-md px-2 text-sm lg:h-[30px] ${
-    isActive ? 'bg-nav-active font-medium text-[#26352a]' : 'text-nav hover:bg-surface'
-  }`
+// In the phone sidebar the current page also gets a Semi Bold label and a 3px green bar on
+// its left edge, so colour is not the only sign of where you are (Figma: Mobile Sidebar Overlay).
+function activeClass(mobile) {
+  return mobile
+    ? 'bg-nav-active font-semibold text-[#26352a] shadow-[inset_3px_0_0_var(--color-action)]'
+    : 'bg-nav-active font-medium text-[#26352a]'
 }
 
-function Sidebar({ onNavigate, openProjects, onToggleProject }) {
+function subNavClass(mobile) {
+  return ({ isActive }) =>
+    `flex h-11 items-center gap-2 rounded-md px-2 text-sm lg:h-[30px] ${isActive ? activeClass(mobile) : 'text-nav hover:bg-surface'}`
+}
+
+function Sidebar({ onNavigate, openProjects, onToggleProject, mobile = false }) {
   const { projectId } = useParams()
   const projects = useProjects()
   const me = useMe()
@@ -31,7 +38,7 @@ function Sidebar({ onNavigate, openProjects, onToggleProject }) {
           end
           onClick={onNavigate}
           className={({ isActive }) =>
-            `flex h-11 items-center gap-2 rounded-md px-2 text-sm lg:h-10 ${isActive ? 'bg-nav-active font-medium text-[#26352a]' : 'text-nav hover:bg-surface'}`
+            `flex h-11 items-center gap-2 rounded-md px-2 text-sm lg:h-10 ${isActive ? activeClass(mobile) : 'text-nav hover:bg-surface'}`
           }
         >
           <HomeIcon />
@@ -83,13 +90,13 @@ function Sidebar({ onNavigate, openProjects, onToggleProject }) {
                   {open && (
                     <ul id={listId} className="motion-reveal mt-2 flex flex-col gap-1 pl-6">
                       <li>
-                        <NavLink to={`/projects/${project.id}/board`} className={subNavClass} onClick={onNavigate}>
+                        <NavLink to={`/projects/${project.id}/board`} className={subNavClass(mobile)} onClick={onNavigate}>
                           <BoardIcon />
                           Board
                         </NavLink>
                       </li>
                       <li>
-                        <NavLink to={`/projects/${project.id}/members`} className={subNavClass} onClick={onNavigate}>
+                        <NavLink to={`/projects/${project.id}/members`} className={subNavClass(mobile)} onClick={onNavigate}>
                           <MembersIcon />
                           Members
                         </NavLink>
@@ -366,7 +373,7 @@ export default function AppShell() {
                 <CloseIcon />
               </button>
             </div>
-            <Sidebar onNavigate={() => setMenuOpen(false)} openProjects={openProjects} onToggleProject={toggleProject} />
+            <Sidebar mobile onNavigate={() => setMenuOpen(false)} openProjects={openProjects} onToggleProject={toggleProject} />
           </aside>
         </div>
       )}
