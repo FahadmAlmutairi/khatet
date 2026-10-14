@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router'
 import { errorMessage, fieldError } from '../../api/errors.js'
 import { useMe, useSetUsername } from '../../api/hooks.js'
 import Button from '../../components/ui/Button.jsx'
-import { TextField } from '../../components/ui/Field.jsx'
+import { FieldError, TextField } from '../../components/ui/Field.jsx'
 import { LoadingState } from '../../components/ui/States.jsx'
 import AuthLayout from './AuthLayout.jsx'
 
@@ -41,9 +41,7 @@ export default function ChooseUsernamePage() {
           error={usernameError}
         />
         {setUsername.isError && !usernameError && (
-          <p role="alert" className="text-sm text-blocked">
-            {errorMessage(setUsername.error)}
-          </p>
+          <FieldError role="alert">{errorMessage(setUsername.error)}</FieldError>
         )}
         <Button type="submit" loading={setUsername.isPending} fullOnPhone className="w-full max-sm:h-12">
           Finish account

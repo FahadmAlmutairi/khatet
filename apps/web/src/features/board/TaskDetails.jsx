@@ -18,6 +18,7 @@ import { fadeOutCard, rememberCardPositions } from '../../lib/motion.js'
 import { moveMenuItems } from './moveMenu.jsx'
 import TaskFields from './TaskFields.jsx'
 import { taskValues } from './taskValues.js'
+import { FieldError } from '../../components/ui/Field.jsx'
 
 // Colours of the Figma "Status Badge" component.
 const STATUS_TONES = {
@@ -186,7 +187,7 @@ function BlockedControl({ task }) {
               saveReason()
             }}
             enterKeyHint="done"
-            className="h-11 w-full rounded-lg border border-surface-supporting bg-white px-3 text-sm text-body"
+            className="h-11 w-full rounded-lg border border-input bg-white px-3 text-sm text-body"
           />
         </form>
       )}
@@ -346,9 +347,7 @@ function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone, regist
       </h2>
       <TaskFields values={values} onChange={setValues} members={members} error={updateTask.error} />
       {updateTask.isError && !updateTask.error.fieldErrors?.length && (
-        <p role="alert" className="text-sm text-blocked">
-          {errorMessage(updateTask.error)}
-        </p>
+        <FieldError role="alert">{errorMessage(updateTask.error)}</FieldError>
       )}
       <div className="flex justify-end gap-3">
         <p aria-hidden="true" className="mr-auto hidden self-center text-xs text-muted lg:block">

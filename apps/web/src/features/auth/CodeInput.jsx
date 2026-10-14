@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from 'react'
 import { animate } from '../../lib/motion.js'
+import { FieldError } from '../../components/ui/Field.jsx'
 
 const LENGTH = 6
 
@@ -137,15 +138,11 @@ export default function CodeInput({ value, onChange, error, label = 'Verificatio
             autoComplete={index === 0 ? 'one-time-code' : 'off'}
             aria-label={`Digit ${index + 1} of ${LENGTH}`}
             aria-invalid={Boolean(error)}
-            className="h-14 min-w-0 flex-1 rounded-[10px] caret-action border border-line bg-white text-center text-[22px] font-semibold text-body focus:border-2 focus:border-action focus-visible:outline-none aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
+            className="h-14 min-w-0 flex-1 rounded-[10px] caret-action border border-input bg-white text-center text-[22px] font-semibold text-body focus:border-2 focus:border-action focus-visible:outline-none aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
           />
         ))}
       </div>
-      {error && (
-        <p id={`${id}-error`} className="text-sm font-medium text-blocked">
-          {error}
-        </p>
-      )}
+      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </div>
   )
 }

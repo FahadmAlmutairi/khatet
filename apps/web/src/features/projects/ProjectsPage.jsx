@@ -2,28 +2,28 @@ import { Link, useSearchParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useDocumentTitle } from '../../app/pageMeta.js'
 import { useNotifications, useProjects } from '../../api/hooks.js'
-import { MembersIcon } from '../../components/icons.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { ProjectCardsSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
-import { roleLabel } from '../../lib/domain.js'
+import { formatShortDate, roleLabel } from '../../lib/domain.js'
 import { InvitationActions } from '../notifications/NotificationsPanel.jsx'
 import CreateProjectDialog from './CreateProjectDialog.jsx'
 
 // Figma: Home 1069:2138 (projects) and 1070:2185 (no projects).
-// Both roles use one quiet pill, so the project name stays the first thing read.
+// Both roles use one quiet grey pill, so the project name stays the first thing read.
 function RolePill({ role }) {
   return (
-    <span className="shrink-0 rounded-full bg-nav-active px-2.5 py-1 text-xs font-medium text-heading">
+    <span className="shrink-0 rounded-full bg-[#f1f3f0] px-2.5 py-1 text-xs font-medium text-muted">
       <span className="sr-only">Your role: </span>
       {roleLabel(role)}
     </span>
   )
 }
 
-// Invitations still waiting for an answer also show on Home, with the same Accept and Decline
+// Invitations still waiting for an answer also show on Home, with the same Decline and Accept
 // as in Notifications (US-08), so a new member does not have to find them in the bell.
+// Figma: Home, pending invitation banner (desktop and mobile).
 function PendingInvitations() {
   const notifications = useNotifications()
   const pending = (notifications.data?.items ?? []).filter(
@@ -31,22 +31,24 @@ function PendingInvitations() {
   )
   if (pending.length === 0) return null
   return (
-    <section aria-labelledby="pending-invitations" className="flex flex-col gap-3">
-      <h2 id="pending-invitations" className="text-base font-semibold text-body">
-        Invitations
-      </h2>
-      <ul className="grid gap-3 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
+    <section aria-label="Invitations">
+      <ul className="flex flex-col gap-3">
         {pending.map((item) => (
-          <li key={item.id} className="flex items-start gap-3 rounded-card border border-line bg-white p-4 shadow-card">
-            <span aria-hidden="true" className="inline-flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-nav-active text-heading">
-              <MembersIcon />
-            </span>
-            <div className="flex min-w-0 flex-1 flex-col gap-3">
-              <p className="text-sm text-body">
-                @{item.actorUsername} invited you to join <span className="font-semibold">{item.projectName}</span>.
+          <li
+            key={item.id}
+            className="flex flex-col gap-3 rounded-xl border border-action bg-white p-4 sm:flex-row sm:items-center sm:gap-4 sm:pl-5"
+          >
+            <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
+              <p className="font-semibold text-body">
+                @{item.actorUsername} invited you to {item.projectName}
               </p>
-              <InvitationActions notification={item} />
+              <p className="text-muted">You will join as a team member. Invited {formatShortDate(item.createdAt)}.</p>
             </div>
+            <InvitationActions
+              notification={item}
+              size="large"
+              className="grid grid-cols-2 gap-2 sm:flex sm:gap-4"
+            />
           </li>
         ))}
       </ul>
@@ -75,7 +77,8 @@ export default function ProjectsPage() {
         <div className="flex flex-col gap-2">
           <h1 className="text-title font-bold text-body">Your projects</h1>
         </div>
-        {projects.data && createButton}
+        {/* While there are no projects, the empty state holds the only Create project button. */}
+        {projects.data?.length > 0 && createButton}
       </div>
 
       <PendingInvitations />
@@ -85,11 +88,11 @@ export default function ProjectsPage() {
         <ErrorState title="Your projects could not be loaded" message={errorMessage(projects.error)} onRetry={() => projects.refetch()} />
       )}
       {empty && (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-line bg-white px-8 py-12 text-center">
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-white px-8 py-12 text-center">
           <h2 className="text-xl font-bold text-body">No projects yet</h2>
-          <div className="text-base text-muted">
-            <p>Create one, or accept an invitation from Notifications.</p>
-          </div>
+          <p className="max-w-[420px] text-base text-muted">
+            Create a project to get a board for your team. When someone invites you, the invitation shows here too.
+          </p>
           {createButton}
         </div>
       )}

@@ -159,3 +159,22 @@ export function UndoIcon() {
     </svg>
   )
 }
+
+// A filled circle with "!" that starts every error message, so an error is not shown by colour alone.
+export function ErrorIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" className="shrink-0">
+      <circle cx="8" cy="8" r="7" fill="currentColor" />
+      <path d="M8 4.4v4.2" stroke="#fff" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="8" cy="11.3" r="0.95" fill="#fff" />
+    </svg>
+  )
+}
+
+export function SmallCheckIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true" className="shrink-0">
+      <path d="m2.5 6.2 2.3 2.3 4.7-5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}

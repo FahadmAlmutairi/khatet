@@ -1,4 +1,5 @@
 import { useId } from 'react'
+import { ErrorIcon } from '../icons.jsx'
 
 const inputClass =
   'min-h-11 w-full rounded-lg border bg-white px-3 text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked disabled:bg-surface disabled:text-muted'
@@ -10,7 +11,7 @@ function FieldShell({ id, label, required, hint, error, children }) {
         {label}
         {required && (
           <>
-            <span aria-hidden="true" className="text-attention"> *</span>
+            <span aria-hidden="true" className="text-blocked"> *</span>
             <span className="sr-only"> (required)</span>
           </>
         )}
@@ -21,12 +22,20 @@ function FieldShell({ id, label, required, hint, error, children }) {
           {hint}
         </p>
       )}
-      {error && (
-        <p id={`${id}-error`} className="text-sm font-medium text-blocked">
-          {error}
-        </p>
-      )}
+      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </div>
+  )
+}
+
+// An inline error under a field: the icon, then the message (Figma: Create task errors).
+export function FieldError({ id, role, children }) {
+  return (
+    <p id={id} role={role} className="flex items-start gap-1.5 text-sm font-medium text-blocked">
+      <span className="flex h-5 items-center">
+        <ErrorIcon />
+      </span>
+      {children}
+    </p>
   )
 }
 
@@ -45,7 +54,7 @@ export function TextField({ label, required, hint, error, className = '', ...pro
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy(id, hint, error)}
         aria-required={required || undefined}
-        className={`${inputClass} border-surface-supporting ${className}`}
+        className={`${inputClass} border-input ${className}`}
         {...props}
       />
     </FieldShell>
@@ -61,7 +70,7 @@ export function TextArea({ label, required, hint, error, rows = 3, className = '
         rows={rows}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy(id, hint, error)}
-        className={`${inputClass} border-surface-supporting py-2 ${className}`}
+        className={`${inputClass} border-input py-2 ${className}`}
         {...props}
       />
     </FieldShell>

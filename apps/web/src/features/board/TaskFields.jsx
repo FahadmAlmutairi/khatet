@@ -46,11 +46,7 @@ function PriorityPicker({ value, onChange, error }) {
           </label>
         ))}
       </div>
-      {error && (
-        <p id={`${id}-error`} className="text-sm font-medium text-blocked">
-          {error}
-        </p>
-      )}
+      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </fieldset>
   )
 }

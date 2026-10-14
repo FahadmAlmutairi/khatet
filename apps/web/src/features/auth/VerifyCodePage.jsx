@@ -5,6 +5,7 @@ import { useRequestCode, useVerifyCode } from '../../api/hooks.js'
 import Button, { Spinner } from '../../components/ui/Button.jsx'
 import AuthLayout, { SampleSignInNote } from './AuthLayout.jsx'
 import CodeInput from './CodeInput.jsx'
+import { FieldError } from '../../components/ui/Field.jsx'
 
 const RESEND_SECONDS = 30
 
@@ -48,15 +49,16 @@ export default function VerifyCodePage() {
       <p className="text-sm leading-[21px] text-muted">
         We sent a 6-digit code to {email}. It expires in 10 minutes.
       </p>
-      <Link to="/sign-in" className="-my-3 inline-flex min-h-11 items-center self-start text-label font-semibold text-action hover:underline">
-        Wrong email? Change it
-      </Link>
+      <p className="-my-3 flex min-h-11 items-center gap-1 text-label font-semibold text-heading">
+        Wrong email?
+        <Link to="/sign-in" className="inline-flex min-h-11 items-center font-medium text-action underline underline-offset-2 hover:text-heading">
+          Change it
+        </Link>
+      </p>
       <form onSubmit={submit} noValidate className="flex flex-col gap-6">
         <CodeInput value={code} onChange={setCode} error={codeError} />
         {verify.isError && !codeError && (
-          <p role="alert" className="text-sm text-blocked">
-            {errorMessage(verify.error)}
-          </p>
+          <FieldError role="alert">{errorMessage(verify.error)}</FieldError>
         )}
         <Button type="submit" loading={verify.isPending} fullOnPhone className="w-full max-sm:h-12">
           Verify code
@@ -68,9 +70,7 @@ export default function VerifyCodePage() {
       </p>
       <div className="-mt-1 flex justify-center text-label text-muted">
         {secondsLeft > 0 ? (
-          <p>
-            Send a new code in 0:{String(secondsLeft).padStart(2, '0')}
-          </p>
+          <p>You can ask for a new code in 0:{String(secondsLeft).padStart(2, '0')}.</p>
         ) : (
           <button
             type="button"

@@ -8,6 +8,7 @@ import { SAVE_SHORTCUT_HINT, sameValues, submitOnCtrlEnter, useFocusFirstError }
 import { rememberCardPositions } from '../../lib/motion.js'
 import TaskFields from './TaskFields.jsx'
 import { emptyTaskValues } from './taskValues.js'
+import { FieldError } from '../../components/ui/Field.jsx'
 
 // US-13: title and at least one assignee are required; a new task starts in To Do.
 // Figma: a centred window on desktop (1068:11244) and a full page on mobile (736:2).
@@ -53,9 +54,7 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
         </h2>
         <TaskFields values={values} onChange={setValues} members={members} error={createTask.error} />
         {createTask.isError && !createTask.error.fieldErrors?.length && (
-          <p role="alert" className="text-sm text-blocked">
-            {errorMessage(createTask.error)}
-          </p>
+          <FieldError role="alert">{errorMessage(createTask.error)}</FieldError>
         )}
         <div className="mt-2 flex justify-end gap-3 sm:mt-4">
           <p aria-hidden="true" className="mr-auto hidden self-center text-xs text-muted lg:block">

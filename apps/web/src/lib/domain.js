@@ -49,6 +49,13 @@ export function formatDueDate(value, { short = false } = {}) {
   return short ? date : `${date} ${year}`
 }
 
+// A moment as a short day and month in the viewer's time zone: "6 Oct".
+export function formatShortDate(value) {
+  if (!value) return ''
+  const date = new Date(value)
+  return `${date.getDate()} ${MONTHS[date.getMonth()]}`
+}
+
 const timeFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 
 export function formatTimestamp(value) {

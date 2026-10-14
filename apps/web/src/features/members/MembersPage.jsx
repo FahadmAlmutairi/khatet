@@ -13,6 +13,7 @@ import { MemberRowsSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { taskAccessLabel } from '../../lib/domain.js'
+import { FieldError } from '../../components/ui/Field.jsx'
 
 // Figma: owner 211:198, member 216:199, access window 219:327, invite window 220:344;
 // mobile list 737:2, manage access 900:691.
@@ -77,7 +78,7 @@ function InviteDialog({ open, onClose, projectId }) {
         <div className="flex flex-col gap-1.5">
           <label htmlFor={`${id}-username`} className="text-xs leading-4 font-semibold text-body">
             Username
-            <span aria-hidden="true" className="text-attention">
+            <span aria-hidden="true" className="text-blocked">
               {' '}
               *
             </span>
@@ -93,18 +94,12 @@ function InviteDialog({ open, onClose, projectId }) {
             aria-required="true"
             aria-invalid={Boolean(usernameError)}
             aria-describedby={usernameError ? `${id}-error` : undefined}
-            className="h-11 w-full rounded-[10px] border border-surface-supporting bg-white px-[14px] text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
+            className="h-11 w-full rounded-[10px] border border-input bg-white px-[14px] text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
           />
-          {usernameError && (
-            <p id={`${id}-error`} className="text-sm font-medium text-blocked">
-              {usernameError}
-            </p>
-          )}
+          {usernameError && <FieldError id={`${id}-error`}>{usernameError}</FieldError>}
         </div>
         {otherError && (
-          <p role="alert" className="text-sm text-blocked">
-            {otherError}
-          </p>
+          <FieldError role="alert">{otherError}</FieldError>
         )}
         <div className="flex items-center justify-end gap-2.5">
           <Button variant="secondary" onClick={close} className="max-sm:hidden">

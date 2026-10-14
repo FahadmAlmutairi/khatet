@@ -13,8 +13,11 @@ import { notificationTime } from '../../lib/domain.js'
 // States from "Notifications / Desktop / Supporting States" (305:673).
 
 const smallButton = 'inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-medium lg:h-9 lg:px-[14px] lg:text-label'
+// On Home the buttons keep the full 44px height and 14px labels (Figma: Home, pending invitation).
+const largeButton = 'inline-flex h-11 items-center justify-center rounded-control px-4 text-sm font-medium'
 
-export function InvitationActions({ notification }) {
+// Decline comes first and Accept last, so the main action sits at the end of the row.
+export function InvitationActions({ notification, size = 'small', className = 'flex gap-2' }) {
   const respond = useRespondToInvitation()
   const toast = useToast()
 
@@ -38,25 +41,26 @@ export function InvitationActions({ notification }) {
   }
 
   const busy = respond.isPending
+  const button = size === 'large' ? largeButton : smallButton
   return (
-    <div className="flex gap-2">
+    <div className={className}>
+      <button
+        type="button"
+        onClick={() => answer(false)}
+        disabled={busy}
+        className={`${button} border border-line bg-white text-heading hover:bg-surface disabled:cursor-not-allowed disabled:text-muted`}
+      >
+        Decline
+      </button>
       <button
         type="button"
         onClick={() => answer(true)}
         disabled={busy}
         aria-busy={(busy && respond.variables?.accept) || undefined}
-        className={`${smallButton} gap-2 bg-action text-white hover:bg-heading disabled:cursor-not-allowed`}
+        className={`${button} gap-2 bg-action text-white hover:bg-heading disabled:cursor-not-allowed`}
       >
         {busy && respond.variables?.accept && <Spinner />}
         Accept
-      </button>
-      <button
-        type="button"
-        onClick={() => answer(false)}
-        disabled={busy}
-        className={`${smallButton} border border-line bg-white text-heading hover:bg-surface disabled:cursor-not-allowed disabled:text-muted`}
-      >
-        Decline
       </button>
     </div>
   )

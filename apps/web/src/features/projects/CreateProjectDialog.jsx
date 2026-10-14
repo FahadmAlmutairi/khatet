@@ -3,7 +3,7 @@ import { errorMessage, fieldError } from '../../api/errors.js'
 import { useCreateProject } from '../../api/hooks.js'
 import Button from '../../components/ui/Button.jsx'
 import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
-import { TextArea, TextField } from '../../components/ui/Field.jsx'
+import { FieldError, TextArea, TextField } from '../../components/ui/Field.jsx'
 
 // US-05: a project needs a name; the description is optional.
 // Figma: a centred window on desktop (1035:6527) and a full page on mobile (744:2).
@@ -39,9 +39,12 @@ export default function CreateProjectDialog({ open, onClose, onCreated }) {
     <Dialog open={open} onClose={close} variant="page" width={560} labelledBy={titleId}>
       <MobileBackBar label="Home" onBack={close} />
       <form onSubmit={submit} noValidate className="flex flex-col gap-4 px-5 pt-3 pb-6 sm:p-7">
-        <h2 id={titleId} className="text-[26px] leading-normal font-bold text-body sm:text-2xl">
-          Create a project
-        </h2>
+        <div className="flex flex-col gap-2">
+          <h2 id={titleId} className="text-[26px] leading-normal font-bold text-body sm:text-2xl sm:font-semibold">
+            Create a project
+          </h2>
+          <p className="text-sm text-muted">You will be the project owner. You can invite teammates from Members.</p>
+        </div>
         <TextField
           label="Project name"
           required
@@ -52,17 +55,15 @@ export default function CreateProjectDialog({ open, onClose, onCreated }) {
           autoFocus
         />
         <TextArea
-          label="Description"
-          rows={1}
+          label="Description (optional)"
+          rows={3}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
-          placeholder="What is this project about? (optional)"
-          className="h-24 resize-none sm:h-11"
+          placeholder="What is this project about?"
+          className="h-[78px] resize-none"
         />
         {createProject.isError && !nameError && (
-          <p role="alert" className="text-sm text-blocked">
-            {errorMessage(createProject.error)}
-          </p>
+          <FieldError role="alert">{errorMessage(createProject.error)}</FieldError>
         )}
         <div className="flex justify-end gap-3 pt-2">
           <Button variant="secondary" onClick={close} className="max-sm:hidden">

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import Avatar from '../../components/Avatar.jsx'
 import { CheckIcon, CloseIcon } from '../../components/icons.jsx'
+import { FieldError } from '../../components/ui/Field.jsx'
 
 // Assignees are chosen from a searchable list of project members, like a card's
 // Members list in Trello (Figma: Task Details / Modal / Edit mode, assignee picker open).
@@ -42,7 +43,7 @@ export default function AssigneePicker({ members, value, onChange, error, requir
         Assignees
         {required && (
           <>
-            <span aria-hidden="true" className="text-attention"> *</span>
+            <span aria-hidden="true" className="text-blocked"> *</span>
             <span className="sr-only"> (required)</span>
           </>
         )}
@@ -120,11 +121,7 @@ export default function AssigneePicker({ members, value, onChange, error, requir
           </div>
         )}
       </div>
-      {error && (
-        <p id={`${id}-error`} className="text-sm font-medium text-blocked">
-          {error}
-        </p>
-      )}
+      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
     </div>
   )
 }

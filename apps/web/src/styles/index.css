@@ -13,6 +13,7 @@
 
   /* Supporting values from the Figma file (page 08, Board). */
   --color-line: #e3e9e2;
+  --color-input: #7f8a80; /* text field borders, 3.6:1 on white (Figma: Sprint 1 screens) */
   --color-muted: #59635b;
   --color-nav: #536157;
   --color-nav-active: #eef4ed;

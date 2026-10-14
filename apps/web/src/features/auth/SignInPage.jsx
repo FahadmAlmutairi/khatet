@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from 'react-router'
 import { fieldError, errorMessage } from '../../api/errors.js'
 import { useMe, useRequestCode } from '../../api/hooks.js'
 import Button from '../../components/ui/Button.jsx'
-import { TextField } from '../../components/ui/Field.jsx'
+import { FieldError, TextField } from '../../components/ui/Field.jsx'
 import AuthLayout, { SampleSignInNote } from './AuthLayout.jsx'
 
 // US-01 and US-02: one email form for new and returning users.
@@ -40,9 +40,7 @@ export default function SignInPage() {
           error={emailError}
         />
         {requestCode.isError && !emailError && (
-          <p role="alert" className="text-sm text-blocked">
-            {errorMessage(requestCode.error)}
-          </p>
+          <FieldError role="alert">{errorMessage(requestCode.error)}</FieldError>
         )}
         <Button type="submit" loading={requestCode.isPending} fullOnPhone className="w-full max-sm:h-12">
           Continue with email

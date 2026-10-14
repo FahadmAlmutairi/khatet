@@ -542,7 +542,7 @@ describe('notifications (US-08, US-30)', () => {
     const user = userEvent.setup()
     renderApp('/projects')
     const invitations = await screen.findByRole('region', { name: 'Invitations' })
-    expect(within(invitations).getByText(/@ali invited you to join/)).toBeInTheDocument()
+    expect(within(invitations).getByText('@ali invited you to Mobile App Study')).toBeInTheDocument()
     await user.click(within(invitations).getByRole('button', { name: 'Accept' }))
     expect(await screen.findByRole('link', { name: /Mobile App Study.*Member/ })).toBeInTheDocument()
     await waitFor(() => expect(screen.queryByRole('region', { name: 'Invitations' })).not.toBeInTheDocument())
