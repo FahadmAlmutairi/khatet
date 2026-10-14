@@ -86,13 +86,16 @@ function NotificationItem({ notification, onOpenTask }) {
       <span className="flex items-start justify-between gap-3">
         <span className="flex items-center gap-1.5">
           {!notification.read && <UnreadDot className="hidden size-[7px] lg:block" />}
-          <span className={`text-sm leading-[17px] text-body ${notification.read ? 'font-medium' : 'font-bold'}`}>{title}</span>
+          {/* A read item drops to a regular grey title, so unread ones stand out. */}
+          <span className={`text-[15px] leading-[18px] lg:text-sm lg:leading-[17px] ${notification.read ? 'font-normal text-muted' : 'font-semibold text-body'}`}>
+            {title}
+          </span>
           {!notification.read && <span className="sr-only">(unread)</span>}
         </span>
         <span className="hidden shrink-0 text-xs leading-[15px] text-nav lg:block">{time.short}</span>
       </span>
-      <span className="block text-sm leading-[1.4] text-muted lg:text-nav">{body}</span>
-      <span className="block text-xs whitespace-pre-wrap text-action lg:hidden">
+      <span className="block text-[15px] leading-[1.4] text-muted lg:text-label lg:text-nav">{body}</span>
+      <span className="block text-label whitespace-pre-wrap text-action lg:hidden">
         {time.long}
         {'  ·  '}
         {notification.projectName}
@@ -102,8 +105,8 @@ function NotificationItem({ notification, onOpenTask }) {
 
   return (
     <li
-      className={`flex items-start gap-3 rounded-card border border-line bg-white p-[14px] lg:gap-[11px] lg:rounded-none lg:border-0 lg:border-b lg:px-[15px] lg:py-[14px] ${
-        notification.read ? '' : 'lg:bg-[#f9fbf8]'
+      className={`flex items-start gap-3 rounded-card border border-line p-[14px] lg:gap-[11px] lg:rounded-none lg:border-0 lg:border-b lg:px-[15px] lg:py-[14px] ${
+        notification.read ? 'lg:bg-white' : 'bg-white lg:bg-[#f9fbf8]'
       }`}
     >
       {notification.read ? <span aria-hidden="true" className="size-2 shrink-0 lg:hidden" /> : <UnreadDot className="mt-1 size-2 lg:hidden" />}
@@ -179,7 +182,7 @@ export default function NotificationsPanel({ open, onClose, query }) {
   }
 
   function tabClass(active) {
-    return `inline-flex h-11 items-center justify-center rounded-[10px] border text-label lg:h-7 lg:w-auto lg:rounded-lg lg:border-0 lg:px-[14px] ${
+    return `inline-flex h-11 items-center justify-center rounded-[10px] border text-[15px] lg:h-7 lg:text-label lg:w-auto lg:rounded-lg lg:border-0 lg:px-[14px] ${
       active
         ? 'border-action bg-action text-white lg:bg-white lg:font-semibold lg:text-body'
         : 'border-line bg-white text-body lg:bg-transparent lg:text-muted'
@@ -197,11 +200,11 @@ export default function NotificationsPanel({ open, onClose, query }) {
         </div>
 
         <div className="flex flex-1 flex-col gap-3 px-5 py-[18px] lg:gap-0 lg:p-0">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_auto] lg:items-center lg:border-b lg:border-line lg:bg-white lg:px-[18px] lg:pt-[18px] lg:pb-[14px]">
-            <h2 id={titleId} className="flex items-center gap-[7px] text-[26px] font-bold text-body lg:col-start-1 lg:row-start-1 lg:text-[17px] lg:font-semibold">
+          <div className="grid grid-cols-[1fr_auto] items-center gap-3 lg:border-b lg:border-line lg:bg-white lg:px-[18px] lg:pt-[18px] lg:pb-[14px]">
+            <h2 id={titleId} className="col-span-2 flex items-center gap-[7px] text-[26px] font-bold text-body lg:col-span-1 lg:col-start-1 lg:row-start-1 lg:text-[17px] lg:font-semibold">
               Notifications
               {unread > 0 && (
-                <span className="hidden rounded-full bg-[#f5dbcf] px-[7px] py-0.5 text-xs font-semibold text-attention lg:inline-block">
+                <span className="hidden rounded-full bg-priority-high-bg px-[7px] py-0.5 text-xs font-semibold text-priority-high-text lg:inline-block">
                   {unread}
                   <span className="sr-only"> unread</span>
                 </span>
@@ -212,8 +215,7 @@ export default function NotificationsPanel({ open, onClose, query }) {
                 All
               </button>
               <button type="button" aria-pressed={filter === 'UNREAD'} onClick={() => setFilter('UNREAD')} className={`w-[122px] ${tabClass(filter === 'UNREAD')}`}>
-                <span aria-hidden="true" className="lg:hidden">Unread · {unread}</span>
-                <span aria-hidden="true" className="hidden lg:inline">Unread ({unread})</span>
+                <span aria-hidden="true">Unread · {unread}</span>
                 <span className="sr-only">Unread, {unread}</span>
               </button>
             </div>
@@ -221,7 +223,7 @@ export default function NotificationsPanel({ open, onClose, query }) {
               type="button"
               onClick={markAllRead}
               disabled={unread === 0 || markAll.isPending}
-              className="inline-flex h-11 w-full items-center rounded-card border border-line bg-white px-4 text-xs font-semibold text-body hover:bg-surface disabled:cursor-not-allowed disabled:text-muted lg:col-start-2 lg:row-start-1 lg:h-10 lg:w-[116px] lg:justify-center lg:rounded-lg lg:border-0 lg:px-0 lg:text-label lg:font-medium lg:text-nav"
+              className="inline-flex h-11 items-center justify-center rounded-lg px-2 text-sm font-medium text-action underline underline-offset-2 hover:text-heading disabled:cursor-not-allowed disabled:text-muted disabled:no-underline lg:col-start-2 lg:row-start-1 lg:h-10 lg:px-1 lg:text-label"
             >
               Mark all as read
             </button>
@@ -279,7 +281,7 @@ export default function NotificationsPanel({ open, onClose, query }) {
             <section key={group.label} aria-labelledby={`${titleId}-${group.key}`} className="flex flex-col gap-3 lg:gap-0">
               <h3
                 id={`${titleId}-${group.key}`}
-                className="text-xs leading-4 font-semibold text-muted lg:border-b lg:border-line lg:bg-surface lg:px-[15px] lg:py-2"
+                className="text-label leading-4 font-semibold text-muted lg:border-b lg:border-line lg:bg-surface lg:px-[15px] lg:py-2.5 lg:font-medium"
               >
                 {group.label}
               </h3>
