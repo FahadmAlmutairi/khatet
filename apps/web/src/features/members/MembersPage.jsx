@@ -54,7 +54,7 @@ function InviteDialog({ open, onClose, projectId }) {
     event.preventDefault()
     invite.mutate(username, {
       onSuccess: (invitation) => {
-        toast(`Invitation sent to @${invitation.username}.`)
+        toast(`Invitation sent to ${invitation.username}.`)
         close()
       },
     })
@@ -86,7 +86,7 @@ function InviteDialog({ open, onClose, projectId }) {
             id={`${id}-username`}
             value={username}
             onChange={(event) => setUsername(event.target.value)}
-            placeholder="@username"
+            placeholder="username"
             autoComplete="off"
             autoFocus
             aria-required="true"
@@ -140,7 +140,7 @@ function AccessDialog({ member, projectId, onClose }) {
         onSuccess: (updated) => {
           close()
           if (updated.taskAccess === previous) return
-          toast(`@${updated.username} now has ${taskAccessLabel(updated.taskAccess)} access.`, 'info', {
+          toast(`${updated.username} now has ${taskAccessLabel(updated.taskAccess)} access.`, 'info', {
             onUndo: () =>
               update.mutate({ userId, taskAccess: previous }, { onError: (error) => toast(errorMessage(error), 'error') }),
           })
@@ -160,12 +160,12 @@ function AccessDialog({ member, projectId, onClose }) {
             <h2 id={`${id}-title`} className="text-[26px] font-bold text-body sm:mt-2 sm:text-[22px] sm:font-semibold">
               <span className="sm:hidden">Manage access</span>
               <span className="sr-only sm:not-sr-only">
-                <span className="sm:hidden"> for </span>@{member.username}
+                <span className="sm:hidden"> for </span>{member.username}
               </span>
             </h2>
-            <p className="mt-3 text-[15px] font-semibold text-body sm:hidden">@{member.username} · Team Member</p>
+            <p className="mt-3 text-[15px] font-semibold text-body sm:hidden">{member.username} · Team Member</p>
             <fieldset className="mt-4 flex flex-col gap-3 sm:mt-6">
-              <legend className="sr-only">Task access for @{member.username}</legend>
+              <legend className="sr-only">Task access for {member.username}</legend>
               {ACCESS_OPTIONS.map((option) => {
                 const checked = value === option.value
                 return (
@@ -225,7 +225,7 @@ function MemberRow({ member, isOwner, isYou, onManage }) {
         <Avatar username={member.username} size="lg" />
         <div className="min-w-0">
           <p className="flex min-w-0 items-center gap-2">
-            <span className="truncate text-[15px] leading-5 font-semibold text-body lg:text-sm">@{member.username}</span>
+            <span className="truncate text-[15px] leading-5 font-semibold text-body lg:text-sm">{member.username}</span>
             {isYou && <span className="shrink-0 rounded-full bg-[#f1f3f0] px-2 py-0.5 text-xs font-medium text-body">You</span>}
           </p>
           <p className="text-xs text-muted lg:hidden">{owner ? 'Project Owner · Full access' : `Team Member · ${access}`}</p>
@@ -246,7 +246,7 @@ function MemberRow({ member, isOwner, isYou, onManage }) {
           <button
             type="button"
             onClick={() => onManage(member)}
-            aria-label={`Manage access for @${member.username}`}
+            aria-label={`Manage access for ${member.username}`}
             className="inline-flex size-11 items-center justify-center rounded-full text-body hover:bg-surface lg:h-10 lg:w-auto lg:border lg:border-line lg:px-2.5 lg:text-xs lg:font-medium"
           >
             <span className="lg:hidden">

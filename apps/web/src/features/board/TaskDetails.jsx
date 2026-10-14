@@ -280,7 +280,7 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
       <dl className="flex flex-col gap-4 rounded-card border border-line p-4 sm:flex-row sm:gap-6">
         <Detail label="Assignees">
           <AvatarStack users={assignees} />
-          <span className="min-w-0">{assignees.map((user) => `@${user.username}`).join(', ')}</span>
+          <span className="min-w-0">{assignees.map((user) => `${user.username}`).join(', ')}</span>
         </Detail>
         <Detail label="Priority">{task.priority ? <PriorityBadge priority={task.priority} /> : 'No priority'}</Detail>
         <Detail label="Due date">

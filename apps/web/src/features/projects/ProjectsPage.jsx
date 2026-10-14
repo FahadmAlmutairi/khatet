@@ -40,7 +40,7 @@ function PendingInvitations() {
           >
             <div className="flex min-w-0 flex-1 flex-col gap-1 text-sm">
               <p className="font-semibold text-body">
-                @{item.actorUsername} invited you to {item.projectName}
+                {item.actorUsername} invited you to {item.projectName}
               </p>
               <p className="text-muted">You will join as a team member. Invited {formatShortDate(item.createdAt)}.</p>
             </div>

@@ -39,12 +39,15 @@ function Lane({ status, tasks, usernames, onOpen, onMove, onCreate }) {
     <section
       ref={setNodeRef}
       aria-labelledby={headingId}
-      className={`relative flex min-h-40 w-full shrink-0 snap-start sm:w-[274px] flex-col gap-3 rounded-[var(--radius-card)] border border-line p-3 transition-colors duration-150 lg:min-h-60 lg:w-auto lg:min-w-0 lg:flex-1 ${
+      className={`relative flex min-h-40 w-[calc(100%-24px)] shrink-0 snap-center sm:w-[274px] sm:snap-start flex-col gap-3 rounded-[var(--radius-card)] border border-line p-3 transition-colors duration-150 lg:min-h-60 lg:w-auto lg:min-w-0 lg:flex-1 ${
         isOver ? 'bg-nav-active' : 'bg-surface'
       }`}
     >
       {/* No overflow clipping on the lane, so a card menu can open past its bottom edge. */}
-      <span aria-hidden="true" className={`absolute -inset-x-px -top-px h-1 rounded-t-[var(--radius-card)] ${ACCENTS[status.value]}`} />
+      {/* The accent is clipped to the lane's rounded corners so it lines up with the border below it. */}
+      <span aria-hidden="true" className="pointer-events-none absolute -inset-px overflow-hidden rounded-[var(--radius-card)]">
+        <span className={`absolute inset-x-0 top-0 h-1 ${ACCENTS[status.value]}`} />
+      </span>
       {/* Below lg the status chips above the lanes already name each lane, so the heading is kept for screen readers only. */}
       <h2 id={headingId} className="flex h-6 items-center gap-1.5 text-sm leading-[21px] font-normal text-body max-lg:sr-only">
         <StatusIcon status={status.value} />
@@ -140,7 +143,7 @@ function idsByStatus(tasks) {
 }
 
 export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreate }) {
-  // Phone: the status chips work as tabs for the lane in view (one lane per screen).
+  // Phone: the status chips work as tabs for the lane in view (one lane per screen, with its neighbours peeking in).
   const scrollerRef = useRef(null)
   const [visibleLane, setVisibleLane] = useState(0)
   const chipsRef = useRef(null)
@@ -262,17 +265,41 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
     onMove(task, status, position, { dragged: true })
   }
 
+  // Phone lanes snap to the centre so both neighbours peek in; wider screens snap to the start.
+  function snapsToStart(lane) {
+    return getComputedStyle(lane).scrollSnapAlign.startsWith('start')
+  }
+
+  // The lane in view is the one closest to where lanes snap.
   function onScrollLanes(event) {
     const scroller = event.currentTarget
-    const lane = scroller.querySelector('section')
-    if (!lane) return
-    const step = lane.getBoundingClientRect().width + 16
-    setVisibleLane(Math.min(ACTIVE_STATUSES.length - 1, Math.max(0, Math.round(scroller.scrollLeft / step))))
+    const lanes = [...scroller.querySelectorAll(':scope > section')]
+    if (!lanes.length) return
+    const box = scroller.getBoundingClientRect()
+    const toStart = snapsToStart(lanes[0])
+    const anchor = toStart ? box.left + parseFloat(getComputedStyle(scroller).scrollPaddingLeft || 0) : box.left + box.width / 2
+    let closest = 0
+    let distance = Infinity
+    lanes.forEach((lane, index) => {
+      const rect = lane.getBoundingClientRect()
+      const gap = Math.abs((toStart ? rect.left : rect.left + rect.width / 2) - anchor)
+      if (gap < distance) {
+        distance = gap
+        closest = index
+      }
+    })
+    setVisibleLane(closest)
   }
 
   function showLane(index) {
-    const lane = scrollerRef.current?.querySelectorAll('section')[index]
-    lane?.scrollIntoView({ inline: 'start', block: 'nearest', behavior: 'smooth' })
+    const scroller = scrollerRef.current
+    const lane = scroller?.querySelectorAll(':scope > section')[index]
+    if (!lane) return
+    // Scroll only the lanes, not the page.
+    const left = snapsToStart(lane)
+      ? lane.offsetLeft - parseFloat(getComputedStyle(scroller).scrollPaddingLeft || 0)
+      : lane.offsetLeft - (scroller.clientWidth - lane.offsetWidth) / 2
+    scroller.scrollTo({ left, behavior: 'smooth' })
     setVisibleLane(index)
   }
 
@@ -330,7 +357,7 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
       <div
         ref={scrollerRef}
         onScroll={onScrollLanes}
-        className={`relative -mx-4 flex ${activeId ? '' : 'snap-x snap-mandatory'} scroll-px-4 gap-4 overflow-x-auto px-4 pb-1 lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0`}
+        className={`relative -mx-4 flex ${activeId ? '' : 'snap-x snap-mandatory'} scroll-px-4 gap-3 overflow-x-auto sm:gap-4 px-4 pb-1 lg:mx-0 lg:overflow-visible lg:px-0 lg:pb-0`}
       >
         {ACTIVE_STATUSES.map((status) => (
           <Lane

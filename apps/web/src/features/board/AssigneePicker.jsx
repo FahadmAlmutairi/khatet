@@ -51,11 +51,11 @@ export default function AssigneePicker({ members, value, onChange, error, requir
       <div data-field="assigneeIds" className={`relative flex flex-wrap items-center gap-2 rounded-lg ${error ? 'border-2 border-blocked p-0.5' : ''}`}>
         {selected.map((member) => (
           <span key={member.userId} className="inline-flex h-11 items-center gap-1.5 rounded-full bg-nav-active pr-1 pl-1 text-sm text-body lg:h-8">
-            <Avatar username={member.username} size="xs" />@{member.username}
+            <Avatar username={member.username} size="xs" />{member.username}
             <button
               type="button"
               onClick={() => toggle(member.userId)}
-              aria-label={`Remove @${member.username}`}
+              aria-label={`Remove ${member.username}`}
               className="inline-flex size-11 items-center justify-center rounded-full text-muted hover:bg-white lg:size-6"
             >
               <CloseIcon size={12} />
@@ -110,7 +110,7 @@ export default function AssigneePicker({ members, value, onChange, error, requir
                       }`}
                     >
                       <Avatar username={member.username} />
-                      <span className="flex-1">@{member.username}</span>
+                      <span className="flex-1">{member.username}</span>
                       {checked && <CheckIcon />}
                     </button>
                   </li>

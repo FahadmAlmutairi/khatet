@@ -121,7 +121,7 @@ function Sidebar({ onNavigate, openProjects, onToggleProject, mobile = false }) 
         </button>
         <div className="flex h-10 items-center gap-2">
           {me.data && <Avatar username={me.data.username} />}
-          <span className="truncate text-sm font-medium text-body">@{me.data?.username}</span>
+          <span className="truncate text-sm font-medium text-body">{me.data?.username}</span>
         </div>
       </div>
     </div>

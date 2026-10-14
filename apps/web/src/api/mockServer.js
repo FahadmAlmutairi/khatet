@@ -238,7 +238,7 @@ export function setUsername(username) {
       throw invalid([{ field: 'username', message: 'Use 3 to 20 letters, numbers or underscores.' }])
     }
     if (db.users.some((item) => item.username === value && item.id !== user.id)) {
-      throw invalid([{ field: 'username', message: `@${value} is taken. Try another username.` }])
+      throw invalid([{ field: 'username', message: `${value} is taken. Try another username.` }])
     }
     user.username = value
     return user
@@ -338,12 +338,12 @@ export function inviteMember(projectId, username) {
     const value = (username ?? '').trim().replace(/^@/, '').toLowerCase()
     if (!value) throw invalid([{ field: 'username', message: 'Enter a username.' }])
     const user = db.users.find((item) => item.username === value)
-    if (!user) throw invalid([{ field: 'username', message: `No user has the username @${value}.` }])
+    if (!user) throw invalid([{ field: 'username', message: `No user has the username ${value}.` }])
     if (db.members.some((item) => item.projectId === projectId && item.userId === user.id)) {
-      throw invalid([{ field: 'username', message: `@${value} is already a member of this project.` }])
+      throw invalid([{ field: 'username', message: `${value} is already a member of this project.` }])
     }
     if (db.invitations.some((item) => item.projectId === projectId && item.invitedUserId === user.id && item.status === 'PENDING')) {
-      throw invalid([{ field: 'username', message: `@${value} already has a pending invitation.` }])
+      throw invalid([{ field: 'username', message: `${value} already has a pending invitation.` }])
     }
     const invitation = {
       id: newId('inv'),
