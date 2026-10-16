@@ -1,0 +1,131 @@
+// Khatet database schema (docs/data-model.md).
+// TF-04: the first tables: users, projects, project members, invitations and notifications.
+// Change it only through a migration: npm run db:migrate -- --name what_changed
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled connection, used by the running API
+  directUrl = env("DIRECT_URL")   // direct (session) connection, used by migrations
+}
+
+enum ProjectRole {
+  OWNER
+  MEMBER
+}
+
+enum TaskAccess {
+  VIEW_ONLY
+  EDIT_ASSIGNED
+  EDIT_ALL
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum NotificationType {
+  INVITATION
+  TASK_ASSIGNED
+}
+
+// A Khatet account, linked to one Supabase Auth user.
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  authId            String    @unique @map("auth_id") @db.Uuid
+  email             String    @unique
+  // Null until the new user chooses one (US-01). Lowercase, 3 to 20 letters, numbers or underscores.
+  username          String?   @unique
+  usernameChangedAt DateTime? @map("username_changed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  createdProjects     Project[]       @relation("ProjectCreator")
+  memberships         ProjectMember[]
+  invitationsReceived Invitation[]    @relation("InvitedUser")
+  invitationsSent     Invitation[]    @relation("InvitedBy")
+  notifications       Notification[]  @relation("NotificationRecipient")
+  notificationsCaused Notification[]  @relation("NotificationActor")
+
+  @@map("users")
+}
+
+model Project {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String   @default("")
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  createdBy     User            @relation("ProjectCreator", fields: [createdById], references: [id])
+  members       ProjectMember[]
+  invitations   Invitation[]
+  notifications Notification[]
+
+  @@map("projects")
+}
+
+// A user's membership in one project. The owner has role OWNER and full access.
+model ProjectMember {
+  projectId  String      @map("project_id") @db.Uuid
+  userId     String      @map("user_id") @db.Uuid
+  role       ProjectRole @default(MEMBER)
+  taskAccess TaskAccess  @default(EDIT_ASSIGNED) @map("task_access")
+  joinedAt   DateTime    @default(now()) @map("joined_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@id([projectId, userId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+// The owner's invitation to a registered user. Accepting creates a
+// ProjectMember with EDIT_ASSIGNED.
+model Invitation {
+  id            String           @id @default(uuid()) @db.Uuid
+  projectId     String           @map("project_id") @db.Uuid
+  invitedUserId String           @map("invited_user_id") @db.Uuid
+  invitedById   String           @map("invited_by_id") @db.Uuid
+  status        InvitationStatus @default(PENDING)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  respondedAt   DateTime?        @map("responded_at")
+
+  project       Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  invitedUser   User           @relation("InvitedUser", fields: [invitedUserId], references: [id])
+  invitedBy     User           @relation("InvitedBy", fields: [invitedById], references: [id])
+  notifications Notification[]
+
+  @@index([projectId, status])
+  @@index([invitedUserId, status])
+  @@map("invitations")
+}
+
+// An in-app update for one user.
+model Notification {
+  id           String           @id @default(uuid()) @db.Uuid
+  userId       String           @map("user_id") @db.Uuid
+  type         NotificationType
+  projectId    String           @map("project_id") @db.Uuid
+  actorId      String?          @map("actor_id") @db.Uuid
+  invitationId String?          @map("invitation_id") @db.Uuid
+  // The tasks table is added with the task stories; this becomes a relation then.
+  taskId       String?          @map("task_id") @db.Uuid
+  read         Boolean          @default(false)
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  user       User        @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor      User?       @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  project    Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  invitation Invitation? @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+  @@map("notifications")
+}
