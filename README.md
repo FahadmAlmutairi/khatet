@@ -61,11 +61,24 @@ The Project Overview is the scope reference. Update a supporting document before
 
 ## Contributing
 
-1. Create a short branch from the default branch.
+`main` is the protected branch. Nobody pushes to it directly; every change reaches it through a reviewed pull request.
+
+1. Update your local `main`, then create a short branch from it, named for the work, for example `tf-05-task-board` or `fix-sign-in-error`.
 2. Keep the branch focused on one feature, fix, or documentation update.
-3. Open a pull request; merge into the protected main branch after a review and passing checks.
+3. Push the branch and open a pull request into `main`. GitHub fills in the [pull request template](.github/pull_request_template.md); complete every section.
 4. Include tests and documentation updates in the same pull request as the code.
-5. Keep secrets, credentials, and local environment files out of Git.
+5. Ask a teammate to review. Merge only after the review is approved, the checks pass and every review conversation is resolved, then delete the branch.
+6. Keep secrets, credentials, and local environment files out of Git.
+
+### Rules on `main`
+
+| Rule | Why |
+| --- | --- |
+| A pull request is required before merging. | Every change is visible and discussed before it lands. |
+| At least one approving review. A new push dismisses earlier approvals. | A second person reads every change, including the last edit. |
+| The `Lint, test and build` check must pass. | Broken code does not reach the shared branch or the deployed app. |
+| Review conversations must be resolved. | Review comments are answered before merging. |
+| Force pushes and branch deletion are blocked. | The shared history cannot be rewritten or lost. |
 
 ## Running the frontend
 
