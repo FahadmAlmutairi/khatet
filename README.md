@@ -65,11 +65,21 @@ The Project Overview is the scope reference. Update a supporting document before
 
 ## Contributing
 
-1. Create a short branch from the default branch.
-2. Keep the branch focused on one feature, fix, or documentation update.
-3. Open a pull request; merge into the protected main branch after a review and passing checks.
-4. Include tests and documentation updates in the same pull request as the code.
-5. Keep secrets, credentials, and local environment files out of Git.
+`main` is the protected branch. Team members can push to it directly, but its history cannot be rewritten or deleted.
+
+1. Pull the latest `main` before you start, and again before you push.
+2. Keep each commit focused on one feature, fix, or documentation update, with a message that says what changed.
+3. Run lint, tests and the build locally before pushing. The `Lint, test and build` check runs on every push to `main`; fix a red check straight away.
+4. Include tests and documentation updates in the same commit or push as the code.
+5. For a larger or risky change, use a short branch and open a pull request instead. GitHub fills in the [pull request template](.github/pull_request_template.md); complete every section.
+6. Keep secrets, credentials, and local environment files out of Git.
+
+### Rules on `main`
+
+| Rule | Why |
+| --- | --- |
+| Force pushes are blocked. | Nobody can overwrite commits a teammate already pushed. |
+| Deleting the branch is blocked. | The shared history and the deployed app's source cannot be lost. |
 
 ## Running the frontend
 
