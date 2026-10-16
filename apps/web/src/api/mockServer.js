@@ -245,6 +245,21 @@ export function setUsername(username) {
   })
 }
 
+// Real sign-in (realAuth.js) shares its user with the sample data, so the screens
+// that still run on sample data (projects, tasks, members) work for that user.
+export function adoptUser(user) {
+  if (!user) {
+    currentUserId = null
+    writeSession(null)
+    return
+  }
+  const existing = db.users.find((item) => item.id === user.id)
+  if (existing) Object.assign(existing, user)
+  else db.users.push({ id: user.id, email: user.email, username: user.username })
+  currentUserId = user.id
+  writeSession(user.id)
+}
+
 export function signOut() {
   return respond('signOut', () => {
     currentUserId = null

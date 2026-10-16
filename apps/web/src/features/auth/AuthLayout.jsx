@@ -1,5 +1,6 @@
 import { useDocumentTitle } from '../../app/pageMeta.js'
 import Logo from '../../components/Logo.jsx'
+import { useRealAuth } from '../../api/config.js'
 
 // Figma: Sign in 946:1624, Verify 946:1634, Username 946:1646 (desktop) and 778:94, 778:66, 954:774 (mobile).
 export default function AuthLayout({ step, title, children, after }) {
@@ -22,8 +23,9 @@ export default function AuthLayout({ step, title, children, after }) {
   )
 }
 
-// Explains how the sample sign-in works until Supabase Auth is connected.
+// Explains how the sample sign-in works. Hidden when real sign-in is turned on.
 export function SampleSignInNote() {
+  if (useRealAuth) return null
   return (
     <p className="mt-4 w-full max-w-[440px] rounded-lg px-3 py-2.5 text-sm text-muted">
       <strong className="font-semibold text-heading">Sample data.</strong> Use fahad@example.com and any 6 digits. 000000

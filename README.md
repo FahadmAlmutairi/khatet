@@ -93,7 +93,21 @@ npm run dev
 
 The app opens at http://localhost:5173 with the Sprint 1 screens: sign in, projects, board, task details, members and notifications.
 
-Until the API exists, the screens run on sample data in `src/api/mockServer.js`. Sign in with `fahad@example.com` and any 6-digit code (`000000` shows the wrong-code message and `111111` the expired one). Any other email creates a new account. The sample user owns one project, can edit only assigned tasks in a second and can only view a third. Changes last until the page reloads.
+By default the screens run on sample data in `src/api/mockServer.js`. Sign in with `fahad@example.com` and any 6-digit code (`000000` shows the wrong-code message and `111111` the expired one). Any other email creates a new account. The sample user owns one project, can edit only assigned tasks in a second and can only view a third. Changes last until the page reloads.
+
+### Real sign-in (US-01, US-02)
+
+To sign in with a real email code, run the backend too (see below) and create `apps/web/.env.local` from `apps/web/.env.example`:
+
+| Setting | Value |
+| --- | --- |
+| `VITE_API_URL` | `http://localhost:3000` |
+| `VITE_SUPABASE_URL` | Your Supabase project URL, the same one as the API's `SUPABASE_URL`. |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | The publishable key of that project (Project Settings > API Keys). Never the secret key. |
+
+Restart `npm run dev` after changing `.env.local`. With all three values set, sign-in, sign-out and choosing a username use Supabase Auth and `GET`/`PATCH /api/me`; the other screens still use the sample data. Without them the app runs fully on sample data. Never commit `.env.local`.
+
+Your Supabase project must send the code: in Authentication > Emails, set up SMTP (the team Gmail) and put `{{ .Token }}` in the Magic Link and Confirm signup templates; in Sign In / Providers > Email, set the code length to 6 and the expiry to 600 seconds. A `401` on `/auth/v1/otp` means the publishable key belongs to a different project than the URL.
 
 | Command | What it does |
 | --- | --- |
@@ -114,10 +128,30 @@ npm run dev
 
 The API starts at http://localhost:3000. Check that it is running at http://localhost:3000/api/health, which returns `{"status":"ok"}`. The port can be changed with the `PORT` setting (see `apps/api/.env.example`).
 
+### Database and settings
+
+Each developer uses their own free Supabase project (never the production one). Copy `apps/api/.env.example` to `apps/api/.env` and fill in the values from your project; the comments in the file say where each one is. Never commit `.env`.
+
+```bash
+cd apps/api
+npm run db:migrate   # creates or updates the tables in your Supabase project
+npm run db:seed      # optional: adds sample users and a sample project
+```
+
+`TEST_DATABASE_URL` points the tests at a separate `test` schema in the same project. The tests delete and rebuild that schema on every run, so never point it at `public`.
+
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Starts the API and restarts it when a file changes. |
 | `npm start` | Starts the API. Render uses this command. |
 | `npm test` | Runs the Vitest and Supertest tests. |
+| `npm run db:migrate` | Applies new migrations to your own database (development only). |
+| `npm run db:deploy` | Applies migrations without creating new ones. Render runs it on every deploy. |
+| `npm run db:seed` | Adds the sample data. Never run it against production. |
+| `npm run db:studio` | Opens Prisma Studio to view the tables. |
 
-The deployed API runs on Render (free plan) from `apps/api`, with build command `npm ci` and start command `npm start`. The free service sleeps after 15 minutes without traffic, so the first request after that can take about a minute.
+To change the tables, edit `prisma/schema.prisma`, run `npx prisma migrate dev --name <short-description>`, and commit the new folder in `prisma/migrations`. Never edit a migration that has already been applied or pushed; add a new one instead.
+
+### Deployment
+
+The deployed API runs on Render (free plan) from `apps/api`, with build command `npm ci && npm run db:deploy` and start command `npm start`. Render needs `DATABASE_URL`, `DIRECT_URL`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` and `CORS_ORIGINS` (`https://khatet.vercel.app`) for the production Supabase project, entered without quotes. Vercel needs `VITE_API_URL` (`https://khatet.onrender.com`), `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` for the same project. The free Render service sleeps after 15 minutes without traffic, so the first request after that can take about a minute.

@@ -1,10 +1,22 @@
-import express from "express";
-const app = express();
+import express from 'express'
+import cors from 'cors'
+import { config } from './config.js'
+import { errorHandler, requestId, routeNotFound } from './lib/errors.js'
+import { authRouter } from './auth/routes.js'
 
-app.use(express.json());
+const app = express()
 
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok" });
-});
+app.use(requestId)
+app.use(cors({ origin: config.corsOrigins }))
+app.use(express.json())
 
-export default app;
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok' })
+})
+
+app.use('/api', authRouter)
+
+app.use(routeNotFound)
+app.use(errorHandler)
+
+export default app
