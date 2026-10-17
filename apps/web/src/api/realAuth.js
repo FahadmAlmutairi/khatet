@@ -32,7 +32,7 @@ function pendingEmail() {
 
 // Calls the Express API with the signed-in user's token and turns its error shape
 // (docs/api-contract.md, Errors) into an ApiError.
-export async function apiFetch(path, { method = 'GET', body } = {}) {
+export async function apiFetch(path, { method = 'GET', body, keepalive = false } = {}) {
   const { data } = await supabase().auth.getSession()
   const headers = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
@@ -44,6 +44,7 @@ export async function apiFetch(path, { method = 'GET', body } = {}) {
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
+      keepalive,
     })
   } catch {
     throw new ApiError({ code: 'NETWORK', status: 0, message: 'Khatet could not be reached. Check your connection and try again.' })

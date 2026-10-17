@@ -256,3 +256,119 @@ describe.skipIf(!hasTestDatabase)('US-13: POST /api/projects/:projectId/tasks', 
     expect((await createTask(owner, { title: 'Task', assigneeIds: [owner.id] }, 'abc')).status).toBe(404)
   })
 })
+
+describe.skipIf(!hasTestDatabase)('US-14 to US-18: one task', () => {
+  let owner, sara, project
+
+  beforeEach(async () => {
+    await resetDatabase()
+    owner = await createUser('owner_user')
+    sara = await createUser('sara')
+    project = await createProject(owner, [{ user: sara }])
+  })
+  afterAll(() => prisma.$disconnect())
+
+  function createTask(title, status, position, assignees = [owner], extra = {}) {
+    return prisma.task.create({
+      data: {
+        projectId: project.id,
+        title,
+        status,
+        position,
+        createdById: owner.id,
+        assignees: { create: assignees.map((user) => ({ userId: user.id })) },
+        ...extra,
+      },
+    })
+  }
+
+  const move = (as, taskId, body) => request(app).post(`/api/tasks/${taskId}/move`).set(authHeader(as)).send(body)
+  const board = async () =>
+    (await prisma.task.findMany({ where: { projectId: project.id }, orderBy: [{ status: 'asc' }, { position: 'asc' }] })).map(
+      (task) => `${task.status}:${task.position}:${task.title}`,
+    )
+
+  it('opens a task for a member and answers not found to anyone else', async () => {
+    const task = await createTask('Write report', 'TODO', 1)
+    const res = await request(app).get(`/api/tasks/${task.id}`).set(authHeader(sara))
+    expect(res.status).toBe(200)
+    expect(res.body).toMatchObject({ id: task.id, title: 'Write report', permissions: { canEdit: false } })
+
+    const outsider = await createUser('outsider')
+    const hidden = await request(app).get(`/api/tasks/${task.id}`).set(authHeader(outsider))
+    expect(hidden.status).toBe(404)
+    expect(hidden.body.error.message).toBe('This task no longer exists. It may have been deleted.')
+    expect((await request(app).get(`/api/tasks/${randomUUID()}`).set(authHeader(owner))).status).toBe(404)
+    expect((await request(app).get('/api/tasks/abc').set(authHeader(owner))).status).toBe(404)
+  })
+
+  it('moves a task to another column and shifts the other cards', async () => {
+    const a = await createTask('A', 'TODO', 1)
+    await createTask('B', 'TODO', 2)
+    await createTask('C', 'IN_PROGRESS', 1)
+
+    const res = await move(owner, a.id, { status: 'IN_PROGRESS', position: 1 })
+    expect(res.status).toBe(200)
+    expect(res.body.map((task) => `${task.status}:${task.position}:${task.title}`)).toEqual([
+      'TODO:1:B',
+      'IN_PROGRESS:1:A',
+      'IN_PROGRESS:2:C',
+    ])
+    expect(await board()).toEqual(['TODO:1:B', 'IN_PROGRESS:1:A', 'IN_PROGRESS:2:C'])
+  })
+
+  it('reorders within a column and clears the blocked flag when a task leaves In Progress', async () => {
+    const a = await createTask('A', 'IN_PROGRESS', 1, [owner], { isBlocked: true, blockedReason: 'Waiting' })
+    await createTask('B', 'IN_PROGRESS', 2)
+
+    await move(owner, a.id, { status: 'IN_PROGRESS', position: 2 })
+    expect(await board()).toEqual(['IN_PROGRESS:1:B', 'IN_PROGRESS:2:A'])
+    expect(await prisma.task.findUnique({ where: { id: a.id } })).toMatchObject({ isBlocked: true })
+
+    await move(owner, a.id, { status: 'DONE', position: 1 })
+    expect(await prisma.task.findUnique({ where: { id: a.id } })).toMatchObject({ isBlocked: false, blockedReason: null })
+  })
+
+  it('lets an Edit assigned member move only their own tasks, and checks the status', async () => {
+    const mine = await createTask('Mine', 'TODO', 1, [sara])
+    const theirs = await createTask('Theirs', 'TODO', 2, [owner])
+    expect((await move(sara, mine.id, { status: 'DONE', position: 1 })).status).toBe(200)
+    expect((await move(sara, theirs.id, { status: 'DONE', position: 1 })).status).toBe(403)
+    expect((await move(owner, theirs.id, { status: 'LATER', position: 1 })).status).toBe(422)
+  })
+
+  it('edits the fields that were sent and notifies new assignees', async () => {
+    const task = await createTask('Old title', 'IN_PROGRESS', 1)
+    const res = await request(app)
+      .patch(`/api/tasks/${task.id}`)
+      .set(authHeader(owner))
+      .send({ title: 'New title', assigneeIds: [owner.id, sara.id], isBlocked: true, blockedReason: ' Waiting ' })
+    expect(res.status).toBe(200)
+    expect(res.body).toMatchObject({ title: 'New title', isBlocked: true, blockedReason: 'Waiting' })
+    expect(res.body.assigneeIds.sort()).toEqual([owner.id, sara.id].sort())
+    expect(await prisma.notification.count({ where: { userId: sara.id, taskId: task.id } })).toBe(1)
+
+    const bad = await request(app).patch(`/api/tasks/${task.id}`).set(authHeader(owner)).send({ title: ' ' })
+    expect(bad.status).toBe(422)
+    expect((await request(app).patch(`/api/tasks/${task.id}`).set(authHeader(sara)).send({ title: 'X' })).status).toBe(200)
+  })
+
+  it('refuses to flag a task outside In Progress as blocked', async () => {
+    const task = await createTask('Todo', 'TODO', 1)
+    const res = await request(app).patch(`/api/tasks/${task.id}`).set(authHeader(owner)).send({ isBlocked: true })
+    expect(res.status).toBe(422)
+    expect(res.body.error.fieldErrors[0].field).toBe('isBlocked')
+  })
+
+  it('deletes a task for the owner, renumbers the column, and refuses an Edit assigned member', async () => {
+    const a = await createTask('A', 'TODO', 1, [sara])
+    await createTask('B', 'TODO', 2)
+    expect((await request(app).delete(`/api/tasks/${a.id}`).set(authHeader(sara))).status).toBe(403)
+
+    const res = await request(app).delete(`/api/tasks/${a.id}`).set(authHeader(owner))
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ id: a.id })
+    expect(await board()).toEqual(['TODO:1:B'])
+    expect((await request(app).delete(`/api/tasks/${a.id}`).set(authHeader(owner))).status).toBe(404)
+  })
+})
