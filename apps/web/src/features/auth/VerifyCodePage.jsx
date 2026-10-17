@@ -7,7 +7,8 @@ import AuthLayout, { SampleSignInNote } from './AuthLayout.jsx'
 import CodeInput, { LENGTH as CODE_LENGTH } from './CodeInput.jsx'
 import { FieldError } from '../../components/ui/Field.jsx'
 
-const RESEND_SECONDS = 30
+// Supabase sends at most one code a minute to the same address.
+const RESEND_SECONDS = 60
 
 export default function VerifyCodePage() {
   const navigate = useNavigate()
@@ -35,6 +36,8 @@ export default function VerifyCodePage() {
       onSuccess: (user) => navigate(user.username ? '/projects' : '/sign-in/username', { replace: true }),
       onSettled: () => {
         checking.current = false
+        // Digits typed while this check was on its way would otherwise never be checked.
+        if (lastCode.current !== value && lastCode.current.length === CODE_LENGTH) check(lastCode.current)
       },
     })
   }
@@ -91,7 +94,7 @@ export default function VerifyCodePage() {
       </p>
       <div className="-mt-1 flex justify-center text-label text-muted">
         {secondsLeft > 0 ? (
-          <p>You can ask for a new code in 0:{String(secondsLeft).padStart(2, '0')}.</p>
+          <p>You can ask for a new code in {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}.</p>
         ) : (
           <button
             type="button"

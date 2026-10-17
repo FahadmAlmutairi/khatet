@@ -56,6 +56,19 @@ describe('real sign-in (US-01, US-02)', () => {
     await expect(verifyCode('000000')).rejects.toMatchObject({ fieldErrors: [{ field: 'code' }] })
   })
 
+  it('keeps the sign-in when the code is accepted but the account cannot be loaded, then retries without the used code', async () => {
+    await requestCode('sara@example.com')
+    respondWith(500, { error: { code: 'INTERNAL_ERROR', message: 'Something went wrong. Try again.' } })
+    await expect(verifyCode('123456')).rejects.toMatchObject({ code: 'ACCOUNT_NOT_LOADED', fieldErrors: [] })
+    expect(auth.verifyOtp).toHaveBeenCalledTimes(1)
+
+    // Supabase now has a session for this email, so the second try only loads the account.
+    auth.getSession.mockResolvedValue({ data: { session: { access_token: 'token-123', user: { email: 'sara@example.com' } } } })
+    respondWith(200, user)
+    await expect(verifyCode('123456')).resolves.toEqual(user)
+    expect(auth.verifyOtp).toHaveBeenCalledTimes(1)
+  })
+
   it('returns no user when nobody is signed in', async () => {
     auth.getSession.mockResolvedValue({ data: { session: null } })
     await expect(getMe()).resolves.toBeNull()
