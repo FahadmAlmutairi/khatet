@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useDocumentTitle } from '../../app/pageMeta.js'
-import { useNotifications, useProjects } from '../../api/hooks.js'
+import { useMe, useNotifications, useProjects } from '../../api/hooks.js'
 import Button from '../../components/ui/Button.jsx'
 import { ProjectCardsSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState } from '../../components/ui/States.jsx'
@@ -9,6 +9,7 @@ import { useToast } from '../../components/ui/toastContext.js'
 import { formatShortDate, roleLabel } from '../../lib/domain.js'
 import { InvitationActions } from '../notifications/NotificationsPanel.jsx'
 import CreateProjectDialog from './CreateProjectDialog.jsx'
+import { useProjectOrder } from './projectOrder.js'
 
 // Figma: Home 1069:2138 (projects) and 1070:2185 (no projects).
 // Both roles use one quiet grey pill, so the project name stays the first thing read.
@@ -59,6 +60,8 @@ function PendingInvitations() {
 // US-04 lists the user's projects with their role; US-06 opens one.
 export default function ProjectsPage() {
   const projects = useProjects()
+  // The cards follow the order the person set by dragging projects in the sidebar.
+  const ordered = useProjectOrder(projects.data, useMe().data?.id).projects
   const [searchParams, setSearchParams] = useSearchParams()
   const toast = useToast()
   const creating = searchParams.get('new') === 'project'
@@ -98,7 +101,7 @@ export default function ProjectsPage() {
       )}
       {projects.data?.length > 0 && (
         <ul className="grid gap-4 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
-          {projects.data.map((project) => (
+          {ordered.map((project) => (
             <li key={project.id}>
               <Link
                 to={`/projects/${project.id}/board`}

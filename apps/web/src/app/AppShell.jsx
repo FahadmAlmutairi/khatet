@@ -1,4 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
@@ -6,6 +9,7 @@ import Breadcrumb from '../components/Breadcrumb.jsx'
 import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SignOutIcon } from '../components/icons.jsx'
 import Logo from '../components/Logo.jsx'
 import NotificationsButton from '../features/notifications/NotificationsButton.jsx'
+import { useProjectOrder } from '../features/projects/projectOrder.js'
 import { EASE } from '../lib/motion.js'
 import { useBreadcrumb } from './pageMeta.js'
 
@@ -23,16 +27,112 @@ function subNavClass(mobile) {
     `flex h-11 items-center gap-2 rounded-md px-2 text-sm lg:h-[30px] ${isActive ? activeClass(mobile) : 'text-nav hover:bg-surface'}`
 }
 
+// Projects slide only up and down while dragged.
+const keepInColumn = ({ transform }) => ({ ...transform, x: 0 })
+
+// One project in the sidebar. Dragging it with a mouse or a long press, or Alt+Up/Down on the keyboard
+// (WCAG 2.5.7), moves it to a new place in the list.
+function SortableProject({ project, current, open, mobile, onNavigate, onToggle, onKeyMove, draggedRef }) {
+  const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: project.id })
+  const listId = `project-pages-${project.id}`
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={{ transform: CSS.Translate.toString(transform), transition }}
+      className={isDragging ? 'relative z-10 rounded-lg bg-white shadow-[0_6px_16px_rgba(20,31,23,0.14)]' : undefined}
+    >
+      {/* A project opens to show its pages here; the person then picks the page. */}
+      <button
+        type="button"
+        id={`project-toggle-${project.id}`}
+        {...listeners}
+        onClick={() => {
+          if (!draggedRef.current) onToggle(project.id)
+        }}
+        onKeyDown={(event) => {
+          if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return
+          event.preventDefault()
+          onKeyMove(project.id, event.key === 'ArrowUp' ? -1 : 1)
+        }}
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+        aria-describedby="project-reorder-hint"
+        className={`flex h-11 w-full touch-manipulation items-center gap-2 rounded-lg p-2 text-left text-sm font-medium lg:h-10 text-[#26352a] ${
+          isDragging ? 'cursor-grabbing' : 'cursor-pointer'
+        } ${current ? 'bg-[#f7faf6]' : 'hover:bg-surface'}`}
+      >
+        <span
+          aria-hidden="true"
+          className={`inline-flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-medium ${
+            current ? 'bg-[#e5eee4] text-[#4c6650]' : 'bg-[#f1f3f0] text-[#68736b]'
+          }`}
+        >
+          {project.name.charAt(0).toUpperCase()}
+        </span>
+        <span className="flex-1 truncate">{project.name}</span>
+        <span aria-hidden="true" className="text-[#78847a]">
+          <ChevronIcon direction={open ? 'up' : 'down'} size={14} />
+        </span>
+      </button>
+      {open && (
+        <ul id={listId} className="motion-reveal mt-2 flex flex-col gap-1 pl-6">
+          <li>
+            <NavLink to={`/projects/${project.id}/board`} className={subNavClass(mobile)} onClick={onNavigate}>
+              <BoardIcon />
+              Board
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to={`/projects/${project.id}/members`} className={subNavClass(mobile)} onClick={onNavigate}>
+              <MembersIcon />
+              Members
+            </NavLink>
+          </li>
+        </ul>
+      )}
+    </li>
+  )
+}
+
 function Sidebar({ onNavigate, openProjects, onToggleProject, mobile = false }) {
   const { projectId } = useParams()
-  const projects = useProjects()
   const me = useMe()
+  const order = useProjectOrder(useProjects().data, me.data?.id)
   const signOut = useSignOut()
   const navigate = useNavigate()
+  // A drag ends with the button still under the pointer, so its click must not also open or close the project.
+  const draggedRef = useRef(false)
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
+  )
+
+  function onDragEnd({ active, over }) {
+    draggedRef.current = true
+    setTimeout(() => {
+      draggedRef.current = false
+    })
+    if (over) order.move(active.id, over.id)
+  }
+
+  function moveByKey(id, step) {
+    const index = order.projects.findIndex((project) => project.id === id)
+    const target = order.projects[index + step]
+    if (!target) return
+    order.move(id, target.id)
+    // The moved button is put back in the list, which drops its focus.
+    requestAnimationFrame(() => document.getElementById(`project-toggle-${id}`)?.focus())
+  }
+
+  const names = new Map(order.projects?.map((project) => [project.id, project.name]))
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-6">
-      <nav aria-label="Main" className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto">
+      {/* The padding, taken back by the negative margin, leaves room for focus rings inside the scrolling area. */}
+      <nav aria-label="Main" className="-m-1.5 flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-1.5">
         <NavLink
           to="/projects"
           end
@@ -57,56 +157,43 @@ function Sidebar({ onNavigate, openProjects, onToggleProject, mobile = false }) 
               <PlusIcon />
             </Link>
           </div>
-          <ul className="flex flex-col gap-2">
-            {projects.data?.map((project) => {
-              const current = project.id === projectId
-              const open = openProjects.has(project.id)
-              const listId = `project-pages-${project.id}`
-              return (
-                <li key={project.id}>
-                  {/* A project opens to show its pages here; the person then picks the page. */}
-                  <button
-                    type="button"
-                    onClick={() => onToggleProject(project.id)}
-                    aria-expanded={open}
-                    aria-controls={listId}
-                    className={`flex h-11 w-full cursor-pointer items-center gap-2 rounded-lg p-2 text-left text-sm font-medium lg:h-10 text-[#26352a] ${
-                      current ? 'bg-[#f7faf6]' : 'hover:bg-surface'
-                    }`}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={`inline-flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-medium ${
-                        current ? 'bg-[#e5eee4] text-[#4c6650]' : 'bg-[#f1f3f0] text-[#68736b]'
-                      }`}
-                    >
-                      {project.name.charAt(0).toUpperCase()}
-                    </span>
-                    <span className="flex-1 truncate">{project.name}</span>
-                    <span aria-hidden="true" className="text-[#78847a]">
-                      <ChevronIcon direction={open ? 'up' : 'down'} size={14} />
-                    </span>
-                  </button>
-                  {open && (
-                    <ul id={listId} className="motion-reveal mt-2 flex flex-col gap-1 pl-6">
-                      <li>
-                        <NavLink to={`/projects/${project.id}/board`} className={subNavClass(mobile)} onClick={onNavigate}>
-                          <BoardIcon />
-                          Board
-                        </NavLink>
-                      </li>
-                      <li>
-                        <NavLink to={`/projects/${project.id}/members`} className={subNavClass(mobile)} onClick={onNavigate}>
-                          <MembersIcon />
-                          Members
-                        </NavLink>
-                      </li>
-                    </ul>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
+          <span id="project-reorder-hint" hidden>
+            Drag, or press Alt with the up or down arrow, to change the order.
+          </span>
+          {order.projects && (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              modifiers={[keepInColumn]}
+              onDragEnd={onDragEnd}
+              accessibility={{
+                announcements: {
+                  onDragStart: ({ active }) => `Picked up ${names.get(active.id)}.`,
+                  onDragOver: () => undefined,
+                  onDragEnd: ({ active }) => `${names.get(active.id)} was moved.`,
+                  onDragCancel: ({ active }) => `Moving ${names.get(active.id)} was cancelled.`,
+                },
+              }}
+            >
+              <SortableContext items={order.projects.map((project) => project.id)} strategy={verticalListSortingStrategy}>
+                <ul className="flex flex-col gap-2">
+                  {order.projects.map((project) => (
+                    <SortableProject
+                      key={project.id}
+                      project={project}
+                      current={project.id === projectId}
+                      open={openProjects.has(project.id)}
+                      mobile={mobile}
+                      onNavigate={onNavigate}
+                      onToggle={onToggleProject}
+                      onKeyMove={moveByKey}
+                      draggedRef={draggedRef}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          )}
         </div>
       </nav>
       <div className="flex flex-col gap-2">
@@ -146,8 +233,8 @@ const railItem = 'group relative inline-flex size-10 cursor-pointer items-center
 // Hovering the logo turns it into the open button; clicking any empty part of the rail opens it too.
 function Rail({ onExpand, onOpenProject, expandButtonRef }) {
   const { projectId } = useParams()
-  const projects = useProjects()
   const me = useMe()
+  const projects = useProjectOrder(useProjects().data, me.data?.id).projects
 
   return (
     <aside
@@ -178,7 +265,7 @@ function Rail({ onExpand, onOpenProject, expandButtonRef }) {
           <HomeIcon />
           <RailTip>Home</RailTip>
         </NavLink>
-        {projects.data?.map((project) => {
+        {projects?.map((project) => {
           const current = project.id === projectId
           return (
             <button
