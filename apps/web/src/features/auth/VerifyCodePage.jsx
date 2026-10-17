@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { errorMessage, fieldError } from '../../api/errors.js'
 import { useRequestCode, useVerifyCode } from '../../api/hooks.js'
 import Button, { Spinner } from '../../components/ui/Button.jsx'
 import AuthLayout, { SampleSignInNote } from './AuthLayout.jsx'
-import CodeInput from './CodeInput.jsx'
+import CodeInput, { LENGTH as CODE_LENGTH } from './CodeInput.jsx'
 import { FieldError } from '../../components/ui/Field.jsx'
 
 const RESEND_SECONDS = 30
@@ -16,6 +16,9 @@ export default function VerifyCodePage() {
   const resend = useRequestCode()
   const [code, setCode] = useState('')
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS)
+  // Set while a check is on its way, so filling the last box and pressing Verify send it once.
+  const checking = useRef(false)
+  const lastCode = useRef('')
 
   useEffect(() => {
     if (secondsLeft <= 0) return undefined
@@ -25,17 +28,35 @@ export default function VerifyCodePage() {
 
   if (!email) return <Navigate to="/sign-in" replace />
 
+  function check(value) {
+    if (checking.current) return
+    checking.current = true
+    verify.mutate(value, {
+      onSuccess: (user) => navigate(user.username ? '/projects' : '/sign-in/username', { replace: true }),
+      onSettled: () => {
+        checking.current = false
+      },
+    })
+  }
+
   function submit(event) {
     event.preventDefault()
-    verify.mutate(code, {
-      onSuccess: (user) => navigate(user.username ? '/projects' : '/sign-in/username', { replace: true }),
-    })
+    check(code)
+  }
+
+  // The code is checked as soon as the last box is filled; the Verify button stays for anyone who prefers it.
+  function changeCode(next) {
+    const changed = next !== lastCode.current
+    lastCode.current = next
+    setCode(next)
+    if (changed && next.length === CODE_LENGTH) check(next)
   }
 
   function sendAgain() {
     resend.mutate(email, {
       onSuccess: () => {
         setSecondsLeft(RESEND_SECONDS)
+        lastCode.current = ''
         setCode('')
         verify.reset()
       },
@@ -45,7 +66,7 @@ export default function VerifyCodePage() {
   const codeError = fieldError(verify.error, 'code')
 
   return (
-    <AuthLayout step="Step 2 of 3" title="Check your email" after={<SampleSignInNote />}>
+    <AuthLayout title="Check your email" after={<SampleSignInNote />}>
       <p className="text-sm leading-[21px] text-muted">
         We sent a 6-digit code to {email}. It expires in 10 minutes.
       </p>
@@ -56,7 +77,7 @@ export default function VerifyCodePage() {
         </Link>
       </p>
       <form onSubmit={submit} noValidate className="flex flex-col gap-6">
-        <CodeInput value={code} onChange={setCode} error={codeError} />
+        <CodeInput value={code} onChange={changeCode} error={codeError} />
         {verify.isError && !codeError && (
           <FieldError role="alert">{errorMessage(verify.error)}</FieldError>
         )}

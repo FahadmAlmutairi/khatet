@@ -2,7 +2,7 @@ import { useEffect, useId, useRef } from 'react'
 import { animate } from '../../lib/motion.js'
 import { FieldError } from '../../components/ui/Field.jsx'
 
-const LENGTH = 6
+export const LENGTH = 6
 
 // Six one-digit boxes that act as one field: typing moves forward, Backspace moves
 // back, and pasting or the phone's one-time-code suggestion fills every box.

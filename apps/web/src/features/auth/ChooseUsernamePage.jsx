@@ -26,7 +26,7 @@ export default function ChooseUsernamePage() {
   const usernameError = fieldError(setUsername.error, 'username')
 
   return (
-    <AuthLayout step="Step 3 of 3" title="Choose your username">
+    <AuthLayout title="Choose your username">
       <p className="text-sm leading-[21px] text-muted">Teammates use it to invite you.</p>
       <form onSubmit={submit} noValidate className="flex flex-col gap-6">
         <TextField
