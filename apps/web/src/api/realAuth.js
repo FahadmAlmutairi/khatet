@@ -85,14 +85,29 @@ export async function verifyCode(code) {
   if (!email) throw new ApiError({ code: 'CODE_NOT_REQUESTED', message: 'Request a code first.' })
   if (!/^\d{6}$/.test(code ?? '')) throw invalid('code', 'Enter the 6-digit code.')
 
-  const { error } = await supabase().auth.verifyOtp({ email, token: code, type: 'email' })
-  if (error) {
-    // Supabase uses the same answer for a wrong code and an expired one.
-    throw invalid('code', 'That code is wrong or has expired. Check the email or request a new code.')
+  // A code works only once. If it was already accepted but loading the account failed,
+  // a second try uses the session it gave instead of sending the used code again.
+  const { data } = await supabase().auth.getSession()
+  if (data.session?.user?.email?.toLowerCase() !== email) {
+    const { error } = await supabase().auth.verifyOtp({ email, token: code, type: 'email' })
+    if (error) {
+      // Supabase uses the same answer for a wrong code and an expired one.
+      throw invalid('code', 'That code is wrong or has expired. Check the email or request a new code.')
+    }
+  }
+  // The first request after sign-up creates the Khatet account (username still empty).
+  let user
+  try {
+    user = await apiFetch('/me')
+  } catch (error) {
+    if (error.status === 401) throw error
+    throw new ApiError({
+      code: 'ACCOUNT_NOT_LOADED',
+      status: error.status,
+      message: 'Your code was accepted, but your Khatet account could not be loaded. Try again in a moment.',
+    })
   }
   rememberEmail(null)
-  // The first request after sign-up creates the Khatet account (username still empty).
-  const user = await apiFetch('/me')
   adoptUser(user)
   return user
 }
