@@ -6,9 +6,18 @@
 // Sign-in (US-01, US-02) is real when VITE_API_URL and the Supabase settings are set
 // (see apps/web/.env.example). Everything else stays on sample data for now; the
 // signed-in user is shared with the sample data so those screens keep working.
+
 import * as sample from './mockServer.js'
 import * as realAuth from './realAuth.js'
 import { useRealAuth } from './config.js'
+import { apiFetch } from './realAuth.js'
+
+const realProjects = {
+  getProjects: () => apiFetch('/projects'),
+  createProject: (input) =>
+    apiFetch('/projects', { method: 'POST', body: input }),
+  getProject: (projectId) => apiFetch(`/projects/${projectId}`),
+}
 
 const auth = useRealAuth
   ? {
@@ -20,4 +29,8 @@ const auth = useRealAuth
     }
   : {}
 
-export const api = { ...sample, ...auth }
+export const api = {
+  ...sample,
+  ...auth,
+  ...(useRealAuth ? realProjects : {}),
+}
