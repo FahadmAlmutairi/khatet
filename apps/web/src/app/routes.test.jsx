@@ -176,6 +176,24 @@ describe('sidebar', () => {
     expect(screen.getByRole('button', { name: 'Khatet', expanded: true })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Board' })).toHaveAttribute('href', '/projects/p-khatet/board')
   })
+
+  it('moves a project up or down the list from the keyboard and keeps that order', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects')
+    const sidebar = await screen.findByRole('complementary')
+    const names = () => within(sidebar).getAllByRole('button', { expanded: false }).map((button) => button.textContent)
+    await within(sidebar).findByRole('button', { name: 'Study Planner' })
+    expect(names().slice(0, 2)).toEqual(['KKhatet', 'SStudy Planner'])
+
+    within(sidebar).getByRole('button', { name: 'Study Planner' }).focus()
+    await user.keyboard('{Alt>}{ArrowUp}{/Alt}')
+    expect(names().slice(0, 2)).toEqual(['SStudy Planner', 'KKhatet'])
+    expect(JSON.parse(localStorage.getItem('khatet.projectOrder.u-fahad')).slice(0, 2)).toEqual(['p-study', 'p-khatet'])
+    // The home page cards follow the same order.
+    const cards = screen.getByRole('main').querySelectorAll('ul a')
+    expect(cards[0]).toHaveTextContent('Study Planner')
+  })
 })
 
 describe('page names (G7, G12)', () => {
