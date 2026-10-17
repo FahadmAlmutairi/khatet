@@ -1,6 +1,7 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { api } from '../api/client.js'
 import { ApiError } from '../api/errors.js'
 import { createProject, createTask, failNextCall, getTasks, resetMockServer } from '../api/mockServer.js'
 import { dateFromToday, formatDueDate } from '../lib/domain.js'
@@ -26,8 +27,8 @@ describe('sign in (US-01, US-02)', () => {
 
     expect(screen.getByRole('group', { name: /Verification code/ })).toBeInTheDocument()
     const firstDigit = screen.getByRole('textbox', { name: 'Digit 1 of 6' })
+    // The code is checked as soon as the last digit is in, without pressing Verify.
     await user.type(firstDigit, '000000')
-    await user.click(screen.getByRole('button', { name: 'Verify code' }))
     expect(await screen.findByText('That code is not right. Check the email and try again.')).toBeInTheDocument()
     expect(firstDigit).toHaveAttribute('aria-invalid', 'true')
     expect(firstDigit).toHaveFocus()
@@ -35,8 +36,38 @@ describe('sign in (US-01, US-02)', () => {
     expect([firstDigit.selectionStart, firstDigit.selectionEnd]).toEqual([1, 1])
 
     await user.type(firstDigit, '123456')
-    await user.click(screen.getByRole('button', { name: 'Verify code' }))
     expect(await screen.findByRole('heading', { name: 'Your projects' })).toBeInTheDocument()
+  })
+
+  it('checks a full code once, even when Verify is also pressed', async () => {
+    // Hold each check briefly so Verify can be pressed while the automatic one is still on its way.
+    const original = api.verifyCode
+    const verifyCode = vi
+      .spyOn(api, 'verifyCode')
+      .mockImplementation((code) => new Promise((resolve) => setTimeout(resolve, 50)).then(() => original(code)))
+    const user = userEvent.setup()
+    renderApp('/sign-in')
+    await user.type(await screen.findByLabelText(/Email/), 'fahad@example.com')
+    await user.click(screen.getByRole('button', { name: 'Continue with email' }))
+    const firstDigit = await screen.findByRole('textbox', { name: 'Digit 1 of 6' })
+
+    await user.type(firstDigit, '00000')
+    expect(verifyCode).not.toHaveBeenCalled()
+    await user.type(screen.getByRole('textbox', { name: 'Digit 6 of 6' }), '0')
+    fireEvent.submit(firstDigit.closest('form'))
+    expect(await screen.findByText('That code is not right. Check the email and try again.')).toBeInTheDocument()
+    expect(verifyCode).toHaveBeenCalledTimes(1)
+
+    // Verify still works on its own, for example to try the same code again.
+    await user.click(screen.getByRole('button', { name: 'Verify code' }))
+    await waitFor(() => expect(verifyCode).toHaveBeenCalledTimes(2))
+    verifyCode.mockRestore()
+  })
+
+  it('shows no step count on the sign-in pages', async () => {
+    renderApp('/sign-in')
+    await screen.findByRole('heading', { name: 'Sign in or create an account' })
+    expect(screen.queryByText(/Step \d of 3/)).not.toBeInTheDocument()
   })
 
   it('asks a new user for a unique username', async () => {
@@ -46,7 +77,6 @@ describe('sign in (US-01, US-02)', () => {
     await user.click(screen.getByRole('button', { name: 'Continue with email' }))
     await user.click(await screen.findByRole('textbox', { name: 'Digit 1 of 6' }))
     await user.paste('123456')
-    await user.click(screen.getByRole('button', { name: 'Verify code' }))
 
     const username = await screen.findByLabelText(/username/i)
     await user.type(username, 'saad')

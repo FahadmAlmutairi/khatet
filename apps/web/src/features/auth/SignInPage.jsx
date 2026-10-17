@@ -25,7 +25,7 @@ export default function SignInPage() {
   const emailError = fieldError(requestCode.error, 'email')
 
   return (
-    <AuthLayout step="Step 1 of 3" title="Sign in or create an account" after={<SampleSignInNote />}>
+    <AuthLayout title="Sign in or create an account" after={<SampleSignInNote />}>
       <p className="text-sm leading-[21px] text-muted">We’ll email you a 6-digit code.</p>
       <form onSubmit={submit} noValidate className="flex flex-col gap-6">
         <TextField
