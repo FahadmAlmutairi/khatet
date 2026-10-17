@@ -2,7 +2,8 @@
 import { Router } from 'express'
 import { prisma } from '../db.js'
 import { requireAuth, requireUsername } from '../auth/requireAuth.js'
-import { ApiError, invalid } from '../lib/errors.js'
+import { invalid } from '../lib/errors.js'
+import { findMembership } from './access.js'
 
 export const projectsRouter = Router()
 
@@ -24,25 +25,6 @@ function serializeProject(project, membership) {
       canManageMembers: membership.role === 'OWNER',
     },
   }
-}
-
-async function findMembership(projectId, userId) {
-  const membership = await prisma.projectMember.findUnique({
-    where: {
-      projectId_userId: { projectId, userId },
-    },
-    include: { project: true },
-  })
-
-  if (!membership) {
-    throw new ApiError(
-      404,
-      'NOT_FOUND',
-      'This project does not exist or you are not a member of it.',
-    )
-  }
-
-  return membership
 }
 
 // US-04: List projects belonging to the signed-in user.

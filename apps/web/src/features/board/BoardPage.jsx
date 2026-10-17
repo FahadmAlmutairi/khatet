@@ -7,7 +7,7 @@ import { useMembers, useMoveTask, useTasks, useUpdateTask } from '../../api/hook
 import { PlusIcon } from '../../components/icons.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { BoardSkeleton } from '../../components/ui/Skeleton.jsx'
-import { ErrorState, StateBadge } from '../../components/ui/States.jsx'
+import { ErrorState, Notice, StateBadge } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { statusLabel } from '../../lib/domain.js'
 import { rememberCardPositions } from '../../lib/motion.js'
@@ -111,6 +111,19 @@ export default function BoardPage() {
         {(tasks.isPending || members.isPending) && <BoardSkeleton />}
         {tasks.isError && (
           <ErrorState title="The board could not be loaded" message={errorMessage(tasks.error)} onRetry={() => tasks.refetch()} />
+        )}
+        {/* The project exists and you are in it, but nobody has added a task yet. The empty lanes stay below. */}
+        {tasks.data?.length === 0 && members.data && (
+          <div className="mb-4">
+            <Notice>
+              <p className="font-semibold">This project has no tasks yet.</p>
+              <p className="mt-1">
+                {project.permissions.canCreateTask
+                  ? 'Add the first task to start the board.'
+                  : 'Tasks appear here when the project owner or a member with Edit all tasks access adds them.'}
+              </p>
+            </Notice>
+          </div>
         )}
         {tasks.data && members.data && (
           <BoardColumns
