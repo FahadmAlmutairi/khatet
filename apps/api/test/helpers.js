@@ -29,3 +29,19 @@ export function authHeader(user) {
 export function tokenFor(authId, email) {
   return { Authorization: `Bearer test:${authId}:${email}` }
 }
+
+// Creates a project owned by `owner`, with optional extra members: [{ user, taskAccess }].
+export async function createProject(owner, members = []) {
+  return prisma.project.create({
+    data: {
+      name: 'Graduation project',
+      createdById: owner.id,
+      members: {
+        create: [
+          { userId: owner.id, role: 'OWNER', taskAccess: 'EDIT_ALL' },
+          ...members.map(({ user, taskAccess = 'EDIT_ASSIGNED' }) => ({ userId: user.id, role: 'MEMBER', taskAccess })),
+        ],
+      },
+    },
+  })
+}

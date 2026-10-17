@@ -277,6 +277,7 @@ describe('board (US-16, US-21)', () => {
     renderApp('/projects/p-khatet/board')
     const review = await screen.findByRole('region', { name: /^Ready for Review/ })
     expect(within(review).getByText('Overdue · 20 Sep')).toBeInTheDocument()
+    expect(screen.queryByText('This project has no tasks yet.')).not.toBeInTheDocument()
   })
 
   it('shows empty lanes with an Add task action in To Do', async () => {
@@ -285,6 +286,8 @@ describe('board (US-16, US-21)', () => {
     const project = await createProject({ name: 'Empty project' })
     renderApp(`/projects/${project.id}/board`)
     const todo = await screen.findByRole('region', { name: /^To Do/ })
+    expect(screen.getByText('This project has no tasks yet.')).toBeInTheDocument()
+    expect(screen.getByText('Add the first task to start the board.')).toBeInTheDocument()
     expect(within(todo).getByText('No tasks yet.')).toBeInTheDocument()
     expect(within(screen.getByRole('region', { name: /^Done/ })).queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument()
     await user.click(within(todo).getByRole('button', { name: 'Add task' }))
