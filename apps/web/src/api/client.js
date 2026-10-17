@@ -4,8 +4,8 @@
 // is sent when the page is left (Toast.jsx, pagehide), and a plain request is cancelled then.
 //
 // Sign-in (US-01, US-02) is real when VITE_API_URL and the Supabase settings are set
-// (see apps/web/.env.example). Projects, members, invitations, notifications, the
-// board's task list and creating tasks then use the Express API too. Everything else stays on sample data for now; the
+// (see apps/web/.env.example). Projects, members, invitations, notifications and
+// tasks then use the Express API too. Everything else stays on sample data for now; the
 // signed-in user is shared with the sample data so those screens keep working.
 
 import * as sample from './mockServer.js'
@@ -30,10 +30,15 @@ const realMembersAndNotifications = {
   acceptInvitation: (invitationId) => apiFetch(`/invitations/${invitationId}/accept`, { method: 'POST' }),
   declineInvitation: (invitationId) => apiFetch(`/invitations/${invitationId}/decline`, { method: 'POST' }),
   getNotifications: () => apiFetch('/notifications'),
-  // US-21 and US-13: the board's task list and creating tasks. Opening, editing, moving and
-  // deleting tasks still use sample data.
+  // US-13 to US-18 and US-21: the board's task list, and creating, opening, editing, moving
+  // and deleting tasks.
   getTasks: (projectId) => apiFetch(`/projects/${projectId}/tasks`),
   createTask: (projectId, input) => apiFetch(`/projects/${projectId}/tasks`, { method: 'POST', body: input }),
+  getTask: (taskId) => apiFetch(`/tasks/${taskId}`),
+  updateTask: (taskId, patch) => apiFetch(`/tasks/${taskId}`, { method: 'PATCH', body: patch }),
+  moveTask: (taskId, { status, position }) =>
+    apiFetch(`/tasks/${taskId}/move`, { method: 'POST', body: { status, position } }),
+  deleteTask: (taskId) => apiFetch(`/tasks/${taskId}`, { method: 'DELETE', keepalive: true }),
   markNotificationRead: (notificationId) =>
     apiFetch(`/notifications/${notificationId}`, { method: 'PATCH', body: { read: true } }),
 }

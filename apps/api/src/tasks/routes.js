@@ -1,12 +1,15 @@
 // Tasks (US-13 to US-18, US-21).
 // GET  /api/projects/:projectId/tasks   US-21: every task in the project, for the board
 // POST /api/projects/:projectId/tasks   US-13: body { title, assigneeIds, description?, priority?, dueDate? }
-// Editing, moving and deleting tasks are still to be added here.
+// GET    /api/tasks/:taskId              US-14: one task, for the task details page
+// PATCH  /api/tasks/:taskId              US-15, US-17: body with any of the create fields, isBlocked?, blockedReason?
+// POST   /api/tasks/:taskId/move         US-16: body { status, position }; answers every task in the project
+// DELETE /api/tasks/:taskId              US-18: answers { id }
 // Response shape matches the sample version in apps/web/src/api/mockServer.js.
 import { Router } from 'express'
 import { prisma } from '../db.js'
 import { requireAuth, requireUsername } from '../auth/requireAuth.js'
-import { forbidden, invalid } from '../lib/errors.js'
+import { ApiError, forbidden, invalid } from '../lib/errors.js'
 import { TRANSACTION_OPTIONS } from '../lib/transactions.js'
 import { notifyAssigned } from '../notifications/routes.js'
 import { findMembership, isUuid } from '../projects/access.js'
@@ -161,4 +164,123 @@ tasksRouter.post('/projects/:projectId/tasks', signedIn, async (req, res) => {
   }, TRANSACTION_OPTIONS)
 
   res.status(201).json(serializeTask(task, membership))
+})
+
+// A task can be reached only by members of its project. A task that does not exist and one
+// in another project get the same answer, so IDs cannot be probed (NFR-11).
+async function findTask(taskId, userId, client = prisma) {
+  const task = isUuid(taskId) ? await client.task.findUnique({ where: { id: taskId }, include: withAssignees }) : null
+  const membership = task
+    ? await client.projectMember.findUnique({ where: { projectId_userId: { projectId: task.projectId, userId } } })
+    : null
+  if (!membership) throw new ApiError(404, 'NOT_FOUND', 'This task no longer exists. It may have been deleted.')
+  return { task, membership }
+}
+
+// Locks the project row, so moves, deletes and creates in one project wait for each other
+// and positions stay 1, 2, 3, ... in every column.
+function lockProject(tx, projectId) {
+  return tx.$queryRaw`SELECT 1 FROM "projects" WHERE "id" = ${projectId}::uuid FOR UPDATE`
+}
+
+// Gives the tasks in one column the positions 1, 2, 3, ... in the order given.
+async function renumber(tx, tasks) {
+  for (const [index, task] of tasks.entries()) {
+    if (task.position !== index + 1) await tx.task.update({ where: { id: task.id }, data: { position: index + 1 } })
+  }
+}
+
+function columnTasks(tx, projectId, status, exceptId) {
+  return tx.task.findMany({
+    where: { projectId, status, id: { not: exceptId } },
+    orderBy: { position: 'asc' },
+    select: { id: true, position: true },
+  })
+}
+
+// US-14
+tasksRouter.get('/tasks/:taskId', signedIn, async (req, res) => {
+  const { task, membership } = await findTask(req.params.taskId, req.user.id)
+  res.json(serializeTask(task, membership))
+})
+
+// US-15 and US-17: edit the fields that were sent. New assignees are notified.
+tasksRouter.patch('/tasks/:taskId', signedIn, async (req, res) => {
+  const { task, membership } = await findTask(req.params.taskId, req.user.id)
+  if (!taskPermissions(task, membership).canEdit) throw forbidden('You do not have access to edit this task.')
+
+  const body = req.body && typeof req.body === 'object' ? req.body : {}
+  const { assigneeIds, ...fields } = await validateTaskFields(body, task.projectId, { partial: true })
+  if ('isBlocked' in body) {
+    if (body.isBlocked && task.status !== 'IN_PROGRESS') {
+      throw invalid([{ field: 'isBlocked', message: 'Only tasks in progress can be flagged as blocked.' }])
+    }
+    fields.isBlocked = Boolean(body.isBlocked)
+    fields.blockedReason = body.isBlocked ? String(body.blockedReason ?? '').trim() || null : null
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    let added = []
+    if (assigneeIds) {
+      const current = task.assignees.map((assignee) => assignee.userId)
+      added = assigneeIds.filter((userId) => !current.includes(userId))
+      await tx.taskAssignee.deleteMany({ where: { taskId: task.id, userId: { notIn: assigneeIds } } })
+      await tx.taskAssignee.createMany({ data: added.map((userId) => ({ taskId: task.id, userId })) })
+    }
+    const saved = await tx.task.update({ where: { id: task.id }, data: fields, include: withAssignees })
+    await notifyAssigned(tx, { task: saved, userIds: added, actorId: req.user.id })
+    return saved
+  }, TRANSACTION_OPTIONS)
+
+  res.json(serializeTask(updated, membership))
+})
+
+// US-16: move a card to a column and place (1 is the top). The other cards shift, and a task
+// that leaves In Progress is no longer blocked. Answers every task, in board order.
+tasksRouter.post('/tasks/:taskId/move', signedIn, async (req, res) => {
+  const { task, membership } = await findTask(req.params.taskId, req.user.id)
+  if (!taskPermissions(task, membership).canMove) throw forbidden('You do not have access to move this task.')
+  const status = req.body?.status
+  if (!STATUS_ORDER.includes(status)) throw invalid([{ field: 'status', message: 'Choose a status.' }])
+  const position = Number.isInteger(req.body?.position) ? req.body.position : null
+  const { projectId } = task
+
+  const tasks = await prisma.$transaction(async (tx) => {
+    await lockProject(tx, projectId)
+    // Read again after the lock, in case another request moved or deleted it meanwhile.
+    const current = await tx.task.findUnique({ where: { id: task.id }, select: { status: true } })
+    if (!current) throw new ApiError(404, 'NOT_FOUND', 'This task no longer exists. It may have been deleted.')
+
+    const source = await columnTasks(tx, projectId, current.status, task.id)
+    const target = status === current.status ? source : await columnTasks(tx, projectId, status, task.id)
+    const index = Math.min(Math.max((position ?? target.length + 1) - 1, 0), target.length)
+    target.splice(index, 0, { id: task.id, position: null })
+
+    await tx.task.update({
+      where: { id: task.id },
+      data: { status, ...(status === 'IN_PROGRESS' ? {} : { isBlocked: false, blockedReason: null }) },
+    })
+    if (target !== source) await renumber(tx, source)
+    await renumber(tx, target)
+    return tx.task.findMany({ where: { projectId }, include: withAssignees })
+  }, TRANSACTION_OPTIONS)
+
+  tasks.sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status) || a.position - b.position)
+  res.json(tasks.map((item) => serializeTask(item, membership)))
+})
+
+// US-18: the owner and members with Edit all tasks access delete tasks.
+tasksRouter.delete('/tasks/:taskId', signedIn, async (req, res) => {
+  const { task, membership } = await findTask(req.params.taskId, req.user.id)
+  if (!taskPermissions(task, membership).canDelete) throw forbidden('You need Edit all tasks access to delete tasks.')
+
+  await prisma.$transaction(async (tx) => {
+    await lockProject(tx, task.projectId)
+    const current = await tx.task.findUnique({ where: { id: task.id }, select: { status: true } })
+    if (!current) return
+    await tx.task.delete({ where: { id: task.id } })
+    await renumber(tx, await columnTasks(tx, task.projectId, current.status, task.id))
+  }, TRANSACTION_OPTIONS)
+
+  res.json({ id: task.id })
 })
