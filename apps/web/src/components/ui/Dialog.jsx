@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { ArrowLeftIcon, CloseIcon } from '../icons.jsx'
 
 // Built on the native <dialog> element: it traps focus, closes with Esc and
@@ -7,10 +7,14 @@ import { ArrowLeftIcon, CloseIcon } from '../icons.jsx'
 // variant "popover" drops down under the header buttons on desktop and fills the
 // screen on mobile (Figma: Notifications panel 1035:1912 and mobile page 741:2).
 // variant "page" is a centred window from sm up and a full page on mobile (Figma: Create task 1068:11244 and 736:2).
+// The centred windows ("panel" and "page") stop 1rem short of the screen edges. While their content fits they
+// let menus hang over the edge; once it does not (a zoomed-in laptop: 1366x768 at 150% is about 910x512) they scroll.
 export default function Dialog({ open, onClose, title, description, children, footer, variant = 'modal', labelledBy, width }) {
   const ref = useRef(null)
   const titleId = useId()
   const descriptionId = useId()
+  const centred = variant === 'panel' || variant === 'page'
+  const [tooTall, setTooTall] = useState(false)
 
   useEffect(() => {
     const dialog = ref.current
@@ -19,13 +23,32 @@ export default function Dialog({ open, onClose, title, description, children, fo
     if (!open && dialog.open) dialog.close()
   }, [open])
 
+  // Compares the content's height with the window's, so open menus (positioned absolutely) and nested
+  // dialogs (shown in the top layer) do not count.
+  useEffect(() => {
+    const dialog = ref.current
+    if (!open || !centred || !dialog || typeof ResizeObserver === 'undefined') return undefined
+    function measure() {
+      const content = [...dialog.children]
+        .filter((child) => child.tagName !== 'DIALOG')
+        .reduce((sum, child) => sum + child.offsetHeight, 0)
+      setTooTall(content > dialog.clientHeight + 1)
+    }
+    const observer = new ResizeObserver(measure)
+    observer.observe(dialog)
+    for (const child of dialog.children) observer.observe(child)
+    return () => observer.disconnect()
+  }, [open, centred])
+
+  const scroll = tooTall ? 'sm:overflow-y-auto sm:overscroll-contain' : 'sm:overflow-visible'
+
   const placement = {
     drawer: 'ml-auto mr-0 h-dvh max-h-dvh w-full max-w-full sm:max-w-[30rem] rounded-none sm:border-l backdrop:bg-heading/40',
     modal: 'm-auto w-[calc(100%-2rem)] max-w-xl rounded-2xl backdrop:bg-heading/40',
     panel:
-      'm-0 h-dvh max-h-dvh w-full max-w-full outline-none backdrop:bg-heading/40 sm:m-auto sm:h-fit sm:max-h-none sm:w-[calc(100%-2rem)] sm:max-w-[640px] sm:overflow-visible sm:rounded-dialog sm:border sm:shadow-[0_24px_48px_rgba(38,54,41,0.18)]',
+      'm-0 h-dvh max-h-dvh w-full max-w-full outline-none backdrop:bg-heading/40 sm:m-auto sm:h-fit sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:max-w-[640px] sm:rounded-dialog sm:border sm:shadow-[0_24px_48px_rgba(38,54,41,0.18)]',
     page:
-      'm-0 h-dvh max-h-dvh w-full max-w-full bg-surface outline-none backdrop:bg-heading/40 sm:m-auto sm:h-fit sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:max-w-[var(--dialog-width,558px)] sm:overflow-visible sm:rounded-[16px] sm:border sm:bg-white sm:shadow-[0_10px_24px_rgba(20,31,23,0.12)]',
+      'm-0 h-dvh max-h-dvh w-full max-w-full bg-surface outline-none backdrop:bg-heading/40 sm:m-auto sm:h-fit sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100%-2rem)] sm:max-w-[var(--dialog-width,558px)] sm:rounded-[16px] sm:border sm:bg-white sm:shadow-[0_10px_24px_rgba(20,31,23,0.12)]',
     popover:
       'm-0 h-dvh max-h-dvh w-full max-w-full bg-surface outline-none backdrop:bg-transparent lg:top-0 lg:bottom-auto lg:mt-[88px] lg:mr-8 lg:ml-auto lg:h-auto lg:max-h-[calc(100dvh-120px)] lg:w-[380px] lg:rounded-[16px] lg:border lg:bg-white lg:shadow-[0_12px_28px_rgba(20,31,23,0.16)]',
   }[variant]
@@ -43,7 +66,7 @@ export default function Dialog({ open, onClose, title, description, children, fo
       onClick={(event) => {
         if (event.target === ref.current) onClose()
       }}
-      className={`border-line p-0 text-body ${variant === 'popover' || variant === 'page' ? '' : 'bg-white shadow-xl'} ${placement}`}
+      className={`border-line p-0 text-body ${variant === 'popover' || variant === 'page' ? '' : 'bg-white shadow-xl'} ${placement} ${centred ? scroll : ''}`}
     >
       {open && variant === 'panel' && <div className="p-4 sm:p-6">{children}</div>}
       {open && (variant === 'popover' || variant === 'page') && children}
