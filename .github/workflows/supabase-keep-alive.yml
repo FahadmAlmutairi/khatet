@@ -1,0 +1,44 @@
+name: Supabase keep-alive
+
+# Supabase pauses free projects after 7 days without traffic.
+# This pings the project every 3 days so it stays up. Run it by hand from the Actions tab too.
+on:
+  schedule:
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: Ping Supabase
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+    steps:
+      - name: Check secrets
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY" ]; then
+            echo "::error::Add SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      # Auth health only answers 200 with a valid key, so this also checks the key.
+      - name: Ping Auth
+        run: |
+          status=$(curl -sS -o /dev/null -w '%{http_code}' --retry 3 --retry-delay 10 \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" "${SUPABASE_URL%/}/auth/v1/health")
+          echo "Auth answered $status"
+          [ "$status" = "200" ]
+
+      # A real database query through the REST API. Tables are closed to the public key,
+      # so a 401 "permission denied" is expected and still means Postgres ran the query.
+      # Only a server error (5xx, or 540 for a paused project) fails the run.
+      - name: Query the database
+        run: |
+          status=$(curl -sS -o body.txt -w '%{http_code}' --retry 3 --retry-delay 10 \
+            -H "apikey: $SUPABASE_PUBLISHABLE_KEY" "${SUPABASE_URL%/}/rest/v1/projects?select=id&limit=1")
+          echo "REST answered $status: $(head -c 300 body.txt)"
+          [ "$status" -lt 500 ]
