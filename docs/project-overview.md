@@ -53,11 +53,13 @@ The report shows a summary of progress, warnings (such as overloaded members, un
 | Sprint | Dates | Goal | Stories |
 | --- | --- | --- | --- |
 | 1 | 5 to 19 Oct 2026 | Working foundation, team collaboration and core task flow: sign-in, projects, invitations, notifications, members and task access, tasks, blocked flags and the Kanban board | US-01, US-02, US-04 to US-10, US-13 to US-18, US-21, US-30; TF-01 to TF-11 (51 points) |
-| 2 | 20 Oct to 2 Nov 2026 | Communication and team management: project chat with task references, project settings, task filters, username changes, removing members and leaving a project, plus any Sprint 1 carry-over | US-24, US-26, US-22, US-11, US-03, US-25, US-12; TF-12 to TF-15 (20 points) |
-| 3 | 3 to 16 Nov 2026 | Insight and structure: AI project report, project overview, task activity history and phases | US-31, US-28, US-19, US-20 (22 points) |
-| 4 | 17 Nov to 7 Dec 2026 | Enhancements and release: timeline and Could have stories in priority order, regression testing, bug fixes and the final report | US-29, US-27, US-23, US-32, US-33 (27 points) |
+| 2 | 20 Oct to 2 Nov 2026 | Communication and team management: project chat that refreshes every few seconds, project settings, task filters, username changes, removing members and leaving a project, plus the Sprint 1 carry-over (two NFR fixes) | US-24, US-26, US-22, US-11, US-03, US-12; TF-13, TF-14 (15 points) |
+| 3 | 3 to 16 Nov 2026 | Insight and structure: AI project report, project overview, task activity history and phases, plus task references in chat and Socket.IO for chat | US-31, US-28, US-19, US-20, US-25; TF-12, TF-15 (27 points) |
+| 4 | 17 Nov to 7 Dec 2026 | Enhancements and release: timeline and Could have stories in priority order, refinements (such as smoother drag and drop and colour themes, if the team agrees), regression testing, bug fixes and the final report | US-29, US-27, US-23, US-32, US-33 (27 points) |
 
 All Must have stories are finished by the end of Sprint 3.
+
+On 28 October 2026 Sprint 2 was reduced to 15 points to fit the time left: task references in chat (US-25), Socket.IO, the test data script (TF-12) and the Sprint 3 screens (TF-15) moved to Sprint 3. The change is recorded in Sections 2.6 and 8 of the Sprint 0 report and on the Sprint 2 planning card in Trello.
 
 ## Technology direction
 
@@ -79,7 +81,7 @@ All services use free plans; only the AI credit costs money. Record an agreed ch
 
 ## Repository status
 
-The web app (`apps/web`) has the Sprint 1 screens running on an in-memory sample API. The backend, database, example settings file, and automated checks are added during Sprint 1 (TF-01 to TF-11). Test notes go in `docs/testing` and training notes in `docs/training`.
+Sprint 1 is deployed: the web app (`apps/web`) runs on Vercel and the Express API (`apps/api`) on Render, with PostgreSQL and sign-in on Supabase and GitHub Actions checks on every pull request. Test notes go in `docs/testing` and training notes in `docs/training`.
 
 ## Working agreement
 
