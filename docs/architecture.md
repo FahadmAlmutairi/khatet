@@ -104,7 +104,7 @@ The backend should remain easy to test without starting the entire system for ev
 | Form state | React Hook Form | Task edit, invitation, settings, import mapping. |
 | Derived state | Pure selectors/memos only when useful | Progress percentage, grouped tasks, filtered results. |
 
-Sprint 1 status: the Sprint 1 forms (sign-in, create project, create and edit task, invite) use plain component state (the task forms share `components/ui/formState.js`), and React Hook Form and Zod are not installed in `apps/web` yet. The team decides whether to add them before the settings and import forms in Sprint 2, and updates this table either way. The API still validates every request with Zod.
+Sprint 1 status: the Sprint 1 forms (sign-in, create project, create and edit task, invite) use plain component state (the task forms share `components/ui/formState.js`), and React Hook Form and Zod are not installed in `apps/web` yet. The Sprint 2 forms (project settings, username) are small and keep plain state; the team decides whether to add the libraries before the import form (Sprint 4) and updates this table either way. The API still validates every request with Zod.
 
 Use stable query keys such as `['project', projectId]`, `['tasks', { projectId, filters }]`, and `['notifications']`. Choose stale times, retries, and invalidation deliberately. Optimistic board movement is allowed only with rollback; use server-confirmed data for permissions, imports, AI output, and destructive actions.
 
@@ -118,7 +118,7 @@ Use stable query keys such as `['project', projectId]`, `['tasks', { projectId, 
 
 AI report flow: owner requests a report -> API creates a report row (`RUNNING`) -> API builds a limited project summary and calls the AI service with a 30-second timeout -> API stores the summary, warnings, and suggestions (`READY`) or a failure (`FAILED`, shown with a retry button) -> every participant can read the report with its generation date. The report never writes to tasks, assignments, dates, or permissions. Automatic Weekly/Monthly reports (Could have, Sprint 4) reuse the same flow and notify the owner.
 
-Chat flow (first version): the client refreshes messages every few seconds (at most 5, to meet NFR-09); the API checks membership on each request and stores messages in PostgreSQL. Socket.IO later replaces refreshing for delivery, with the same storage and checks.
+Chat flow (first version): the client refreshes messages at least every 3 seconds (so a message reaches other members within 5 seconds, NFR-09); the API checks membership on each request and stores messages in PostgreSQL. Socket.IO later replaces refreshing for delivery, with the same storage and checks.
 
 Import flow (Could have, Sprint 4): upload CSV -> parse on server -> map columns -> validate -> preview issues -> explicit confirm -> commit in one transaction -> activity summary.
 

@@ -122,7 +122,7 @@ Use one typed error concept across the API so the UI can explain and recover fro
 | Tasks | Stable `['tasks', { projectId, filters }]`; reconcile board moves narrowly rather than refetching everything. |
 | Notifications | Stable unread state; avoid broad refetch after unrelated mutations. |
 | Task details | Query selected task by URL ID; preserve surrounding board context. |
-| Chat | Refresh `['messages', projectId]` every few seconds (at most 5) with an `after` cursor until Socket.IO replaces refreshing. |
+| Chat | Refresh `['messages', projectId]` every few seconds (at most every 3 seconds, so NFR-09's 5-second delivery holds) with an `after` cursor until Socket.IO replaces refreshing. |
 | AI report | Poll report status until `READY` or `FAILED`. |
 | Import | Preview and status are server state; use confirmed results for review/commit. |
 
@@ -157,6 +157,7 @@ Task access for members:
 - `EDIT_ASSIGNED` (default): edit and move only the tasks assigned to them.
 - `EDIT_ALL`: create, edit, move, and delete any task.
 - Every member can read and send project chat messages. Only the owner manages members, invitations, task access, phases, and project settings.
+- Removing a member (`DELETE /api/projects/:projectId/members/:userId`) or leaving (`POST /api/projects/:projectId/leave`) answers 409 with code `ONLY_ASSIGNEE` and the affected tasks while that person is the only assignee of a task. The owner cannot leave their own project (403).
 - A signed-in user can open only the projects they belong to (NFR-11). Integration tests cover every endpoint with each access level.
 
 In addition:
