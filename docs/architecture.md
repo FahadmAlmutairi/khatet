@@ -118,7 +118,7 @@ Use stable query keys such as `['project', projectId]`, `['tasks', { projectId, 
 
 AI report flow: owner requests a report -> API creates a report row (`RUNNING`) -> API builds a limited project summary and calls the AI service with a 30-second timeout -> API stores the summary, warnings, and suggestions (`READY`) or a failure (`FAILED`, shown with a retry button) -> every participant can read the report with its generation date. The report never writes to tasks, assignments, dates, or permissions. Automatic Weekly/Monthly reports (Could have, Sprint 4) reuse the same flow and notify the owner.
 
-Chat flow (first version): the client refreshes messages every few seconds (at most 5, to meet NFR-09); the API checks membership on each request and stores messages in PostgreSQL. Socket.IO later replaces refreshing for delivery, with the same storage and checks.
+Chat flow (first version): the client refreshes messages at least every 3 seconds (so a message reaches other members within 5 seconds, NFR-09); the API checks membership on each request and stores messages in PostgreSQL. Socket.IO later replaces refreshing for delivery, with the same storage and checks.
 
 Import flow (Could have, Sprint 4): upload CSV -> parse on server -> map columns -> validate -> preview issues -> explicit confirm -> commit in one transaction -> activity summary.
 

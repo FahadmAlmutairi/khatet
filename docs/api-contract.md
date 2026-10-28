@@ -122,7 +122,7 @@ Use one typed error concept across the API so the UI can explain and recover fro
 | Tasks | Stable `['tasks', { projectId, filters }]`; reconcile board moves narrowly rather than refetching everything. |
 | Notifications | Stable unread state; avoid broad refetch after unrelated mutations. |
 | Task details | Query selected task by URL ID; preserve surrounding board context. |
-| Chat | Refresh `['messages', projectId]` every few seconds (at most 5) with an `after` cursor until Socket.IO replaces refreshing. |
+| Chat | Refresh `['messages', projectId]` every few seconds (at most every 3 seconds, so NFR-09's 5-second delivery holds) with an `after` cursor until Socket.IO replaces refreshing. |
 | AI report | Poll report status until `READY` or `FAILED`. |
 | Import | Preview and status are server state; use confirmed results for review/commit. |
 
