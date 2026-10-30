@@ -249,6 +249,16 @@ describe('board (US-16, US-21)', () => {
     expect(await screen.findByText('“Prepare usability test script” moved to Done.', { selector: '[aria-live]' })).toBeInTheDocument()
   })
 
+  it('keeps focus on the moved card after a move from its menu (NFR-04)', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('button', { name: 'More actions for Prepare usability test script' }))
+    await user.keyboard('{End}{ArrowUp}{Enter}')
+    const done = screen.getByRole('region', { name: /^Done/ })
+    await waitFor(() => expect(within(done).getByRole('button', { name: 'Prepare usability test script' })).toHaveFocus())
+  })
+
   it('undoes a move and puts the card back in its place', async () => {
     signIn()
     const user = userEvent.setup()
@@ -462,7 +472,7 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
     await user.click(await within(details).findByRole('button', { name: /^Status: Ready for Review/ }))
     expect(screen.getByRole('menuitem', { name: /Ready for Review/ })).toHaveAttribute('aria-current', 'true')
     await user.click(screen.getByRole('menuitem', { name: /Done/ }))
-    expect(await within(details).findByRole('button', { name: /^Status: Done/ })).toBeInTheDocument()
+    expect(await within(details).findByRole('button', { name: /^Status: Done/ })).toHaveFocus()
     const done = screen.getByRole('region', { name: /^Done/ })
     expect(within(done).getByText('Define board hierarchy')).toBeInTheDocument()
   })
@@ -565,6 +575,25 @@ describe('members (US-07, US-09, US-10)', () => {
     await user.type(within(dialog).getByLabelText(/Username/), 'khalid')
     await user.click(within(dialog).getByRole('button', { name: 'Send invitation' }))
     expect(await screen.findByText('Invitation sent to khalid.', { selector: '[aria-live]' })).toBeInTheDocument()
+  })
+
+  it('lets the owner invite straight from the board (NFR-01)', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('button', { name: 'Invite member' }))
+    const dialog = screen.getByRole('dialog', { name: 'Invite a team member' })
+    await user.type(within(dialog).getByLabelText(/Username/), 'khalid')
+    await user.click(within(dialog).getByRole('button', { name: 'Send invitation' }))
+    expect(await screen.findByText('Invitation sent to khalid.', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Invite a team member' })).not.toBeInTheDocument()
+  })
+
+  it('does not show Invite member on the board to a member', async () => {
+    signIn()
+    renderApp('/projects/p-study/board')
+    expect(await screen.findByRole('region', { name: /^To Do/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Invite member' })).not.toBeInTheDocument()
   })
 
   it('shows a member the access levels without controls', async () => {

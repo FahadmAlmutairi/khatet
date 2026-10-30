@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
@@ -11,6 +11,7 @@ import { ErrorState, Notice, StateBadge } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { statusLabel } from '../../lib/domain.js'
 import { rememberCardPositions } from '../../lib/motion.js'
+import InviteDialog from '../members/InviteDialog.jsx'
 import BoardColumns from './BoardColumns.jsx'
 import CreateTaskDialog from './CreateTaskDialog.jsx'
 import TaskDetails from './TaskDetails.jsx'
@@ -33,6 +34,9 @@ export default function BoardPage() {
   const toast = useToast()
   const [searchParams, setSearchParams] = useSearchParams()
   const [creating, setCreating] = useState(false)
+  const [inviting, setInviting] = useState(false)
+  // A card moved from its menu lands in another lane as a new element, so focus goes back to it there (NFR-04).
+  const focusAfterMove = useRef(null)
   const openTaskId = searchParams.get('task')
   const crumbs = useBreadcrumb()
   useDocumentTitle('Board', project.name)
@@ -41,6 +45,13 @@ export default function BoardPage() {
     () => new Map((members.data?.members ?? []).map((member) => [member.userId, member.username])),
     [members.data],
   )
+
+  useEffect(() => {
+    const pending = focusAfterMove.current
+    if (!pending || tasks.data?.find((task) => task.id === pending.taskId)?.status !== pending.status) return
+    focusAfterMove.current = null
+    document.querySelector(`[data-task-id="${pending.taskId}"] h3 button`)?.focus()
+  }, [tasks.data])
 
   function openTask(taskId) {
     setSearchParams({ task: taskId })
@@ -59,6 +70,8 @@ export default function BoardPage() {
   // A drag already shows where the card goes, so only other moves get the glide.
   function move(task, status, position, { dragged = false, quiet = false, restoreBlocked = null } = {}) {
     if (!dragged) rememberCardPositions()
+    // In task details the status button keeps focus, so only moves from the board need this.
+    if (!dragged && !openTaskId) focusAfterMove.current = { taskId: task.id, status }
     const target = (tasks.data ?? []).filter((item) => item.status === status && item.id !== task.id)
     moveTask.mutate(
       { taskId: task.id, status, position: position ?? target.length + 1 },
@@ -81,8 +94,11 @@ export default function BoardPage() {
               }),
           })
         },
-        onError: (error) =>
-          toast(`“${task.title}” could not be moved and is back in its place. ${errorMessage(error)}`, 'error'),
+        onError: (error) => {
+          // The card goes back to its old lane, and focus follows it there.
+          if (focusAfterMove.current?.taskId === task.id) focusAfterMove.current = { taskId: task.id, status: task.status }
+          toast(`“${task.title}” could not be moved and is back in its place. ${errorMessage(error)}`, 'error')
+        },
       },
     )
   }
@@ -99,11 +115,21 @@ export default function BoardPage() {
             {note && <StateBadge label={note.label}>{note.text}</StateBadge>}
           </div>
         </div>
-        {project.permissions.canCreateTask && (
-          <Button onClick={() => setCreating(true)} disabled={!members.data} className="gap-1.5">
-            <PlusIcon />
-            Add task
-          </Button>
+        {(project.permissions.canManageMembers || project.permissions.canCreateTask) && (
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Inviting from the board takes 3 taps on any screen, without opening the menu for Members (NFR-01). */}
+            {project.permissions.canManageMembers && (
+              <Button variant="secondary" onClick={() => setInviting(true)}>
+                Invite member
+              </Button>
+            )}
+            {project.permissions.canCreateTask && (
+              <Button onClick={() => setCreating(true)} disabled={!members.data} className="gap-1.5">
+                <PlusIcon />
+                Add task
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
@@ -135,6 +161,10 @@ export default function BoardPage() {
           />
         )}
       </div>
+
+      {project.permissions.canManageMembers && (
+        <InviteDialog open={inviting} onClose={() => setInviting(false)} projectId={project.id} backLabel="Board" />
+      )}
 
       {members.data && (
         <>
