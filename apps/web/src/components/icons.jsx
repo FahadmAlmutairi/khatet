@@ -108,6 +108,15 @@ export function OverdueIcon() {
   )
 }
 
+export function SettingsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="2" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M8 1.33v1.34M8 13.33v1.34M3.29 3.29l.94.94M11.77 11.77l.94.94M1.33 8h1.34M13.33 8h1.34M3.29 12.71l.94-.94M11.77 4.23l.94-.94" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export function SignOutIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">

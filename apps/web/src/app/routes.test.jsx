@@ -650,6 +650,54 @@ describe('notifications (US-08, US-30)', () => {
   })
 })
 
+describe('account settings (US-03)', () => {
+  it('opens from the sidebar and changes the username everywhere', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects')
+    const sidebar = await screen.findByRole('complementary')
+    await user.click(within(sidebar).getByRole('link', { name: 'Account settings' }))
+    expect(router.state.location.pathname).toBe('/account')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Account settings' })).toBeInTheDocument()
+    await waitFor(() => expect(document.title).toBe('Account settings · Khatet'))
+
+    const field = screen.getByLabelText(/Username/)
+    expect(field).toHaveValue('fahad')
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    expect(screen.getByText(/once every 30 days/)).toBeInTheDocument()
+
+    await user.clear(field)
+    await user.type(field, 'fahad_m')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Your username is now fahad_m.', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(within(sidebar).getByText('fahad_m')).toBeInTheDocument()
+    expect(screen.getByLabelText(/Username/)).toHaveValue('fahad_m')
+    expect(screen.getByText(/You can change your username again on/)).toBeInTheDocument()
+  })
+
+  it('shows the API message when the name is taken or changed within 30 days', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/account')
+    const field = await screen.findByLabelText(/Username/)
+    await user.clear(field)
+    await user.type(field, 'saad')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('saad is taken. Try another username.')).toBeInTheDocument()
+    expect(field).toHaveAttribute('aria-invalid', 'true')
+
+    await user.clear(field)
+    await user.type(field, 'fahad_1')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await screen.findByText('Your username is now fahad_1.', { selector: '[aria-live]' })
+    const renamed = screen.getByLabelText(/Username/)
+    await user.clear(renamed)
+    await user.type(renamed, 'fahad_2')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('You can change your username once every 30 days.')).toBeInTheDocument()
+  })
+})
+
 describe('other pages', () => {
   it('shows a not-found message for a project the user is not in', async () => {
     signIn()

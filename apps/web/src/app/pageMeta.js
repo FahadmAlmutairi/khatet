@@ -20,6 +20,7 @@ export function useBreadcrumb() {
 
   const home = { label: 'Home', to: '/projects' }
   if (pathname === '/projects') return [{ label: 'Home' }]
+  if (pathname === '/account') return [home, { label: 'Account settings' }]
   if (!projectId) return [home, { label: 'Page not found' }]
 
   const project = projects.data?.find((item) => item.id === projectId)

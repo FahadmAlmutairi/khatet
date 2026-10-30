@@ -2,6 +2,7 @@ import { Navigate } from 'react-router'
 import AppShell from './AppShell.jsx'
 import { BoardPage, MembersPage } from './lazyPages.js'
 import RouteError from './RouteError.jsx'
+import AccountSettingsPage from '../features/account/AccountSettingsPage.jsx'
 import ChooseUsernamePage from '../features/auth/ChooseUsernamePage.jsx'
 import RequireAuth from '../features/auth/RequireAuth.jsx'
 import SignInPage from '../features/auth/SignInPage.jsx'
@@ -33,6 +34,7 @@ export const routes = [
               { path: 'members', element: <MembersPage /> },
             ],
           },
+          { path: 'account', element: <AccountSettingsPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],
       },

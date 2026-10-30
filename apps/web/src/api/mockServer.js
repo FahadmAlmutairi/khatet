@@ -16,6 +16,8 @@ let pendingEmail = null
 let delayMs = 250
 let idCounter = 0
 
+const USERNAME_CHANGE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000
+
 export function resetMockServer({ signedInAs = null, delay = 0 } = {}) {
   db = createSampleData()
   currentUserId = signedInAs
@@ -229,7 +231,6 @@ export function getMe() {
   return respond('getMe', () => db.users.find((user) => user.id === currentUserId) ?? null)
 }
 
-// The username rule is not in the documents yet; agree it with the US-01 owner.
 export function setUsername(username) {
   return respond('setUsername', () => {
     const user = requireUser()
@@ -237,9 +238,14 @@ export function setUsername(username) {
     if (!/^[a-z0-9_]{3,20}$/.test(value)) {
       throw invalid([{ field: 'username', message: 'Use 3 to 20 letters, numbers or underscores.' }])
     }
+    // Choosing the first username is free; changing it is allowed once every 30 days (US-03).
+    if (user.username && user.usernameChangeableAt && Date.now() < new Date(user.usernameChangeableAt).getTime()) {
+      throw invalid([{ field: 'username', message: 'You can change your username once every 30 days.' }])
+    }
     if (db.users.some((item) => item.username === value && item.id !== user.id)) {
       throw invalid([{ field: 'username', message: `${value} is taken. Try another username.` }])
     }
+    if (user.username) user.usernameChangeableAt = new Date(Date.now() + USERNAME_CHANGE_INTERVAL_MS).toISOString()
     user.username = value
     return user
   })

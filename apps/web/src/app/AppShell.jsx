@@ -6,7 +6,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'reac
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
-import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SignOutIcon } from '../components/icons.jsx'
+import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SettingsIcon, SignOutIcon } from '../components/icons.jsx'
 import Logo from '../components/Logo.jsx'
 import NotificationsButton from '../features/notifications/NotificationsButton.jsx'
 import { useProjectOrder } from '../features/projects/projectOrder.js'
@@ -198,6 +198,16 @@ function Sidebar({ onNavigate, openProjects, onToggleProject, mobile = false }) 
       </nav>
       <div className="flex flex-col gap-2">
         <div className="h-px bg-line" />
+        <NavLink
+          to="/account"
+          onClick={onNavigate}
+          className={({ isActive }) =>
+            `flex h-11 items-center gap-2 rounded-lg px-2 text-sm lg:h-9 ${isActive ? activeClass(mobile) : 'text-nav hover:bg-surface'}`
+          }
+        >
+          <SettingsIcon />
+          Account settings
+        </NavLink>
         <button
           type="button"
           onClick={() => signOut.mutate(undefined, { onSuccess: () => navigate('/sign-in', { replace: true }) })}
@@ -289,7 +299,10 @@ function Rail({ onExpand, onOpenProject, expandButtonRef }) {
           )
         })}
       </nav>
-      <div className="mt-auto">{me.data && <Avatar username={me.data.username} />}</div>
+      <NavLink to="/account" aria-label="Account settings" className={({ isActive }) => `mt-auto ${railItem} ${isActive ? 'bg-nav-active' : ''}`}>
+        {me.data && <Avatar username={me.data.username} />}
+        <RailTip>Account settings</RailTip>
+      </NavLink>
     </aside>
   )
 }
