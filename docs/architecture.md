@@ -36,8 +36,10 @@ Express API (Render)
           |
           +--> PostgreSQL on Supabase (through Prisma)
           +--> Supabase Auth (verifies the user's token)
-          +--> AI service: Claude API or OpenAI API (limited project summary, reports only)
+          +--> AI service: OpenAI API (limited project summary, reports only)
 ```
+
+AI provider decision (Sprint 0 report, Section 7.4): OpenAI API, model `gpt-6-luna`, chosen on 2 November 2026 after the TF-14 test call (3 calls, 3.8 to 5.3 seconds each, within the 30-second limit). The client is in `apps/api/src/ai/`, and the key is the `OPENAI_API_KEY` server setting. If OpenAI becomes slow or unavailable, the fallback (R-05) is another provider behind the same `generateReport` function. Evidence: `docs/training/tr-04-ai-report.md`.
 
 The browser is not a security boundary. The API owns authorization, validation, transaction boundaries, business rules, and authoritative resource state. The browser uses Supabase only to sign in; it never reads or writes project tables directly.
 
