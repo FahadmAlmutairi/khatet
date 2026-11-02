@@ -14,6 +14,7 @@ export const config = {
     .map((origin) => origin.trim())
     .filter(Boolean),
   // Development only: accept "dev:<authId>:<email>" tokens so you can try the API
-  // as the seed users without signing in. Never set this on Render.
-  devFakeAuth: process.env.DEV_FAKE_AUTH === 'true' && process.env.NODE_ENV !== 'production',
+  // as the seed users without signing in. Never set this on Render. It needs
+  // NODE_ENV=development as well, so a server with NODE_ENV unset never accepts them (SEC-01).
+  devFakeAuth: process.env.DEV_FAKE_AUTH === 'true' && process.env.NODE_ENV === 'development',
 }

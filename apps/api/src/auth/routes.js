@@ -33,7 +33,8 @@ authRouter.patch('/me', requireAuth, async (req, res) => {
   const user = req.user
   if (user.username === username) return res.json(serializeUser(user))
 
-  // Choosing the first username is free; changing it is allowed once every 30 days (US-03).
+  // A username can change once every 30 days (US-03). Choosing the first one starts the clock too,
+  // so a new account cannot pick a name and swap it straight away (SEC-03).
   if (user.username && user.usernameChangedAt && Date.now() - user.usernameChangedAt.getTime() < CHANGE_INTERVAL_MS) {
     throw invalid([{ field: 'username', message: 'You can change your username once every 30 days.' }])
   }
@@ -41,7 +42,7 @@ authRouter.patch('/me', requireAuth, async (req, res) => {
   try {
     const updated = await prisma.user.update({
       where: { id: user.id },
-      data: { username, usernameChangedAt: user.username ? new Date() : null },
+      data: { username, usernameChangedAt: new Date() },
     })
     res.json(serializeUser(updated))
   } catch (error) {

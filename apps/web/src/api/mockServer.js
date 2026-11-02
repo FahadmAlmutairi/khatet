@@ -238,14 +238,14 @@ export function setUsername(username) {
     if (!/^[a-z0-9_]{3,20}$/.test(value)) {
       throw invalid([{ field: 'username', message: 'Use 3 to 20 letters, numbers or underscores.' }])
     }
-    // Choosing the first username is free; changing it is allowed once every 30 days (US-03).
+    // A username can change once every 30 days (US-03); choosing the first one starts the clock too (SEC-03).
     if (user.username && user.usernameChangeableAt && Date.now() < new Date(user.usernameChangeableAt).getTime()) {
       throw invalid([{ field: 'username', message: 'You can change your username once every 30 days.' }])
     }
     if (db.users.some((item) => item.username === value && item.id !== user.id)) {
       throw invalid([{ field: 'username', message: `${value} is taken. Try another username.` }])
     }
-    if (user.username) user.usernameChangeableAt = new Date(Date.now() + USERNAME_CHANGE_INTERVAL_MS).toISOString()
+    user.usernameChangeableAt = new Date(Date.now() + USERNAME_CHANGE_INTERVAL_MS).toISOString()
     user.username = value
     return user
   })

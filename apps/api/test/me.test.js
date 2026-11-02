@@ -66,4 +66,12 @@ describe.skipIf(!hasTestDatabase)('US-01 and US-02: GET and PATCH /api/me', () =
     const res = await request(app).patch('/api/me').set(authHeader(user)).send({ username: 'second_name' })
     expect(res.status).toBe(422)
   })
+
+  it('starts the 30 days when the first username is chosen (SEC-03)', async () => {
+    const user = await createUser(null)
+    const first = await request(app).patch('/api/me').set(authHeader(user)).send({ username: 'first_pick' })
+    expect(first.status).toBe(200)
+    const second = await request(app).patch('/api/me').set(authHeader(user)).send({ username: 'second_pick' })
+    expect(second.status).toBe(422)
+  })
 })
