@@ -49,7 +49,10 @@ export default function CreateProjectDialog({ open, onClose, onCreated }) {
           label="Project name"
           required
           value={name}
-          onChange={(event) => setName(event.target.value)}
+          onChange={(event) => {
+            setName(event.target.value)
+            if (createProject.isError) createProject.reset()
+          }}
           placeholder="e.g. Website redesign"
           error={nameError}
           autoFocus

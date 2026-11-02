@@ -8,7 +8,7 @@ import StatusIcon from '../../components/StatusIcon.jsx'
 import Button from '../../components/ui/Button.jsx'
 import Dialog from '../../components/ui/Dialog.jsx'
 import DiscardChangesDialog from '../../components/ui/DiscardChangesDialog.jsx'
-import { SAVE_SHORTCUT_HINT, sameValues, submitOnCtrlEnter, useFocusFirstError } from '../../components/ui/formState.js'
+import { SAVE_SHORTCUT_HINT, changedFields, sameValues, submitOnCtrlEnter, useFocusFirstError, useLiveFieldErrors } from '../../components/ui/formState.js'
 import Menu from '../../components/ui/Menu.jsx'
 import InfoTip from '../../components/ui/InfoTip.jsx'
 import { ErrorState, LoadingState, Notice, StateBadge } from '../../components/ui/States.jsx'
@@ -325,6 +325,7 @@ function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone, regist
   const [pendingLeave, setPendingLeave] = useState(null)
   const formRef = useRef(null)
   useFocusFirstError(formRef, updateTask.error)
+  const { error, fieldsChanged } = useLiveFieldErrors(updateTask)
   const dirty = !sameValues(values, taskValues(task))
 
   // T1: closing the window or cancelling asks first when there are unsaved changes.
@@ -337,6 +338,11 @@ function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone, regist
     registerCloseGuard(leave)
     return () => registerCloseGuard(null)
   })
+
+  function change(next) {
+    fieldsChanged(changedFields(values, next))
+    setValues(next)
+  }
 
   function submit(event) {
     event.preventDefault()
@@ -357,7 +363,7 @@ function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone, regist
       <h2 id={titleId} className="text-xl leading-[30px] font-bold text-body sm:text-2xl">
         Edit task
       </h2>
-      <TaskFields values={values} onChange={setValues} members={members} error={updateTask.error} />
+      <TaskFields values={values} onChange={change} members={members} error={error} />
       {updateTask.isError && !updateTask.error.fieldErrors?.length && (
         <FieldError role="alert">{errorMessage(updateTask.error)}</FieldError>
       )}

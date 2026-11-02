@@ -56,7 +56,10 @@ export default function InviteDialog({ open, onClose, projectId, backLabel = 'Me
           <input
             id={`${id}-username`}
             value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            onChange={(event) => {
+              setUsername(event.target.value)
+              if (invite.isError) invite.reset()
+            }}
             placeholder="username"
             autoComplete="off"
             autoFocus
