@@ -111,6 +111,22 @@ describe('projects (US-04, US-05)', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Create project' }))
     expect(await screen.findByRole('link', { name: /Thesis.*Owner/ })).toBeInTheDocument()
   })
+
+  it('clears the project name error once the name is typed', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects')
+    await user.click(await screen.findByRole('button', { name: 'Create project' }))
+    const dialog = screen.getByRole('dialog', { name: 'Create a project' })
+    await user.click(within(dialog).getByRole('button', { name: 'Create project' }))
+    expect(await within(dialog).findByText('Enter a project name.')).toBeInTheDocument()
+    const name = within(dialog).getByLabelText(/Project name/)
+    expect(name).toHaveAttribute('aria-invalid', 'true')
+
+    await user.type(name, 'QA Project')
+    expect(within(dialog).queryByText('Enter a project name.')).not.toBeInTheDocument()
+    expect(name).not.toHaveAttribute('aria-invalid', 'true')
+  })
 })
 
 describe('loading and messages (G8, G10)', () => {
@@ -375,6 +391,31 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
     expect(await within(todo).findByText('Plan the demo')).toBeInTheDocument()
   })
 
+  it('clears each field error once that field is fixed, and keeps the others', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('button', { name: 'Add task' }))
+    const dialog = screen.getByRole('dialog', { name: 'Create a task' })
+    await user.click(within(dialog).getByRole('button', { name: 'Create task' }))
+    expect(await within(dialog).findByText('Fix 2 fields to create the task')).toBeInTheDocument()
+    const title = within(dialog).getByLabelText(/Task title/)
+    expect(title).toHaveAttribute('aria-invalid', 'true')
+
+    await user.type(title, 'Stale error check')
+    expect(title).not.toHaveAttribute('aria-invalid', 'true')
+    expect(within(dialog).queryByText('Enter a task title.')).not.toBeInTheDocument()
+    const summary = within(dialog).getByRole('alert')
+    expect(summary).toHaveTextContent('Fix 1 field to create the task')
+    expect(within(summary).queryByRole('link', { name: /Task title/ })).not.toBeInTheDocument()
+    expect(within(dialog).getAllByText(/Choose at least one assignee/).length).toBeGreaterThan(0)
+
+    await user.click(within(dialog).getByRole('button', { name: /Add assignee/ }))
+    await user.click(within(dialog).getByRole('button', { name: 'saad' }))
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument()
+    expect(within(dialog).queryByText(/Choose at least one assignee/)).not.toBeInTheDocument()
+  })
+
   it('fills the due date with a shortcut and saves with Ctrl+Enter', async () => {
     signIn()
     const user = userEvent.setup()
@@ -456,6 +497,7 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
 
     await user.click(within(drawer).getByRole('button', { name: /Add assignee/ }))
     await user.click(within(drawer).getByRole('button', { name: 'omar' }))
+    expect(within(drawer).queryByText('Choose at least one assignee.')).not.toBeInTheDocument()
     await user.clear(within(drawer).getByLabelText(/Task title/))
     await user.type(within(drawer).getByLabelText(/Task title/), 'Define board rules')
     await user.click(within(drawer).getByRole('button', { name: 'Save changes' }))
@@ -571,7 +613,10 @@ describe('members (US-07, US-09, US-10)', () => {
     await user.type(within(dialog).getByLabelText(/Username/), 'ghost')
     await user.click(within(dialog).getByRole('button', { name: 'Send invitation' }))
     expect(await within(dialog).findByText('No user has the username ghost.')).toBeInTheDocument()
+    expect(within(dialog).getByLabelText(/Username/)).toHaveAttribute('aria-invalid', 'true')
     await user.clear(within(dialog).getByLabelText(/Username/))
+    expect(within(dialog).queryByText('No user has the username ghost.')).not.toBeInTheDocument()
+    expect(within(dialog).getByLabelText(/Username/)).toHaveAttribute('aria-invalid', 'false')
     await user.type(within(dialog).getByLabelText(/Username/), 'khalid')
     await user.click(within(dialog).getByRole('button', { name: 'Send invitation' }))
     expect(await screen.findByText('Invitation sent to khalid.', { selector: '[aria-live]' })).toBeInTheDocument()

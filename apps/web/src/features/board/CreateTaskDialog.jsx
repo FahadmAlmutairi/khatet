@@ -4,7 +4,7 @@ import { useCreateTask } from '../../api/hooks.js'
 import Button from '../../components/ui/Button.jsx'
 import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import DiscardChangesDialog from '../../components/ui/DiscardChangesDialog.jsx'
-import { SAVE_SHORTCUT_HINT, sameValues, submitOnCtrlEnter } from '../../components/ui/formState.js'
+import { SAVE_SHORTCUT_HINT, changedFields, sameValues, submitOnCtrlEnter, useLiveFieldErrors } from '../../components/ui/formState.js'
 import { rememberCardPositions } from '../../lib/motion.js'
 import TaskFields from './TaskFields.jsx'
 import { emptyTaskValues } from './taskValues.js'
@@ -21,7 +21,7 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
   const [confirming, setConfirming] = useState(false)
   const titleId = useId()
   const summaryRef = useRef(null)
-  const fieldErrors = createTask.error?.fieldErrors ?? []
+  const { error, fieldErrors, fieldsChanged } = useLiveFieldErrors(createTask)
   // After a failed save, focus moves to the summary, which links to each field (Figma: Create task errors).
   useEffect(() => {
     if (createTask.error?.fieldErrors?.length) summaryRef.current?.focus()
@@ -38,6 +38,11 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
   function requestClose() {
     if (sameValues(values, emptyTaskValues())) close()
     else setConfirming(true)
+  }
+
+  function change(next) {
+    fieldsChanged(changedFields(values, next))
+    setValues(next)
   }
 
   function submit(event) {
@@ -66,7 +71,7 @@ export default function CreateTaskDialog({ open, onClose, projectId, members, on
             labels={FIELD_LABELS}
           />
         )}
-        <TaskFields values={values} onChange={setValues} members={members} error={createTask.error} />
+        <TaskFields values={values} onChange={change} members={members} error={error} />
         {createTask.isError && !createTask.error.fieldErrors?.length && (
           <FieldError role="alert">{errorMessage(createTask.error)}</FieldError>
         )}
