@@ -321,6 +321,39 @@ export function getProject(projectId) {
   })
 }
 
+export function updateProject(projectId, patch) {
+  return respond('updateProject', () => {
+    const membership = requireMembership(projectId)
+    if (membership.role !== 'OWNER') {
+      throw forbidden('Only the project owner can update project settings.')
+    }
+
+    const errors = []
+    const updates = {}
+    if ('name' in patch) {
+      if (typeof patch.name !== 'string' || !patch.name.trim()) {
+        errors.push({ field: 'name', message: 'Enter a project name.' })
+      } else if (patch.name.trim().length > 200) {
+        errors.push({ field: 'name', message: 'Keep the project name under 200 characters.' })
+      } else {
+        updates.name = patch.name.trim()
+      }
+    }
+    if ('description' in patch) {
+      if (typeof patch.description !== 'string') {
+        errors.push({ field: 'description', message: 'Enter a project description.' })
+      } else {
+        updates.description = patch.description.trim()
+      }
+    }
+    if (errors.length) throw invalid(errors)
+
+    const project = db.projects.find((item) => item.id === projectId)
+    Object.assign(project, updates, { updatedAt: now() })
+    return serializeProject(project, membership)
+  })
+}
+
 // ---------- Members and invitations (US-07, US-08, US-09, US-10) ----------
 
 export function getMembers(projectId) {

@@ -70,6 +70,19 @@ export function useCreateProject() {
   })
 }
 
+export function useUpdateProject(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (patch) => api.updateProject(projectId, patch),
+    onSuccess: (project) => {
+      queryClient.setQueryData(keys.project(projectId), project)
+      queryClient.setQueryData(keys.projects, (projects) =>
+        projects?.map((item) => (item.id === project.id ? { ...item, ...project } : item)),
+      )
+    },
+  })
+}
+
 // ---------- Members ----------
 
 export function useMembers(projectId) {

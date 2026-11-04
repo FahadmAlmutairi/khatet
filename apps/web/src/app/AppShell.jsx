@@ -90,6 +90,14 @@ function SortableProject({ project, current, open, mobile, onNavigate, onToggle,
               Members
             </NavLink>
           </li>
+          {project.role === 'OWNER' && (
+            <li>
+              <NavLink to={`/projects/${project.id}/settings`} className={subNavClass(mobile)} onClick={onNavigate}>
+                <SettingsIcon />
+                Project settings
+              </NavLink>
+            </li>
+          )}
         </ul>
       )}
     </li>
