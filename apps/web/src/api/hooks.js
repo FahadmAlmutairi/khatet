@@ -93,6 +93,19 @@ export function useUpdateMemberAccess(projectId) {
   })
 }
 
+export function useRemoveMember(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (userId) => api.removeMember(projectId, userId),
+    onSuccess: ({ userId }) => {
+      queryClient.setQueryData(keys.members(projectId), (data) =>
+        data && { ...data, members: data.members.filter((member) => member.userId !== userId) },
+      )
+      queryClient.invalidateQueries({ queryKey: keys.tasks(projectId) })
+    },
+  })
+}
+
 export function useInviteMember(projectId) {
   const queryClient = useQueryClient()
   return useMutation({

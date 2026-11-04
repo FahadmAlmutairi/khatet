@@ -25,6 +25,8 @@ const realMembersAndNotifications = {
   getMembers: (projectId) => apiFetch(`/projects/${projectId}/members`),
   updateMemberAccess: (projectId, userId, taskAccess) =>
     apiFetch(`/projects/${projectId}/members/${userId}`, { method: 'PATCH', body: { taskAccess } }),
+  removeMember: (projectId, userId) =>
+    apiFetch(`/projects/${projectId}/members/${userId}`, { method: 'DELETE' }),
   inviteMember: (projectId, username) =>
     apiFetch(`/projects/${projectId}/invitations`, { method: 'POST', body: { username } }),
   acceptInvitation: (invitationId) => apiFetch(`/invitations/${invitationId}/accept`, { method: 'POST' }),

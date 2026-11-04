@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
-import { useMe, useMembers, useUpdateMemberAccess } from '../../api/hooks.js'
+import { useMe, useMembers, useRemoveMember, useUpdateMemberAccess } from '../../api/hooks.js'
 import Avatar from '../../components/Avatar.jsx'
 import { ChevronIcon } from '../../components/icons.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -133,7 +133,7 @@ function AccessDialog({ member, projectId, onClose }) {
 
 const columns = 'lg:grid lg:grid-cols-[minmax(0,400fr)_170px_minmax(0,370fr)_164px] lg:items-center'
 
-function MemberRow({ member, isOwner, isYou, onManage }) {
+function MemberRow({ member, isOwner, isYou, onManage, onRemove }) {
   const owner = member.role === 'OWNER'
   const access = owner ? 'Full access' : taskAccessLabel(member.taskAccess)
   return (
@@ -160,24 +160,72 @@ function MemberRow({ member, isOwner, isYou, onManage }) {
         </span>
       </div>
       <p className="hidden text-sm text-muted lg:block">{access}</p>
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-1">
         {isOwner && !owner && (
-          <button
-            type="button"
-            onClick={() => onManage(member)}
-            aria-label={`Manage access for ${member.username}`}
-            className="inline-flex size-11 items-center justify-center rounded-full text-body hover:bg-surface lg:h-10 lg:w-auto lg:border lg:border-line lg:px-2.5 lg:text-xs lg:font-medium"
-          >
-            <span className="lg:hidden">
-              <ChevronIcon />
-            </span>
-            <span aria-hidden="true" className="hidden lg:inline">
-              Manage access
-            </span>
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => onManage(member)}
+              aria-label={`Manage access for ${member.username}`}
+              className="inline-flex size-11 items-center justify-center rounded-full text-body hover:bg-surface lg:h-10 lg:w-auto lg:border lg:border-line lg:px-2.5 lg:text-xs lg:font-medium"
+            >
+              <span className="lg:hidden">
+                <ChevronIcon />
+              </span>
+              <span aria-hidden="true" className="hidden lg:inline">
+                Manage access
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onRemove(member)}
+              aria-label={`Remove ${member.username} from project`}
+              className="inline-flex min-h-11 items-center justify-center rounded-full px-2 text-xs font-medium text-blocked hover:bg-priority-high-bg lg:px-2.5"
+            >
+              Remove
+            </button>
+          </>
         )}
       </div>
     </li>
+  )
+}
+
+function RemoveMemberDialog({ member, projectId, onClose }) {
+  const remove = useRemoveMember(projectId)
+  const toast = useToast()
+
+  function confirm() {
+    remove.mutate(member.userId, {
+      onSuccess: () => {
+        onClose()
+        toast(`${member.username} was removed from the project.`)
+      },
+    })
+  }
+
+  return (
+    <Dialog
+      open={Boolean(member)}
+      onClose={onClose}
+      title={member ? `Remove ${member.username} from this project?` : undefined}
+      description="They will lose access to this project and its workspace."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="danger" loading={remove.isPending} onClick={confirm}>
+            Remove member
+          </Button>
+        </>
+      }
+    >
+      {remove.isError && <p role="alert" className="text-sm text-blocked">{errorMessage(remove.error)}</p>}
+      <p className="text-sm text-body">
+        This action removes the team member from the project. They will need a new invitation to regain access.
+      </p>
+    </Dialog>
   )
 }
 
@@ -187,6 +235,7 @@ export default function MembersPage() {
   const members = useMembers(project.id)
   const [inviting, setInviting] = useState(false)
   const [managing, setManaging] = useState(null)
+  const [removing, setRemoving] = useState(null)
   const isOwner = project.permissions.canManageMembers
   const me = useMe()
   const list = members.data?.members ?? []
@@ -248,6 +297,7 @@ export default function MembersPage() {
                   isOwner={isOwner}
                   isYou={!isOwner && member.userId === me.data?.id}
                   onManage={setManaging}
+                  onRemove={setRemoving}
                 />
               ))}
             </ul>
@@ -257,6 +307,7 @@ export default function MembersPage() {
 
       {isOwner && <InviteDialog open={inviting} onClose={() => setInviting(false)} projectId={project.id} />}
       {isOwner && <AccessDialog member={managing} projectId={project.id} onClose={() => setManaging(null)} />}
+      {isOwner && <RemoveMemberDialog member={removing} projectId={project.id} onClose={() => setRemoving(null)} />}
     </section>
   )
 }

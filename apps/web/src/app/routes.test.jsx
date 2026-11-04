@@ -651,6 +651,37 @@ describe('members (US-07, US-09, US-10)', () => {
     expect(screen.getByText('Only the project owner can invite people or change access.')).toBeInTheDocument()
     expect(screen.getByText('You')).toBeInTheDocument()
   })
+
+  it('asks for confirmation before removing a member and then removes their access', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/members')
+
+    await user.click(await screen.findByRole('button', { name: 'Remove omar from project' }))
+    const confirmation = screen.getByRole('dialog', { name: 'Remove omar from this project?' })
+    expect(within(confirmation).getByText(/They will lose access to this project and its workspace/)).toBeInTheDocument()
+    await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByText('omar')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Remove omar from project' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Remove omar from this project?' })).getByRole('button', { name: 'Remove member' }))
+    expect(await screen.findByText('omar was removed from the project.', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(screen.queryByText('omar')).not.toBeInTheDocument()
+  })
+
+  it('preserves the member and shows the error when removal fails', async () => {
+    signIn()
+    const user = userEvent.setup()
+    failNextCall('removeMember', new ApiError({ code: 'INTERNAL_ERROR', message: 'Could not remove the member.' }))
+    renderApp('/projects/p-khatet/members')
+
+    await user.click(await screen.findByRole('button', { name: 'Remove omar from project' }))
+    const confirmation = screen.getByRole('dialog', { name: 'Remove omar from this project?' })
+    await user.click(within(confirmation).getByRole('button', { name: 'Remove member' }))
+
+    expect(await within(confirmation).findByRole('alert')).toHaveTextContent('Could not remove the member.')
+    expect(screen.getByText('omar')).toBeInTheDocument()
+  })
 })
 
 describe('notifications (US-08, US-30)', () => {
