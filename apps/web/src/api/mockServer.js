@@ -363,6 +363,15 @@ export function removeMember(projectId, userId) {
   })
 }
 
+export function leaveProject(projectId) {
+  return respond('leaveProject', () => {
+    const membership = requireMembership(projectId)
+    if (membership.role === 'OWNER') throw forbidden('The project owner cannot leave their own project.')
+    db.members = db.members.filter((item) => item !== membership)
+    return { projectId, userId: membership.userId }
+  })
+}
+
 export function inviteMember(projectId, username) {
   return respond('inviteMember', () => {
     const membership = requireMembership(projectId)

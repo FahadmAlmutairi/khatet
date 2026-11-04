@@ -1,0 +1,150 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Frontend lint",
+			"type": "shell",
+			"command": "npm --prefix apps/web run lint",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Frontend build",
+			"type": "shell",
+			"command": "npm --prefix apps/web run build",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Temporary web tests",
+			"type": "shell",
+			"command": "npm --prefix apps/web run test",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Start frontend dev server",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"--prefix",
+				"apps/web",
+				"run",
+				"dev",
+				"--",
+				"--host",
+				"0.0.0.0"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "Stage requested frontend files",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"add",
+				"--",
+				"apps/web/src/api/client.js",
+				"apps/web/src/api/hooks.js",
+				"apps/web/src/api/mockServer.js",
+				"apps/web/src/api/mockServer.test.js",
+				"apps/web/src/app/routes.test.jsx",
+				"apps/web/src/features/members/MembersPage.jsx"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Temporary: Git status, log, and staged diff",
+			"type": "shell",
+			"command": "git status --short --branch; git log -1 --oneline --decorate; git diff --cached --stat",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Authorized requested commit",
+			"type": "shell",
+			"command": "git commit --only -- apps/web/src/api/client.js apps/web/src/api/hooks.js apps/web/src/api/mockServer.js apps/web/src/api/mockServer.test.js apps/web/src/app/routes.test.jsx apps/web/src/features/members/MembersPage.jsx -m \"feat(web): remove project member\" -m \"Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>\"",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Commit requested frontend files",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"-e",
+				"const trailer = 'Co-authored-by: Copilot ' + String.fromCharCode(60) + '223556219+Copilot@users.noreply.github.com' + String.fromCharCode(62); const r = require('child_process').spawnSync('git', ['commit', '--only', '--', 'apps/web/src/api/client.js', 'apps/web/src/api/hooks.js', 'apps/web/src/api/mockServer.js', 'apps/web/src/api/mockServer.test.js', 'apps/web/src/app/routes.test.jsx', 'apps/web/src/features/members/MembersPage.jsx', '-m', 'feat(web): remove project member', '-m', trailer], { encoding: 'utf8' }); console.log('Git exit code: ' + r.status); process.stdout.write(r.stdout || ''); process.stderr.write(r.stderr || ''); process.exitCode = r.status === null ? 1 : r.status;"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Commit six frontend files",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"-e",
+				"const { spawnSync } = require('node:child_process'); const lt = String.fromCharCode(60); const gt = String.fromCharCode(62); const trailer = 'Co-authored-by: Copilot ' + lt + '223556219+Copilot@users.noreply.github.com' + gt; const result = spawnSync('git', ['commit', '--only', '--', 'apps/web/src/api/client.js', 'apps/web/src/api/hooks.js', 'apps/web/src/api/mockServer.js', 'apps/web/src/api/mockServer.test.js', 'apps/web/src/app/routes.test.jsx', 'apps/web/src/features/members/MembersPage.jsx', '-m', 'feat(web): remove project member', '-m', trailer], { encoding: 'utf8' }); console.log('Git exit code:', result.status); if (result.stdout) process.stdout.write(result.stdout); if (result.stderr) process.stderr.write(result.stderr); if (result.error) { console.error(result.error); process.exitCode = 1; } else { process.exitCode = result.status === null ? 1 : result.status; }"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Commit requested frontend paths (Node)",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"-e",
+				"const { spawnSync } = require(\"child_process\"); const trailer = \"Co-authored-by: Copilot \" + String.fromCharCode(60) + \"223556219+Copilot@users.noreply.github.com\" + String.fromCharCode(62); const args = [\"commit\", \"--only\", \"--\", \"apps/web/src/api/client.js\", \"apps/web/src/api/hooks.js\", \"apps/web/src/api/mockServer.js\", \"apps/web/src/api/mockServer.test.js\", \"apps/web/src/app/routes.test.jsx\", \"apps/web/src/features/members/MembersPage.jsx\", \"-m\", \"feat(web): remove project member\", \"-m\", trailer]; const result = spawnSync(\"git\", args, { encoding: \"utf8\" }); console.log(\"Git exit code:\", result.status); if (result.stdout) process.stdout.write(result.stdout); if (result.stderr) process.stderr.write(result.stderr); if (result.error) { console.error(result.error); process.exitCode = 1; } else { process.exitCode = result.status === null ? 1 : result.status; }"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Commit frontend paths safely",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"-e",
+				"const { spawnSync } = require(`child_process`); const trailer = `Co-authored-by: Copilot ` + String.fromCharCode(60) + `223556219+Copilot@users.noreply.github.com` + String.fromCharCode(62); const args = [`commit`, `--only`, `--`, `apps/web/src/api/client.js`, `apps/web/src/api/hooks.js`, `apps/web/src/api/mockServer.js`, `apps/web/src/api/mockServer.test.js`, `apps/web/src/app/routes.test.jsx`, `apps/web/src/features/members/MembersPage.jsx`, `-m`, `feat(web): remove project member`, `-m`, trailer]; const result = spawnSync(`git`, args, { encoding: `utf8` }); console.log(`Git exit code:`, result.status); if (result.stdout) process.stdout.write(result.stdout); if (result.stderr) process.stderr.write(result.stderr); if (result.error) { console.error(result.error); process.exitCode = 1; } else { process.exitCode = result.status === null ? 1 : result.status; }"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Commit requested frontend paths",
+			"type": "shell",
+			"command": "node",
+			"args": [
+				"-e",
+				"const { spawnSync } = require('node:child_process'); const args = ['commit','--only','-m','feat(web): remove project member','-m','Co-authored-by: Copilot ' + String.fromCharCode(60) + '223556219+Copilot@users.noreply.github.com' + String.fromCharCode(62),'--','apps/web/src/api/client.js','apps/web/src/api/hooks.js','apps/web/src/api/mockServer.js','apps/web/src/api/mockServer.test.js','apps/web/src/app/routes.test.jsx','apps/web/src/features/members/MembersPage.jsx']; const result = spawnSync('git', args, { stdio: 'inherit' }); if (result.error) { console.error(result.error); process.exit(1); } process.exit(result.status === null ? 1 : result.status);"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "Commit project member removal",
+			"type": "shell",
+			"command": "git",
+			"args": [
+				"commit",
+				"--only",
+				"-m",
+				"feat(web): remove project member",
+				"-m",
+				"Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>",
+				"--",
+				"apps/web/src/api/client.js",
+				"apps/web/src/api/hooks.js",
+				"apps/web/src/api/mockServer.js",
+				"apps/web/src/api/mockServer.test.js",
+				"apps/web/src/app/routes.test.jsx",
+				"apps/web/src/features/members/MembersPage.jsx"
+			],
+			"isBackground": false,
+			"problemMatcher": []
+		}
+	]
+}

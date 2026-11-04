@@ -682,6 +682,47 @@ describe('members (US-07, US-09, US-10)', () => {
     expect(await within(confirmation).findByRole('alert')).toHaveTextContent('Could not remove the member.')
     expect(screen.getByText('omar')).toBeInTheDocument()
   })
+
+  it('lets a team member leave after confirmation and returns them to their project list', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-study/members')
+
+    await user.click(await screen.findByRole('button', { name: 'Leave project' }))
+    const confirmation = screen.getByRole('dialog', { name: 'Leave Study Planner?' })
+    expect(within(confirmation).getByText(/You will need a new invitation to rejoin/)).toBeInTheDocument()
+    await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+    expect(router.state.location.pathname).toBe('/projects/p-study/members')
+
+    await user.click(screen.getByRole('button', { name: 'Leave project' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Leave Study Planner?' })).getByRole('button', { name: 'Leave project' }))
+
+    expect(await screen.findByRole('heading', { name: 'Your projects' })).toBeInTheDocument()
+    expect(await screen.findByText('You left Study Planner.', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Study Planner.*Member/ })).not.toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/projects')
+  })
+
+  it('shows leave failures and keeps the team member in the project', async () => {
+    signIn()
+    const user = userEvent.setup()
+    failNextCall('leaveProject', new ApiError({ code: 'INTERNAL_ERROR', message: 'Could not leave the project.' }))
+    renderApp('/projects/p-study/members')
+
+    await user.click(await screen.findByRole('button', { name: 'Leave project' }))
+    const confirmation = screen.getByRole('dialog', { name: 'Leave Study Planner?' })
+    await user.click(within(confirmation).getByRole('button', { name: 'Leave project' }))
+
+    expect(await within(confirmation).findByRole('alert')).toHaveTextContent('Could not leave the project.')
+    expect(within(screen.getByRole('list', { name: 'Project members' })).getByText('fahad')).toBeInTheDocument()
+  })
+
+  it('does not let the project owner leave', async () => {
+    signIn()
+    renderApp('/projects/p-khatet/members')
+    await screen.findByRole('heading', { level: 1, name: 'Members' })
+    expect(screen.queryByRole('button', { name: 'Leave project' })).not.toBeInTheDocument()
+  })
 })
 
 describe('notifications (US-08, US-30)', () => {

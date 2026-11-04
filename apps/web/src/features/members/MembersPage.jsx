@@ -3,7 +3,7 @@ import { useOutletContext } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
-import { useMe, useMembers, useRemoveMember, useUpdateMemberAccess } from '../../api/hooks.js'
+import { useLeaveProject, useMe, useMembers, useRemoveMember, useUpdateMemberAccess } from '../../api/hooks.js'
 import Avatar from '../../components/Avatar.jsx'
 import { ChevronIcon } from '../../components/icons.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -12,6 +12,7 @@ import { MemberRowsSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { taskAccessLabel } from '../../lib/domain.js'
+import { useNavigate } from 'react-router'
 import InviteDialog from './InviteDialog.jsx'
 
 // Figma: owner 211:198, member 216:199, access window 219:327, invite window 220:344;
@@ -133,7 +134,7 @@ function AccessDialog({ member, projectId, onClose }) {
 
 const columns = 'lg:grid lg:grid-cols-[minmax(0,400fr)_170px_minmax(0,370fr)_164px] lg:items-center'
 
-function MemberRow({ member, isOwner, isYou, onManage, onRemove }) {
+function MemberRow({ member, isOwner, isYou, onManage, onRemove, onLeave }) {
   const owner = member.role === 'OWNER'
   const access = owner ? 'Full access' : taskAccessLabel(member.taskAccess)
   return (
@@ -186,6 +187,16 @@ function MemberRow({ member, isOwner, isYou, onManage, onRemove }) {
             </button>
           </>
         )}
+        {!isOwner && isYou && (
+          <button
+            type="button"
+            onClick={() => onLeave(member)}
+            aria-label="Leave project"
+            className="inline-flex min-h-11 items-center justify-center rounded-full px-2 text-xs font-medium text-blocked hover:bg-priority-high-bg lg:px-2.5"
+          >
+            Leave project
+          </button>
+        )}
       </div>
     </li>
   )
@@ -229,6 +240,46 @@ function RemoveMemberDialog({ member, projectId, onClose }) {
   )
 }
 
+function LeaveProjectDialog({ project, open, onClose }) {
+  const leave = useLeaveProject(project.id)
+  const navigate = useNavigate()
+  const toast = useToast()
+
+  function confirm() {
+    leave.mutate(undefined, {
+      onSuccess: () => {
+        onClose()
+        navigate('/projects')
+        toast(`You left ${project.name}.`)
+      },
+    })
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={`Leave ${project.name}?`}
+      description="You will lose access to this project and its workspace."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button variant="danger" loading={leave.isPending} onClick={confirm}>
+            Leave project
+          </Button>
+        </>
+      }
+    >
+      {leave.isError && <p role="alert" className="text-sm text-blocked">{errorMessage(leave.error)}</p>}
+      <p className="text-sm text-body">
+        You will need a new invitation to rejoin. Your past messages and task history will remain in the project.
+      </p>
+    </Dialog>
+  )
+}
+
 // US-09: everyone sees the owner and members; only the owner sees the controls.
 export default function MembersPage() {
   const { project } = useOutletContext()
@@ -236,6 +287,7 @@ export default function MembersPage() {
   const [inviting, setInviting] = useState(false)
   const [managing, setManaging] = useState(null)
   const [removing, setRemoving] = useState(null)
+  const [leaving, setLeaving] = useState(false)
   const isOwner = project.permissions.canManageMembers
   const me = useMe()
   const list = members.data?.members ?? []
@@ -298,6 +350,7 @@ export default function MembersPage() {
                   isYou={!isOwner && member.userId === me.data?.id}
                   onManage={setManaging}
                   onRemove={setRemoving}
+                  onLeave={() => setLeaving(true)}
                 />
               ))}
             </ul>
@@ -308,6 +361,7 @@ export default function MembersPage() {
       {isOwner && <InviteDialog open={inviting} onClose={() => setInviting(false)} projectId={project.id} />}
       {isOwner && <AccessDialog member={managing} projectId={project.id} onClose={() => setManaging(null)} />}
       {isOwner && <RemoveMemberDialog member={removing} projectId={project.id} onClose={() => setRemoving(null)} />}
+      {!isOwner && <LeaveProjectDialog project={project} open={leaving} onClose={() => setLeaving(false)} />}
     </section>
   )
 }

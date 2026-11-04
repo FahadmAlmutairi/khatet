@@ -74,6 +74,14 @@ describe('sample API', () => {
     await expect(api.removeMember('p-khatet', 'u-fahad')).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
+  it('lets a team member leave a project but not the owner', async () => {
+    await expect(api.leaveProject('p-study')).resolves.toEqual({ projectId: 'p-study', userId: 'u-fahad' })
+    await expect(api.getProjects()).resolves.not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'p-study' })]),
+    )
+    await expect(api.leaveProject('p-khatet')).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
+
   it('keeps at least one assignee on a task', async () => {
     await expect(api.updateTask('t-8', { assigneeIds: [] })).rejects.toMatchObject({
       fieldErrors: [{ field: 'assigneeIds', message: 'Choose at least one assignee.' }],
