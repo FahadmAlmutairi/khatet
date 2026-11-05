@@ -74,4 +74,27 @@ describe.skipIf(!hasTestDatabase)('US-01 and US-02: GET and PATCH /api/me', () =
     const second = await request(app).patch('/api/me').set(authHeader(user)).send({ username: 'second_pick' })
     expect(second.status).toBe(422)
   })
+
+  it('says when the username can change next (US-03)', async () => {
+    const user = await createUser('dated_name')
+    const changedAt = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
+    await prisma.user.update({ where: { id: user.id }, data: { usernameChangedAt: changedAt } })
+    const res = await request(app).get('/api/me').set(authHeader(user))
+    expect(new Date(res.body.usernameChangeableAt).getTime()).toBe(changedAt.getTime() + 30 * 24 * 60 * 60 * 1000)
+  })
+
+  it('returns null for usernameChangeableAt when a change is allowed now', async () => {
+    const user = await createUser('free_name')
+    await prisma.user.update({ where: { id: user.id }, data: { usernameChangedAt: new Date('2026-01-01') } })
+    const res = await request(app).get('/api/me').set(authHeader(user))
+    expect(res.body.usernameChangeableAt).toBeNull()
+    const fresh = await request(app).get('/api/me').set(tokenFor(randomUUID(), 'fresh@test.dev'))
+    expect(fresh.body.usernameChangeableAt).toBeNull()
+  })
+
+  it('returns the next allowed date after a change', async () => {
+    const user = await createUser(null)
+    const res = await request(app).patch('/api/me').set(authHeader(user)).send({ username: 'just_picked' })
+    expect(new Date(res.body.usernameChangeableAt) > new Date()).toBe(true)
+  })
 })

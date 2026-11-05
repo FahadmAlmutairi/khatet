@@ -1,7 +1,8 @@
 // US-01 Create an account and US-02 Sign in, backend part.
 // Supabase Auth sends and checks the 6-digit email code; this API keeps the Khatet
 // account and its username.
-// GET   /api/me   the signed-in user (created on the first request after sign-up)
+// GET   /api/me   the signed-in user (created on the first request after sign-up),
+//                 with usernameChangeableAt (US-03)
 // PATCH /api/me   body: { "username": "sara" }
 import { Router } from 'express'
 import { prisma } from '../db.js'
@@ -13,8 +14,16 @@ export const authRouter = Router()
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/
 const CHANGE_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000
 
+// usernameChangeableAt: the first moment the username can change again (US-03), or null when
+// it can change now. The Account settings page names this day under the username field.
+export function usernameChangeableAt(user) {
+  if (!user.username || !user.usernameChangedAt) return null
+  const next = new Date(user.usernameChangedAt.getTime() + CHANGE_INTERVAL_MS)
+  return next > new Date() ? next : null
+}
+
 export function serializeUser(user) {
-  return { id: user.id, email: user.email, username: user.username }
+  return { id: user.id, email: user.email, username: user.username, usernameChangeableAt: usernameChangeableAt(user) }
 }
 
 authRouter.get('/me', requireAuth, (req, res) => {
@@ -35,7 +44,7 @@ authRouter.patch('/me', requireAuth, async (req, res) => {
 
   // A username can change once every 30 days (US-03). Choosing the first one starts the clock too,
   // so a new account cannot pick a name and swap it straight away (SEC-03).
-  if (user.username && user.usernameChangedAt && Date.now() - user.usernameChangedAt.getTime() < CHANGE_INTERVAL_MS) {
+  if (usernameChangeableAt(user)) {
     throw invalid([{ field: 'username', message: 'You can change your username once every 30 days.' }])
   }
 
