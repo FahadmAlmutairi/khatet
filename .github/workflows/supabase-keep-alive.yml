@@ -1,10 +1,11 @@
 name: Supabase keep-alive
 
 # Supabase pauses free projects after 7 days without traffic.
-# This pings both projects every 3 days so they stay up. Run it by hand from the Actions tab too.
+# This pings both projects every day so they stay up. GitHub can start scheduled runs hours
+# late or skip them, so a daily run leaves plenty of margin. Run it by hand from the Actions tab too.
 on:
   schedule:
-    - cron: '17 6 */3 * *'
+    - cron: '17 6 * * *'
   workflow_dispatch:
 
 permissions:
@@ -36,10 +37,19 @@ jobs:
           fi
 
       # Auth health only answers 200 with a valid key, so this also checks the key.
+      # A paused project loses its DNS name (curl exit 6) or answers 540. Pinging cannot
+      # wake it: it has to be restored in the Supabase dashboard.
       - name: Ping Auth
         run: |
+          set +e
           status=$(curl -sS -o /dev/null -w '%{http_code}' --retry 3 --retry-delay 10 \
             -H "apikey: $SUPABASE_PUBLISHABLE_KEY" "${SUPABASE_URL%/}/auth/v1/health")
+          code=$?
+          set -e
+          if [ "$code" = "6" ] || [ "$status" = "540" ]; then
+            echo "::error::${{ matrix.project }} is paused. Restore it in the Supabase dashboard (Project overview > Restore project); pinging cannot wake a paused project."
+            exit 1
+          fi
           echo "Auth answered $status"
           [ "$status" = "200" ]
 

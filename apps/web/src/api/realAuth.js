@@ -30,6 +30,17 @@ function pendingEmail() {
   }
 }
 
+// The API runs on Render's free plan, which sleeps after 15 minutes without traffic and
+// takes up to a minute to wake. A cheap unauthenticated health request starts that
+// wake-up early (on page load and when a code is requested), so by the time the user
+// is signed in or has typed the code, GET /api/me does not wait on a cold server.
+export function warmUpApi() {
+  if (!apiUrl) return
+  fetch(`${apiUrl}/api/health`, { cache: 'no-store' }).catch(() => {
+    // Only a head start; the real request reports any failure.
+  })
+}
+
 // Calls the Express API with the signed-in user's token and turns its error shape
 // (docs/api-contract.md, Errors) into an ApiError.
 export async function apiFetch(path, { method = 'GET', body, keepalive = false } = {}) {
@@ -78,6 +89,7 @@ export async function requestCode(email) {
     throw new ApiError({ code: 'CODE_NOT_SENT', status: error.status ?? 500, message: 'The code could not be sent. Try again.' })
   }
   rememberEmail(value)
+  warmUpApi()
   return { email: value }
 }
 

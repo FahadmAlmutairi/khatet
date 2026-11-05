@@ -1,11 +1,16 @@
 import InfoTip from './InfoTip.jsx'
 import Button, { Spinner } from './Button.jsx'
+import { useTakingLong } from './useTakingLong.js'
 
-export function LoadingState({ label = 'Loading' }) {
+export function LoadingState({ label = 'Loading', slowMessage }) {
+  const slow = useTakingLong(Boolean(slowMessage))
   return (
-    <div role="status" className="flex items-center gap-3 py-12 text-muted">
-      <Spinner className="size-5" />
-      <span>{label}…</span>
+    <div role="status" className="flex flex-col gap-2 py-12 text-muted">
+      <div className="flex items-center gap-3">
+        <Spinner className="size-5" />
+        <span>{label}…</span>
+      </div>
+      {slow && <p className="pl-8 text-label">{slowMessage}</p>}
     </div>
   )
 }
