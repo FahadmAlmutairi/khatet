@@ -544,3 +544,44 @@ export function markNotificationRead(notificationId) {
     return notification
   })
 }
+
+// ---------- Project chat (US-24) ----------
+
+export const MAX_MESSAGE_LENGTH = 2000
+const MESSAGE_LIST_LIMIT = 100
+
+function serializeMessage(message) {
+  return { ...message, authorUsername: usernameOf(message.authorId) }
+}
+
+// Same shape as GET /api/projects/:projectId/messages: oldest first, the latest 100,
+// or only the messages after `after`.
+export function getMessages(projectId, { after } = {}) {
+  return respond('getMessages', () => {
+    requireMembership(projectId)
+    const messages = db.messages.filter((item) => item.projectId === projectId)
+    if (after === undefined) return messages.slice(-MESSAGE_LIST_LIMIT).map(serializeMessage)
+    const index = messages.findIndex((item) => item.id === after)
+    if (index === -1) throw invalid([{ field: 'after', message: 'This message is not in the project chat.' }])
+    return messages.slice(index + 1, index + 1 + MESSAGE_LIST_LIMIT).map(serializeMessage)
+  })
+}
+
+export function sendMessage(projectId, text) {
+  return respond('sendMessage', () => {
+    const membership = requireMembership(projectId)
+    const value = typeof text === 'string' ? text.trim() : ''
+    if (!value) throw invalid([{ field: 'text', message: 'Write a message first.' }])
+    if (value.length > MAX_MESSAGE_LENGTH) {
+      throw invalid([{ field: 'text', message: `Keep the message under ${MAX_MESSAGE_LENGTH} characters.` }])
+    }
+    const message = { id: newId('m'), projectId, authorId: membership.userId, text: value, createdAt: now() }
+    db.messages.push(message)
+    return serializeMessage(message)
+  })
+}
+
+// Lets tests and reviewers see a teammate's message arrive on the next refresh.
+export function addSampleMessage(projectId, authorId, text) {
+  db.messages.push({ id: newId('m'), projectId, authorId, text, createdAt: now() })
+}

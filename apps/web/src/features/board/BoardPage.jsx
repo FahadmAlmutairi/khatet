@@ -4,13 +4,14 @@ import { errorMessage } from '../../api/errors.js'
 import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
 import { useMembers, useMoveTask, useTasks, useUpdateTask } from '../../api/hooks.js'
-import { PlusIcon } from '../../components/icons.jsx'
+import { ChatIcon, PlusIcon } from '../../components/icons.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { BoardSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState, Notice, StateBadge } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { statusLabel } from '../../lib/domain.js'
 import { rememberCardPositions } from '../../lib/motion.js'
+import ChatPanel from '../chat/ChatPanel.jsx'
 import InviteDialog from '../members/InviteDialog.jsx'
 import BoardColumns from './BoardColumns.jsx'
 import CreateTaskDialog from './CreateTaskDialog.jsx'
@@ -35,6 +36,8 @@ export default function BoardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [creating, setCreating] = useState(false)
   const [inviting, setInviting] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
+  const chatButtonRef = useRef(null)
   // A card moved from its menu lands in another lane as a new element, so focus goes back to it there (NFR-04).
   const focusAfterMove = useRef(null)
   const openTaskId = searchParams.get('task')
@@ -103,10 +106,17 @@ export default function BoardPage() {
     )
   }
 
+  // Closing the chat returns focus to the button that opened it.
+  function closeChat() {
+    setChatOpen(false)
+    setTimeout(() => chatButtonRef.current?.focus(), 0)
+  }
+
   const note = accessNote(project)
 
   return (
-    <section className="flex flex-col gap-6">
+    // On desktop the open chat sits on the right, so the board makes room for it.
+    <section className={`flex flex-col gap-6 ${chatOpen ? 'lg:mr-[356px]' : ''}`}>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-2">
           <Breadcrumb items={crumbs} className="lg:hidden" />
@@ -115,22 +125,31 @@ export default function BoardPage() {
             {note && <StateBadge label={note.label}>{note.text}</StateBadge>}
           </div>
         </div>
-        {(project.permissions.canManageMembers || project.permissions.canCreateTask) && (
-          <div className="flex flex-wrap items-center gap-2.5">
-            {/* Inviting from the board takes 3 taps on any screen, without opening the menu for Members (NFR-01). */}
-            {project.permissions.canManageMembers && (
-              <Button variant="secondary" onClick={() => setInviting(true)}>
-                Invite member
-              </Button>
-            )}
-            {project.permissions.canCreateTask && (
-              <Button onClick={() => setCreating(true)} disabled={!members.data} className="gap-1.5">
-                <PlusIcon />
-                Add task
-              </Button>
-            )}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Every member can open the chat at every access level (US-24); it is one tap from the board (NFR-01). */}
+          <Button
+            ref={chatButtonRef}
+            variant="secondary"
+            onClick={() => (chatOpen ? closeChat() : setChatOpen(true))}
+            aria-expanded={chatOpen}
+            className="gap-1.5"
+          >
+            <ChatIcon />
+            Project chat
+          </Button>
+          {/* Inviting from the board takes 3 taps on any screen, without opening the menu for Members (NFR-01). */}
+          {project.permissions.canManageMembers && (
+            <Button variant="secondary" onClick={() => setInviting(true)}>
+              Invite member
+            </Button>
+          )}
+          {project.permissions.canCreateTask && (
+            <Button onClick={() => setCreating(true)} disabled={!members.data} className="gap-1.5">
+              <PlusIcon />
+              Add task
+            </Button>
+          )}
+        </div>
       </div>
 
       <div>
@@ -161,6 +180,8 @@ export default function BoardPage() {
           />
         )}
       </div>
+
+      <ChatPanel project={project} open={chatOpen} onClose={closeChat} />
 
       {project.permissions.canManageMembers && (
         <InviteDialog open={inviting} onClose={() => setInviting(false)} projectId={project.id} backLabel="Board" />

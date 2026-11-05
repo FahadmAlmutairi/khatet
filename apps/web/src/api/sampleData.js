@@ -114,6 +114,12 @@ export function createSampleData() {
       }),
       task('t-15', 'p-capstone', 'List related papers', 'TODO', 1, ['u-omar'], { priority: 'LOW' }),
     ],
+    // US-24: project chat, oldest first.
+    messages: [
+      { id: 'm-1', projectId: 'p-khatet', authorId: 'u-saad', text: 'I pushed the sign-in screens. Can someone review them today?', createdAt: '2026-10-05T09:12:00Z' },
+      { id: 'm-2', projectId: 'p-khatet', authorId: 'u-fahad', text: 'Yes, I will look after lunch.', createdAt: '2026-10-05T09:20:00Z' },
+      { id: 'm-3', projectId: 'p-khatet', authorId: 'u-omar', text: 'The test plan is in Ready for Review.', createdAt: '2026-10-05T11:02:00Z' },
+    ],
     notifications: [
       {
         id: 'n-1',

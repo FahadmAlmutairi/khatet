@@ -13,6 +13,7 @@ export const keys = {
   tasks: (projectId) => ['tasks', { projectId }],
   task: (taskId) => ['task', taskId],
   notifications: ['notifications'],
+  messages: (projectId) => ['messages', projectId],
 }
 
 // ---------- Session ----------
@@ -275,5 +276,47 @@ export function useRespondToInvitation() {
       queryClient.invalidateQueries({ queryKey: keys.notifications })
       queryClient.invalidateQueries({ queryKey: keys.projects })
     },
+  })
+}
+
+// ---------- Project chat (US-24) ----------
+
+// NFR-09: a message reaches the team within 5 seconds, so the open chat asks for new
+// messages every 3 seconds until Socket.IO replaces refreshing in Sprint 3.
+export const CHAT_REFRESH_MS = 3000
+
+// The first request loads the latest messages; each refresh asks only for the ones after
+// the newest message already shown and adds them to the end.
+export function useMessages(projectId, { enabled = true } = {}) {
+  const queryClient = useQueryClient()
+  return useQuery({
+    queryKey: keys.messages(projectId),
+    enabled,
+    refetchInterval: enabled ? CHAT_REFRESH_MS : false,
+    queryFn: async () => {
+      const shown = queryClient.getQueryData(keys.messages(projectId))
+      const last = shown?.at(-1)
+      if (!last) return api.getMessages(projectId)
+      try {
+        const newer = await api.getMessages(projectId, { after: last.id })
+        if (newer.length === 0) return shown
+        const known = new Set(shown.map((message) => message.id))
+        return [...shown, ...newer.filter((message) => !known.has(message.id))]
+      } catch (error) {
+        // The cursor is no longer accepted (for example after a data reset): load the latest again.
+        if (error.code === 'VALIDATION_FAILED') return api.getMessages(projectId)
+        throw error
+      }
+    },
+  })
+}
+
+// After sending, the chat refreshes from the newest message it had, so a teammate's message
+// sent a moment earlier shows up before ours, in the server's order.
+export function useSendMessage(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (text) => api.sendMessage(projectId, text),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.messages(projectId) }),
   })
 }

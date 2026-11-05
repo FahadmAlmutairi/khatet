@@ -20,7 +20,7 @@ const realProjects = {
   getProject: (projectId) => apiFetch(`/projects/${projectId}`),
 }
 
-// US-07 to US-10, US-13, US-21 and US-30.
+// US-07 to US-10, US-13, US-21, US-24 and US-30.
 const realMembersAndNotifications = {
   getMembers: (projectId) => apiFetch(`/projects/${projectId}/members`),
   updateMemberAccess: (projectId, userId, taskAccess) =>
@@ -41,6 +41,10 @@ const realMembersAndNotifications = {
   deleteTask: (taskId) => apiFetch(`/tasks/${taskId}`, { method: 'DELETE', keepalive: true }),
   markNotificationRead: (notificationId) =>
     apiFetch(`/notifications/${notificationId}`, { method: 'PATCH', body: { read: true } }),
+  // US-24: project chat, refreshed with the `after` cursor.
+  getMessages: (projectId, { after } = {}) =>
+    apiFetch(`/projects/${projectId}/messages${after ? `?after=${encodeURIComponent(after)}` : ''}`),
+  sendMessage: (projectId, text) => apiFetch(`/projects/${projectId}/messages`, { method: 'POST', body: { text } }),
 }
 
 const auth = useRealAuth
