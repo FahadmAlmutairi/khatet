@@ -64,14 +64,14 @@ function ProfileForm({ me }) {
 export default function AccountSettingsPage() {
   const me = useMe()
   const crumbs = useBreadcrumb()
-  useDocumentTitle('Account settings')
+  useDocumentTitle('Settings')
 
   if (!me.data) return <LoadingState />
 
   return (
     <section>
       <Breadcrumb items={crumbs} className="lg:hidden" />
-      <h1 className="mt-2 text-title font-bold text-body lg:mt-0">Account settings</h1>
+      <h1 className="mt-2 text-title font-bold text-body lg:mt-0">Settings</h1>
       <div className="mt-6 rounded-card border border-line bg-white p-5 sm:p-6">
         <h2 className="text-base font-semibold text-body">Profile &amp; security</h2>
         <p className="mt-1 mb-6 text-sm text-muted">Teammates find and invite you by your username.</p>

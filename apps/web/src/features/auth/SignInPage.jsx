@@ -32,7 +32,7 @@ export default function SignInPage() {
           label="Email"
           type="email"
           name="email"
-          autoComplete="email"
+          autoComplete="username"
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}

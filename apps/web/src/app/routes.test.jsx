@@ -64,6 +64,22 @@ describe('sign in (US-01, US-02)', () => {
     verifyCode.mockRestore()
   })
 
+  it('asks before signing out', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects')
+    const sidebar = await screen.findByRole('complementary')
+    await user.click(within(sidebar).getByRole('button', { name: 'Sign out' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Sign out of Khatet?' })
+
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect(router.state.location.pathname).toBe('/projects')
+
+    await user.click(within(sidebar).getByRole('button', { name: 'Sign out' }))
+    await user.click(within(await screen.findByRole('dialog', { name: 'Sign out of Khatet?' })).getByRole('button', { name: 'Sign out' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/sign-in'))
+  })
+
   it('shows no step count on the sign-in pages', async () => {
     renderApp('/sign-in')
     await screen.findByRole('heading', { name: 'Sign in or create an account' })
@@ -701,10 +717,10 @@ describe('account settings (US-03)', () => {
     const user = userEvent.setup()
     const router = renderApp('/projects')
     const sidebar = await screen.findByRole('complementary')
-    await user.click(within(sidebar).getByRole('link', { name: 'Account settings' }))
+    await user.click(within(sidebar).getByRole('link', { name: 'Settings' }))
     expect(router.state.location.pathname).toBe('/account')
-    expect(await screen.findByRole('heading', { level: 1, name: 'Account settings' })).toBeInTheDocument()
-    await waitFor(() => expect(document.title).toBe('Account settings · Khatet'))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
+    await waitFor(() => expect(document.title).toBe('Settings · Khatet'))
 
     const field = screen.getByLabelText(/Username/)
     expect(field).toHaveValue('fahad')

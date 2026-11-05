@@ -8,6 +8,8 @@ import Avatar from '../components/Avatar.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
 import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SettingsIcon, SignOutIcon } from '../components/icons.jsx'
 import Logo from '../components/Logo.jsx'
+import Button from '../components/ui/Button.jsx'
+import Dialog from '../components/ui/Dialog.jsx'
 import NotificationsButton from '../features/notifications/NotificationsButton.jsx'
 import { useProjectOrder } from '../features/projects/projectOrder.js'
 import { EASE } from '../lib/motion.js'
@@ -102,6 +104,8 @@ function Sidebar({ onNavigate, openProjects, onToggleProject, mobile = false }) 
   const order = useProjectOrder(useProjects().data, me.data?.id)
   const signOut = useSignOut()
   const navigate = useNavigate()
+  // Signing out is asked first, so a stray click does not end the session.
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
   // A drag ends with the button still under the pointer, so its click must not also open or close the project.
   const draggedRef = useRef(false)
 
@@ -206,11 +210,11 @@ function Sidebar({ onNavigate, openProjects, onToggleProject, mobile = false }) 
           }
         >
           <SettingsIcon />
-          Account settings
+          Settings
         </NavLink>
         <button
           type="button"
-          onClick={() => signOut.mutate(undefined, { onSuccess: () => navigate('/sign-in', { replace: true }) })}
+          onClick={() => setConfirmSignOut(true)}
           className="flex h-11 w-full items-center gap-2 rounded-lg px-2 lg:h-9 text-left text-sm text-nav hover:bg-surface"
         >
           <SignOutIcon />
@@ -221,6 +225,33 @@ function Sidebar({ onNavigate, openProjects, onToggleProject, mobile = false }) 
           <span className="truncate text-sm font-medium text-body">{me.data?.username}</span>
         </div>
       </div>
+      <Dialog
+        open={confirmSignOut}
+        onClose={() => setConfirmSignOut(false)}
+        title="Sign out of Khatet?"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setConfirmSignOut(false)}>
+              Cancel
+            </Button>
+            <Button
+              loading={signOut.isPending}
+              onClick={() =>
+                signOut.mutate(undefined, {
+                  onSuccess: () => {
+                    setConfirmSignOut(false)
+                    navigate('/sign-in', { replace: true })
+                  },
+                })
+              }
+            >
+              Sign out
+            </Button>
+          </>
+        }
+      >
+        <p className="text-base">You will need a new email code to sign in again.</p>
+      </Dialog>
     </div>
   )
 }
@@ -299,9 +330,9 @@ function Rail({ onExpand, onOpenProject, expandButtonRef }) {
           )
         })}
       </nav>
-      <NavLink to="/account" aria-label="Account settings" className={({ isActive }) => `mt-auto ${railItem} ${isActive ? 'bg-nav-active' : ''}`}>
-        {me.data && <Avatar username={me.data.username} />}
-        <RailTip>Account settings</RailTip>
+      <NavLink to="/account" aria-label="Settings" className={({ isActive }) => `mt-auto ${railItem} ${isActive ? 'bg-nav-active' : ''}`}>
+        <SettingsIcon className="size-5" />
+        <RailTip>Settings</RailTip>
       </NavLink>
     </aside>
   )
