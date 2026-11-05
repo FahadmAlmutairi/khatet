@@ -6,6 +6,7 @@ import Button, { Spinner } from '../../components/ui/Button.jsx'
 import AuthLayout, { SampleSignInNote } from './AuthLayout.jsx'
 import CodeInput, { LENGTH as CODE_LENGTH } from './CodeInput.jsx'
 import { FieldError } from '../../components/ui/Field.jsx'
+import { useTakingLong, WAKING_UP } from '../../components/ui/useTakingLong.js'
 
 // Supabase sends at most one code a minute to the same address.
 const RESEND_SECONDS = 60
@@ -20,6 +21,7 @@ export default function VerifyCodePage() {
   // Set while a check is on its way, so filling the last box and pressing Verify send it once.
   const checking = useRef(false)
   const lastCode = useRef('')
+  const verifyIsSlow = useTakingLong(verify.isPending)
 
   useEffect(() => {
     if (secondsLeft <= 0) return undefined
@@ -87,6 +89,11 @@ export default function VerifyCodePage() {
         <Button type="submit" loading={verify.isPending} fullOnPhone className="w-full max-sm:h-12">
           Verify code
         </Button>
+        {verifyIsSlow && (
+          <p role="status" className="-mt-3 text-center text-label text-muted">
+            {WAKING_UP}
+          </p>
+        )}
       </form>
       {/* Only the moment a new code can be requested is announced, not every second. */}
       <p className="sr-only" aria-live="polite">
