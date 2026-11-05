@@ -7,6 +7,7 @@ import { projectsRouter } from './projects/routes.js'
 import { membersRouter } from './members/routes.js'
 import { notificationsRouter } from './notifications/routes.js'
 import { tasksRouter } from './tasks/routes.js'
+import { chatRouter } from './chat/routes.js'
 
 const app = express()
 
@@ -23,6 +24,7 @@ app.use('/api', authRouter)
 app.use('/api', membersRouter)
 app.use('/api', notificationsRouter)
 app.use('/api', tasksRouter)
+app.use('/api', chatRouter)
 app.use('/api/projects', projectsRouter)
 
 app.use(routeNotFound)

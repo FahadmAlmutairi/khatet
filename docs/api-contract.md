@@ -143,6 +143,10 @@ The UI must not treat animation completion as save success.
 
 The API must not mutate project data during upload, mapping, or review.
 
+## Chat contract
+
+`GET /api/projects/:projectId/messages` returns the latest 100 messages, oldest first. With `?after=<messageId>` it returns only the messages sent after that one (at most 100), and a cursor that is not a message in this project gets 422 `VALIDATION_FAILED` on the field `after`. Each message has `id`, `projectId`, `authorId`, `authorUsername`, `text` and `createdAt`. `POST` takes `{ "text": "..." }`, trims it and answers 201 with the message; empty text or more than 2000 characters gets 422 `VALIDATION_FAILED` on the field `text`. Both routes check only project membership, so every member can read and send at every access level, and non-members get 404 (NFR-11).
+
 ## AI report contract
 
 Only the Project Owner can generate a report; every participant can list and read reports with their generation date. `POST /reports` returns a report ID with status `RUNNING`. Within 30 seconds the report becomes `READY` with a summary, warnings, and suggestions, or `FAILED` with a typed error that the UI shows with a retry button. Generating a report never changes tasks, assignments, dates, or permissions, and there is no endpoint to apply a suggestion. Provider credentials stay server-side.

@@ -1,6 +1,7 @@
 // Khatet database schema (docs/data-model.md).
 // Sprint 1 tables: users, projects, project members, invitations, notifications (TF-04),
 // and tasks with their assignees (US-13 to US-18, US-21).
+// Sprint 2: project chat messages (US-24).
 // Change it only through a migration: npm run db:migrate -- --name what_changed
 
 generator client {
@@ -68,6 +69,7 @@ model User {
   notificationsCaused Notification[]  @relation("NotificationActor")
   createdTasks        Task[]          @relation("TaskCreator")
   taskAssignments     TaskAssignee[]
+  chatMessages        ChatMessage[]
 
   @@map("users")
 }
@@ -85,6 +87,7 @@ model Project {
   invitations   Invitation[]
   notifications Notification[]
   tasks         Task[]
+  chatMessages  ChatMessage[]
 
   @@map("projects")
 }
@@ -190,4 +193,22 @@ model TaskAssignee {
   @@id([taskId, userId])
   @@index([userId])
   @@map("task_assignees")
+}
+
+// A project chat message (US-24). Every member can read and send them. Messages stay when
+// their author leaves or is removed, and are deleted with the project.
+// The optional link to a task (US-25) is added in Sprint 3.
+model ChatMessage {
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @map("project_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  // Not empty, at most 2000 characters (checked by the API).
+  text      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id])
+
+  @@index([projectId, createdAt, id])
+  @@map("chat_messages")
 }
