@@ -50,6 +50,8 @@
 @layer base {
   html {
     font-size: 100%; /* body text stays at 16px or more (NFR-03) */
+    /* The app has one light theme. Without this, a dark system theme can restyle the white text fields. */
+    color-scheme: light;
   }
 
   body {
@@ -60,6 +62,15 @@
   :focus-visible {
     outline: 3px solid var(--color-focus);
     outline-offset: 2px;
+  }
+
+  /* The typing cursor is always the dark green action colour, so it shows on the white fields
+     even when a browser theme or extension changes the default cursor colour. */
+  input,
+  textarea,
+  select,
+  [contenteditable='true'] {
+    caret-color: var(--color-action);
   }
 
   /* Text fields take a lighter 2px ring that hugs the border (still well above 3:1 on white). */
