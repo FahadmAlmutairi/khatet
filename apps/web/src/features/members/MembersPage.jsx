@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
-import { useOutletContext } from 'react-router'
+import { useNavigate, useOutletContext } from 'react-router'
+import { apiReady } from '../../api/config.js'
 import { errorMessage } from '../../api/errors.js'
 import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
@@ -12,7 +13,6 @@ import { MemberRowsSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 import { taskAccessLabel } from '../../lib/domain.js'
-import { useNavigate } from 'react-router'
 import InviteDialog from './InviteDialog.jsx'
 
 // Figma: owner 211:198, member 216:199, access window 219:327, invite window 220:344;
@@ -177,17 +177,19 @@ function MemberRow({ member, isOwner, isYou, onManage, onRemove, onLeave }) {
                 Manage access
               </span>
             </button>
-            <button
-              type="button"
-              onClick={() => onRemove(member)}
-              aria-label={`Remove ${member.username} from project`}
-              className="inline-flex min-h-11 items-center justify-center rounded-full px-2 text-xs font-medium text-blocked hover:bg-priority-high-bg lg:px-2.5"
-            >
-              Remove
-            </button>
+            {onRemove && (
+              <button
+                type="button"
+                onClick={() => onRemove(member)}
+                aria-label={`Remove ${member.username} from project`}
+                className="inline-flex min-h-11 items-center justify-center rounded-full px-2 text-xs font-medium text-blocked hover:bg-priority-high-bg lg:px-2.5"
+              >
+                Remove
+              </button>
+            )}
           </>
         )}
-        {!isOwner && isYou && (
+        {!isOwner && isYou && onLeave && (
           <button
             type="button"
             onClick={() => onLeave(member)}
@@ -349,8 +351,8 @@ export default function MembersPage() {
                   isOwner={isOwner}
                   isYou={!isOwner && member.userId === me.data?.id}
                   onManage={setManaging}
-                  onRemove={setRemoving}
-                  onLeave={() => setLeaving(true)}
+                  onRemove={apiReady.memberRemoval ? setRemoving : undefined}
+                  onLeave={apiReady.memberRemoval ? () => setLeaving(true) : undefined}
                 />
               ))}
             </ul>

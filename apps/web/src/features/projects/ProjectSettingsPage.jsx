@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useOutletContext } from 'react-router'
+import { apiReady } from '../../api/config.js'
 import { errorMessage, fieldError } from '../../api/errors.js'
 import { useUpdateProject } from '../../api/hooks.js'
 import { useDocumentTitle } from '../../app/pageMeta.js'
@@ -15,11 +16,15 @@ export default function ProjectSettingsPage() {
   const [description, setDescription] = useState(project.description ?? '')
   useDocumentTitle('Project settings', project.name)
 
-  if (project.role !== 'OWNER') {
+  if (project.role !== 'OWNER' || !apiReady.projectSettings) {
     return (
       <section className="flex flex-col gap-3">
         <h1 className="text-title font-bold text-body">Project settings</h1>
-        <p className="text-muted">Only the project owner can change project settings.</p>
+        <p className="text-muted">
+          {project.role !== 'OWNER'
+            ? 'Only the project owner can change project settings.'
+            : 'Project settings are not available yet.'}
+        </p>
       </section>
     )
   }
