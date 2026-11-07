@@ -352,6 +352,26 @@ export function updateMemberAccess(projectId, userId, taskAccess) {
   })
 }
 
+export function removeMember(projectId, userId) {
+  return respond('removeMember', () => {
+    const membership = requireMembership(projectId)
+    if (membership.role !== 'OWNER') throw forbidden('Only the project owner can remove members.')
+    const target = db.members.find((item) => item.projectId === projectId && item.userId === userId)
+    if (!target || target.role === 'OWNER') throw notFound('This member is no longer in the project.')
+    db.members = db.members.filter((item) => item !== target)
+    return { projectId, userId }
+  })
+}
+
+export function leaveProject(projectId) {
+  return respond('leaveProject', () => {
+    const membership = requireMembership(projectId)
+    if (membership.role === 'OWNER') throw forbidden('The project owner cannot leave their own project.')
+    db.members = db.members.filter((item) => item !== membership)
+    return { projectId, userId: membership.userId }
+  })
+}
+
 export function inviteMember(projectId, username) {
   return respond('inviteMember', () => {
     const membership = requireMembership(projectId)

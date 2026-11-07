@@ -94,6 +94,34 @@ export function useUpdateMemberAccess(projectId) {
   })
 }
 
+export function useRemoveMember(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (userId) => api.removeMember(projectId, userId),
+    onSuccess: ({ userId }) => {
+      queryClient.setQueryData(keys.members(projectId), (data) =>
+        data && { ...data, members: data.members.filter((member) => member.userId !== userId) },
+      )
+      queryClient.invalidateQueries({ queryKey: keys.tasks(projectId) })
+    },
+  })
+}
+
+export function useLeaveProject(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.leaveProject(projectId),
+    onSuccess: ({ userId }) => {
+      queryClient.setQueryData(keys.projects, (projects) => projects?.filter((project) => project.id !== projectId))
+      queryClient.setQueryData(keys.members(projectId), (data) =>
+        data && { ...data, members: data.members.filter((member) => member.userId !== userId) },
+      )
+      queryClient.removeQueries({ queryKey: keys.project(projectId), exact: true })
+      queryClient.removeQueries({ queryKey: keys.tasks(projectId), exact: true })
+    },
+  })
+}
+
 export function useInviteMember(projectId) {
   const queryClient = useQueryClient()
   return useMutation({
