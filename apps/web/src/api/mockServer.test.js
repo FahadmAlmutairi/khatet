@@ -62,6 +62,26 @@ describe('sample API', () => {
     await expect(api.moveTask('t-12', { status: 'DONE' })).rejects.toMatchObject({ code: 'FORBIDDEN' })
   })
 
+  it('lets the owner remove a team member and blocks non-owner removal', async () => {
+    await expect(api.removeMember('p-khatet', 'u-omar')).resolves.toEqual({
+      projectId: 'p-khatet',
+      userId: 'u-omar',
+    })
+    await expect(api.getMembers('p-khatet')).resolves.toMatchObject({
+      members: expect.not.arrayContaining([expect.objectContaining({ userId: 'u-omar' })]),
+    })
+    await expect(api.removeMember('p-study', 'u-omar')).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(api.removeMember('p-khatet', 'u-fahad')).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
+  it('lets a team member leave a project but not the owner', async () => {
+    await expect(api.leaveProject('p-study')).resolves.toEqual({ projectId: 'p-study', userId: 'u-fahad' })
+    await expect(api.getProjects()).resolves.not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'p-study' })]),
+    )
+    await expect(api.leaveProject('p-khatet')).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
+
   it('keeps at least one assignee on a task', async () => {
     await expect(api.updateTask('t-8', { assigneeIds: [] })).rejects.toMatchObject({
       fieldErrors: [{ field: 'assigneeIds', message: 'Choose at least one assignee.' }],
@@ -76,6 +96,22 @@ describe('sample API', () => {
 
   it('hides projects the user does not belong to', async () => {
     await expect(api.getTasks('p-mobile')).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
+  it('lets the owner update a project name and description', async () => {
+    const project = await api.updateProject('p-khatet', { name: '  Khatet  ', description: '  A shared workspace  ' })
+    expect(project).toMatchObject({ name: 'Khatet', description: 'A shared workspace', role: 'OWNER' })
+    await expect(api.getProject('p-khatet')).resolves.toMatchObject({
+      name: 'Khatet',
+      description: 'A shared workspace',
+    })
+  })
+
+  it('requires a project owner and a non-empty name to update settings', async () => {
+    await expect(api.updateProject('p-study', { name: 'Changed' })).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(api.updateProject('p-khatet', { name: '  ' })).rejects.toMatchObject({
+      fieldErrors: [{ field: 'name', message: 'Enter a project name.' }],
+    })
   })
 
   it('adds a user who accepts an invitation with Edit assigned tasks access', async () => {

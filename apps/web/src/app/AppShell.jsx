@@ -3,6 +3,7 @@ import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSens
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router'
+import { apiReady } from '../api/config.js'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
@@ -92,6 +93,14 @@ function SortableProject({ project, current, open, mobile, onNavigate, onToggle,
               Members
             </NavLink>
           </li>
+          {project.role === 'OWNER' && apiReady.projectSettings && (
+            <li>
+              <NavLink to={`/projects/${project.id}/settings`} className={subNavClass(mobile)} onClick={onNavigate}>
+                <SettingsIcon />
+                Project settings
+              </NavLink>
+            </li>
+          )}
         </ul>
       )}
     </li>

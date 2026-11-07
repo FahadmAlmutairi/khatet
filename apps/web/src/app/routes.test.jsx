@@ -128,6 +128,31 @@ describe('projects (US-04, US-05)', () => {
     expect(await screen.findByRole('link', { name: /Thesis.*Owner/ })).toBeInTheDocument()
   })
 
+  it('lets the owner edit project settings and reflects the saved name in navigation', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/settings')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Project settings' })).toBeInTheDocument()
+    await user.clear(screen.getByLabelText(/Project name/))
+    await user.type(screen.getByLabelText(/Project name/), 'Updated Khatet')
+    await user.clear(screen.getByLabelText('Description (optional)'))
+    await user.type(screen.getByLabelText('Description (optional)'), 'Current project details')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(await screen.findByText('Project settings saved.', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(screen.getByLabelText(/Project name/)).toHaveValue('Updated Khatet')
+    expect(screen.getByLabelText('Description (optional)')).toHaveValue('Current project details')
+    expect(await screen.findByRole('button', { name: 'Updated Khatet' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/projects/p-khatet/settings')
+  })
+
+  it('shows no project settings form to a team member', async () => {
+    signIn()
+    renderApp('/projects/p-study/settings')
+    expect(await screen.findByText('Only the project owner can change project settings.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument()
+  })
+
   it('clears the project name error once the name is typed', async () => {
     signIn()
     const user = userEvent.setup()
@@ -352,6 +377,50 @@ describe('board (US-16, US-21)', () => {
     expect(within(screen.getByRole('region', { name: /^Done/ })).queryByRole('button', { name: 'Add task' })).not.toBeInTheDocument()
     await user.click(within(todo).getByRole('button', { name: 'Add task' }))
     expect(await screen.findByRole('dialog', { name: /Create a task/ })).toBeInTheDocument()
+  })
+
+  it('keeps multi-value task filters in the board address and lets each active filter be removed', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/board?status=TODO&status=IN_PROGRESS&priority=HIGH')
+    expect(await screen.findByText('Prepare usability test script')).toBeInTheDocument()
+    expect(screen.getByText('Status: To Do')).toBeInTheDocument()
+    expect(screen.getByText('Status: In Progress')).toBeInTheDocument()
+    expect(screen.getByText('Priority: High')).toBeInTheDocument()
+    expect(router.state.location.search).toBe('?status=TODO&status=IN_PROGRESS&priority=HIGH')
+
+    await user.click(screen.getByRole('button', { name: 'Remove Status: To Do filter' }))
+    await waitFor(() => expect(router.state.location.search).toBe('?status=IN_PROGRESS&priority=HIGH'))
+    expect(screen.queryByText('Prepare usability test script')).not.toBeInTheDocument()
+    expect(screen.getByText('Fix CSV validation errors')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Fix CSV validation errors' }))
+    const taskDialog = await screen.findByRole('dialog')
+    expect(router.state.location.search).toBe('?status=IN_PROGRESS&priority=HIGH&task=t-6')
+    await user.click(within(taskDialog).getByRole('button', { name: 'Close' }))
+    await waitFor(() => expect(router.state.location.search).toBe('?status=IN_PROGRESS&priority=HIGH'))
+  })
+
+  it('offers Me first, filters by assignee, and clears an empty result', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/board')
+    await screen.findByText('Prepare usability test script')
+    await user.click(screen.getByText('Assignee', { selector: 'summary' }))
+    const assignees = screen.getAllByRole('checkbox')
+    expect(assignees[0]).toHaveAccessibleName('Me')
+    await user.click(assignees[0])
+    await waitFor(() => expect(router.state.location.search).toBe('?assignee=u-fahad'))
+    expect(screen.getByText('Assignee: Me')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
+    await user.click(screen.getByText('Status', { selector: 'summary' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Done' }))
+    await user.click(screen.getByText('Priority', { selector: 'summary' }))
+    await user.click(screen.getByRole('checkbox', { name: 'High' }))
+    expect(await screen.findByText('No tasks match these filters')).toBeInTheDocument()
+    await user.click(within(screen.getByText('No tasks match these filters').parentElement).getByRole('button', { name: 'Clear filters' }))
+    await waitFor(() => expect(router.state.location.search).toBe(''))
+    expect(screen.getByText('Prepare usability test script')).toBeInTheDocument()
   })
 
   it('shows a board of 30 tasks (NFR-07)', async () => {
@@ -666,6 +735,78 @@ describe('members (US-07, US-09, US-10)', () => {
     expect(screen.getAllByText('Edit assigned tasks')).toHaveLength(2)
     expect(screen.getByText('Only the project owner can invite people or change access.')).toBeInTheDocument()
     expect(screen.getByText('You')).toBeInTheDocument()
+  })
+
+  it('asks for confirmation before removing a member and then removes their access', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/members')
+
+    await user.click(await screen.findByRole('button', { name: 'Remove omar from project' }))
+    const confirmation = screen.getByRole('dialog', { name: 'Remove omar from this project?' })
+    expect(within(confirmation).getByText(/They will lose access to this project and its workspace/)).toBeInTheDocument()
+    await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByText('omar')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Remove omar from project' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Remove omar from this project?' })).getByRole('button', { name: 'Remove member' }))
+    expect(await screen.findByText('omar was removed from the project.', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(screen.queryByText('omar')).not.toBeInTheDocument()
+  })
+
+  it('preserves the member and shows the error when removal fails', async () => {
+    signIn()
+    const user = userEvent.setup()
+    failNextCall('removeMember', new ApiError({ code: 'INTERNAL_ERROR', message: 'Could not remove the member.' }))
+    renderApp('/projects/p-khatet/members')
+
+    await user.click(await screen.findByRole('button', { name: 'Remove omar from project' }))
+    const confirmation = screen.getByRole('dialog', { name: 'Remove omar from this project?' })
+    await user.click(within(confirmation).getByRole('button', { name: 'Remove member' }))
+
+    expect(await within(confirmation).findByRole('alert')).toHaveTextContent('Could not remove the member.')
+    expect(screen.getByText('omar')).toBeInTheDocument()
+  })
+
+  it('lets a team member leave after confirmation and returns them to their project list', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-study/members')
+
+    await user.click(await screen.findByRole('button', { name: 'Leave project' }))
+    const confirmation = screen.getByRole('dialog', { name: 'Leave Study Planner?' })
+    expect(within(confirmation).getByText(/You will need a new invitation to rejoin/)).toBeInTheDocument()
+    await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
+    expect(router.state.location.pathname).toBe('/projects/p-study/members')
+
+    await user.click(screen.getByRole('button', { name: 'Leave project' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Leave Study Planner?' })).getByRole('button', { name: 'Leave project' }))
+
+    expect(await screen.findByRole('heading', { name: 'Your projects' })).toBeInTheDocument()
+    expect(await screen.findByText('You left Study Planner.', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Study Planner.*Member/ })).not.toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/projects')
+  })
+
+  it('shows leave failures and keeps the team member in the project', async () => {
+    signIn()
+    const user = userEvent.setup()
+    failNextCall('leaveProject', new ApiError({ code: 'INTERNAL_ERROR', message: 'Could not leave the project.' }))
+    renderApp('/projects/p-study/members')
+
+    await user.click(await screen.findByRole('button', { name: 'Leave project' }))
+    const confirmation = screen.getByRole('dialog', { name: 'Leave Study Planner?' })
+    await user.click(within(confirmation).getByRole('button', { name: 'Leave project' }))
+
+    expect(await within(confirmation).findByRole('alert')).toHaveTextContent('Could not leave the project.')
+    expect(within(screen.getByRole('list', { name: 'Project members' })).getByText('fahad')).toBeInTheDocument()
+  })
+
+  it('does not let the project owner leave', async () => {
+    signIn()
+    renderApp('/projects/p-khatet/members')
+    await screen.findByRole('heading', { level: 1, name: 'Members' })
+    expect(screen.queryByRole('button', { name: 'Leave project' })).not.toBeInTheDocument()
   })
 })
 

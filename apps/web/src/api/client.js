@@ -18,6 +18,8 @@ const realProjects = {
   createProject: (input) =>
     apiFetch('/projects', { method: 'POST', body: input }),
   getProject: (projectId) => apiFetch(`/projects/${projectId}`),
+  updateProject: (projectId, patch) =>
+    apiFetch(`/projects/${projectId}`, { method: 'PATCH', body: patch }),
 }
 
 // US-07 to US-10, US-13, US-21, US-24 and US-30.
@@ -25,6 +27,9 @@ const realMembersAndNotifications = {
   getMembers: (projectId) => apiFetch(`/projects/${projectId}/members`),
   updateMemberAccess: (projectId, userId, taskAccess) =>
     apiFetch(`/projects/${projectId}/members/${userId}`, { method: 'PATCH', body: { taskAccess } }),
+  removeMember: (projectId, userId) =>
+    apiFetch(`/projects/${projectId}/members/${userId}`, { method: 'DELETE' }),
+  leaveProject: (projectId) => apiFetch(`/projects/${projectId}/leave`, { method: 'POST' }),
   inviteMember: (projectId, username) =>
     apiFetch(`/projects/${projectId}/invitations`, { method: 'POST', body: { username } }),
   acceptInvitation: (invitationId) => apiFetch(`/invitations/${invitationId}/accept`, { method: 'POST' }),
