@@ -75,6 +75,10 @@ The owner creates and edits phases with a name, start date, and end date, and li
 
 The Members page lists the Project Owner and every Team Member with their task access level. Only the owner sees controls to invite by username, change access, and remove a member (with confirmation). A Team Member can leave a project after confirming; the owner cannot leave. Invitations arrive in notifications with Accept and Decline actions, and the notification bell shows the unread count.
 
+### Project settings
+
+Only the Project Owner sees Project Settings in the project navigation. The page lets them edit the required project name and optional description with an explicit Save changes action. Keep the entered values visible and explain the error if saving fails.
+
 ### Project chat
 
 Chat is a collapsible right panel on desktop and full screen on mobile. Every member can use it at every access level. Messages show the sender's username and time, can reference a task, and cannot be empty.

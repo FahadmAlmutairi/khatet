@@ -18,6 +18,8 @@ const realProjects = {
   createProject: (input) =>
     apiFetch('/projects', { method: 'POST', body: input }),
   getProject: (projectId) => apiFetch(`/projects/${projectId}`),
+  updateProject: (projectId, patch) =>
+    apiFetch(`/projects/${projectId}`, { method: 'PATCH', body: patch }),
 }
 
 // US-07 to US-10, US-13, US-21, US-24 and US-30.

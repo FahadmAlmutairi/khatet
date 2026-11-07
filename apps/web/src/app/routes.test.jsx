@@ -128,6 +128,31 @@ describe('projects (US-04, US-05)', () => {
     expect(await screen.findByRole('link', { name: /Thesis.*Owner/ })).toBeInTheDocument()
   })
 
+  it('lets the owner edit project settings and reflects the saved name in navigation', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/settings')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Project settings' })).toBeInTheDocument()
+    await user.clear(screen.getByLabelText(/Project name/))
+    await user.type(screen.getByLabelText(/Project name/), 'Updated Khatet')
+    await user.clear(screen.getByLabelText('Description (optional)'))
+    await user.type(screen.getByLabelText('Description (optional)'), 'Current project details')
+    await user.click(screen.getByRole('button', { name: 'Save changes' }))
+
+    expect(await screen.findByText('Project settings saved.', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(screen.getByLabelText(/Project name/)).toHaveValue('Updated Khatet')
+    expect(screen.getByLabelText('Description (optional)')).toHaveValue('Current project details')
+    expect(await screen.findByRole('button', { name: 'Updated Khatet' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/projects/p-khatet/settings')
+  })
+
+  it('shows no project settings form to a team member', async () => {
+    signIn()
+    renderApp('/projects/p-study/settings')
+    expect(await screen.findByText('Only the project owner can change project settings.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument()
+  })
+
   it('clears the project name error once the name is typed', async () => {
     signIn()
     const user = userEvent.setup()

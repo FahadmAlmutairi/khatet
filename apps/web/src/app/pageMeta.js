@@ -10,7 +10,7 @@ export function useDocumentTitle(...parts) {
   }, [title])
 }
 
-const PAGES = { board: 'Board', members: 'Members' }
+const PAGES = { board: 'Board', members: 'Members', settings: 'Project settings' }
 
 // G6 and G7: where the user is, shared by the top bar (desktop) and the page (phone).
 export function useBreadcrumb() {

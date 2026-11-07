@@ -98,6 +98,22 @@ describe('sample API', () => {
     await expect(api.getTasks('p-mobile')).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
+  it('lets the owner update a project name and description', async () => {
+    const project = await api.updateProject('p-khatet', { name: '  Khatet  ', description: '  A shared workspace  ' })
+    expect(project).toMatchObject({ name: 'Khatet', description: 'A shared workspace', role: 'OWNER' })
+    await expect(api.getProject('p-khatet')).resolves.toMatchObject({
+      name: 'Khatet',
+      description: 'A shared workspace',
+    })
+  })
+
+  it('requires a project owner and a non-empty name to update settings', async () => {
+    await expect(api.updateProject('p-study', { name: 'Changed' })).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    await expect(api.updateProject('p-khatet', { name: '  ' })).rejects.toMatchObject({
+      fieldErrors: [{ field: 'name', message: 'Enter a project name.' }],
+    })
+  })
+
   it('adds a user who accepts an invitation with Edit assigned tasks access', async () => {
     await api.acceptInvitation('inv-mobile-fahad')
     const projects = await api.getProjects()
