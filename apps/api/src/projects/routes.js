@@ -3,7 +3,7 @@ import { Router } from 'express'
 import { prisma } from '../db.js'
 import { requireAuth, requireUsername } from '../auth/requireAuth.js'
 import { invalid } from '../lib/errors.js'
-import { findMembership } from './access.js'
+import { findMembership, findOwnerMembership } from './access.js' 
 
 export const projectsRouter = Router()
 
@@ -92,4 +92,62 @@ projectsRouter.get('/:projectId', async (req, res) => {
   )
 
   res.json(serializeProject(membership.project, membership))
+})
+// US-26: Only the project owner can update project settings.
+projectsRouter.patch('/:projectId', async (req, res) => {
+  const membership = await findOwnerMembership(
+    req.params.projectId,
+    req.user.id,
+    'Only the project owner can change project settings.',
+  )
+
+  const data = {}
+  const fieldErrors = []
+
+  if (Object.hasOwn(req.body ?? {}, 'name')) {
+    if (typeof req.body.name !== 'string' || !req.body.name.trim()) {
+      fieldErrors.push({
+        field: 'name',
+        message: 'Enter a project name.',
+      })
+    } else if (req.body.name.trim().length > 200) {
+      fieldErrors.push({
+        field: 'name',
+        message: 'Keep the project name under 200 characters.',
+      })
+    } else {
+      data.name = req.body.name.trim()
+    }
+  }
+
+  if (Object.hasOwn(req.body ?? {}, 'description')) {
+    if (typeof req.body.description !== 'string') {
+      fieldErrors.push({
+        field: 'description',
+        message: 'Enter a valid description.',
+      })
+    } else {
+      data.description = req.body.description.trim()
+    }
+  }
+
+  if (fieldErrors.length) {
+    throw invalid(fieldErrors)
+  }
+
+  if (!Object.keys(data).length) {
+    throw invalid([
+      {
+        field: 'name',
+        message: 'Provide a name or description to update.',
+      },
+    ])
+  }
+
+  const project = await prisma.project.update({
+    where: { id: req.params.projectId },
+    data,
+  })
+
+  res.json(serializeProject(project, membership))
 })

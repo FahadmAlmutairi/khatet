@@ -62,6 +62,38 @@ POST   /api/projects/:projectId/imports/confirm     (owner, Could have)
 
 Document each route's ownership and permission rules in OpenAPI before frontend use.
 
+## US-26: Change Project Settings
+
+**Endpoint:** `PATCH /api/projects/:projectId`
+
+**Authorization:** Requires a signed-in user who is the project `OWNER`. Other project members receive `403 FORBIDDEN`; non-members receive `404 NOT_FOUND`.
+
+**Request body (JSON):**
+
+```json
+{
+  "name": "Updated Project",
+  "description": "Updated project description"
+}
+```
+
+Both fields are optional individually, but at least one must be provided.
+
+- `name`: non-empty string after trimming, maximum 200 characters.
+- `description`: string; may be empty to clear the description.
+- Unknown fields do not count as updates.
+
+**Success:** `200 OK`, returning the updated project with `id`, `name`, `description`, `createdAt`, `updatedAt`, `role`, `taskAccess`, and `permissions`.
+
+**Errors:**
+
+- `401 UNAUTHENTICATED`: Missing or invalid session.
+- `403 FORBIDDEN`: User is a member but not the owner.
+- `404 NOT_FOUND`: Project does not exist or user is not a member.
+- `422 VALIDATION_FAILED`: Invalid name, description, or empty update.
+
+**Persistence:** Updates are saved in PostgreSQL through Prisma.
+
 ## Resource concepts
 
 Resource responses should expose stable identifiers and domain values rather than UI-specific display strings. At minimum, the frontend needs a stable ID, displayable labels or names, timestamps where relevant, explicit status, and permission information needed to render an action. Final field names are a ratification item.

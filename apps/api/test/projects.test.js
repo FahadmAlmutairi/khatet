@@ -33,3 +33,76 @@ describe.skipIf(!hasTestDatabase)('US-04 to US-06: projects', () => {
     expect(res.body.error.code).toBe('NOT_FOUND')
   })
 })
+describe.skipIf(!hasTestDatabase)('US-26: change project settings', () => {
+  beforeEach(resetDatabase)
+  afterAll(() => prisma.$disconnect())
+
+  it('allows the owner to update the project name and description', async () => {
+    const owner = await createUser('settings_owner')
+    const project = await createProject(owner)
+
+    const res = await request(app)
+      .patch(`/api/projects/${project.id}`)
+      .set(authHeader(owner))
+      .send({
+        name: ' Updated Project ',
+        description: ' Updated description ',
+      })
+
+    expect(res.status).toBe(200)
+    expect(res.body).toMatchObject({
+      id: project.id,
+      name: 'Updated Project',
+      description: 'Updated description',
+      role: 'OWNER',
+    })
+
+    const saved = await prisma.project.findUnique({
+      where: { id: project.id },
+    })
+
+    expect(saved.name).toBe('Updated Project')
+    expect(saved.description).toBe('Updated description')
+  })
+
+  it('rejects changes from a project member who is not the owner', async () => {
+    const owner = await createUser('settings_owner')
+    const member = await createUser('settings_member')
+    const project = await createProject(owner)
+
+    await prisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        userId: member.id,
+        role: 'MEMBER',
+        taskAccess: 'EDIT_ALL',
+      },
+    })
+
+    const res = await request(app)
+      .patch(`/api/projects/${project.id}`)
+      .set(authHeader(member))
+      .send({ name: 'Unauthorized Change' })
+
+    expect(res.status).toBe(403)
+    expect(res.body.error.code).toBe('FORBIDDEN')
+  })
+
+  it('rejects an empty project name', async () => {
+    const owner = await createUser('settings_owner')
+    const project = await createProject(owner)
+
+    const res = await request(app)
+      .patch(`/api/projects/${project.id}`)
+      .set(authHeader(owner))
+      .send({ name: '   ' })
+
+    expect(res.status).toBe(422)
+    expect(res.body.error.code).toBe('VALIDATION_FAILED')
+    expect(res.body.error.fieldErrors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'name' }),
+      ]),
+    )
+  })
+})
