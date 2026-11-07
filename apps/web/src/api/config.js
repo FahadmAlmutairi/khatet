@@ -9,11 +9,11 @@ export const supabaseKey = env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 export const useRealAuth = Boolean(apiUrl && supabaseUrl && supabaseKey) && env.MODE !== 'test'
 
-// Screens whose Express routes are not built yet. They work on sample data and stay hidden
-// when the real API is on. Set an entry to true (or delete the check) once its route ships.
+// Screens whose Express routes may not be built yet. Shown on the live site by choice; until the
+// route ships, the action shows the API's error. Set an entry to false to hide it again.
 // memberRemoval: DELETE /api/projects/:projectId/members/:userId and POST /api/projects/:projectId/leave
 // projectSettings: PATCH /api/projects/:projectId
 export const apiReady = {
-  memberRemoval: !useRealAuth,
-  projectSettings: !useRealAuth,
+  memberRemoval: true,
+  projectSettings: true,
 }
