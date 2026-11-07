@@ -367,4 +367,125 @@ describe.skipIf(!hasTestDatabase)('members and invitations', () => {
         where: { id: message.id },
       })).not.toBeNull()
     })
+  })
+  describe('US-12: POST /api/projects/:projectId/leave', () => {
+    let member
+
+    const leave = (as, projectId = project.id) =>
+      request(app)
+        .post(`/api/projects/${projectId}/leave`)
+        .set(authHeader(as))
+
+    beforeEach(async () => {
+      member = await createUser('leaving_member')
+      await prisma.projectMember.create({
+        data: { projectId: project.id, userId: member.id },
+      })
+    })
+
+    it('lets a member leave and revokes project access', async () => {
+      const res = await leave(member)
+
+      expect(res.status).toBe(200)
+      expect(res.body).toEqual({
+        projectId: project.id,
+        userId: member.id,
+      })
+
+      expect(
+        await prisma.projectMember.count({
+          where: { projectId: project.id, userId: member.id },
+        }),
+      ).toBe(0)
+
+      const opened = await request(app)
+        .get(`/api/projects/${project.id}`)
+        .set(authHeader(member))
+
+      expect(opened.status).toBe(404)
+    })
+
+    it('prevents the owner from leaving', async () => {
+      const res = await leave(owner)
+
+      expect(res.status).toBe(403)
+      expect(res.body.error.code).toBe('FORBIDDEN')
+
+      expect(
+        await prisma.projectMember.count({
+          where: { projectId: project.id, userId: owner.id },
+        }),
+      ).toBe(1)
+    })
+
+    it('prevents leaving when the member is the only assignee', async () => {
+      const task = await prisma.task.create({
+        data: {
+          projectId: project.id,
+          title: 'Important task',
+          position: 1,
+          createdById: owner.id,
+          assignees: { create: [{ userId: member.id }] },
+        },
+      })
+
+      const res = await leave(member)
+
+      expect(res.status).toBe(409)
+      expect(res.body.error.code).toBe('ONLY_ASSIGNEE')
+
+      expect(
+        await prisma.projectMember.count({
+          where: { projectId: project.id, userId: member.id },
+        }),
+      ).toBe(1)
+
+      expect(
+        await prisma.taskAssignee.count({
+          where: { taskId: task.id, userId: member.id },
+        }),
+      ).toBe(1)
+    })
+
+    it('preserves shared tasks and chat messages after leaving', async () => {
+      const task = await prisma.task.create({
+        data: {
+          projectId: project.id,
+          title: 'Shared task',
+          position: 1,
+          createdById: member.id,
+          assignees: {
+            create: [{ userId: member.id }, { userId: owner.id }],
+          },
+        },
+      })
+
+      const message = await prisma.chatMessage.create({
+        data: {
+          projectId: project.id,
+          authorId: member.id,
+          text: 'Message before leaving',
+        },
+      })
+
+      const res = await leave(member)
+      expect(res.status).toBe(200)
+
+      expect(
+        await prisma.task.findUnique({ where: { id: task.id } }),
+      ).not.toBeNull()
+
+      expect(
+        await prisma.taskAssignee.findMany({
+          where: { taskId: task.id },
+          select: { userId: true },
+        }),
+      ).toEqual([{ userId: owner.id }])
+
+      expect(
+        await prisma.chatMessage.findUnique({
+          where: { id: message.id },
+        }),
+      ).not.toBeNull()
+    })
   })})

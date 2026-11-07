@@ -239,3 +239,74 @@ membersRouter.delete('/projects/:projectId/members/:userId', signedIn, async (re
 
   res.json({ userId })
 })
+// US-12: A team member can leave a project, but the owner cannot.
+membersRouter.post('/projects/:projectId/leave', signedIn, async (req, res) => {
+  const membership = await findMembership(req.params.projectId, req.user.id)
+
+  if (membership.role === 'OWNER') {
+    throw new ApiError(
+      403,
+      'FORBIDDEN',
+      'The project owner cannot leave their own project.',
+    )
+  }
+
+  const { projectId, userId } = membership
+
+  await prisma.$transaction(async (tx) => {
+    // Serialize membership and task changes for this project.
+    await tx.$queryRaw`SELECT 1 FROM "projects" WHERE "id" = ${projectId}::uuid FOR UPDATE`
+
+    const member = await tx.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+    })
+
+    if (!member) {
+      throw notFound('You are no longer a member of this project.')
+    }
+
+    const assignments = await tx.taskAssignee.findMany({
+      where: { userId, task: { projectId } },
+      select: { taskId: true },
+    })
+
+    const onlyAssignedTasks = []
+
+    for (const assignment of assignments) {
+      const count = await tx.taskAssignee.count({
+        where: { taskId: assignment.taskId },
+      })
+
+      if (count === 1) {
+        const task = await tx.task.findUnique({
+          where: { id: assignment.taskId },
+          select: { id: true, title: true },
+        })
+
+        if (task) onlyAssignedTasks.push(task)
+      }
+    }
+
+    if (onlyAssignedTasks.length) {
+      throw new ApiError(
+        409,
+        'ONLY_ASSIGNEE',
+        'Reassign these tasks before leaving the project.',
+        onlyAssignedTasks.map((task) => ({
+          field: 'tasks',
+          message: `${task.title} (${task.id})`,
+        })),
+      )
+    }
+
+    await tx.taskAssignee.deleteMany({
+      where: { userId, task: { projectId } },
+    })
+
+    await tx.projectMember.delete({
+      where: { projectId_userId: { projectId, userId } },
+    })
+  }, TRANSACTION_OPTIONS)
+
+  res.json({ projectId, userId })
+})

@@ -136,6 +136,49 @@ paths:
         '409':
           description: ONLY_ASSIGNEE - Reassign affected tasks before removing the member.
 
+  /projects/{projectId}/leave:
+    post:
+      summary: Leave a project
+      operationId: leaveProject
+      description: >
+        A team member can leave a project, but the project owner
+        cannot leave. Leaving is blocked if the member is the only
+        assignee of any task. Otherwise, the member's task assignments
+        and membership are removed while tasks and previous chat
+        messages are preserved.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Team member left the project successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [projectId, userId]
+                properties:
+                  projectId:
+                    type: string
+                    format: uuid
+                  userId:
+                    type: string
+                    format: uuid
+        '401':
+          description: UNAUTHENTICATED - Sign-in required.
+        '403':
+          description: FORBIDDEN - The project owner cannot leave.
+        '404':
+          description: NOT_FOUND - Project does not exist or user is not a member.
+        '409':
+          description: ONLY_ASSIGNEE - Reassign affected tasks before leaving.
+
 components:
   securitySchemes:
     bearerAuth:
