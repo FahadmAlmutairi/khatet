@@ -1,0 +1,100 @@
+
+openapi: 3.0.3
+info:
+  title: Khatet API
+  version: 0.2.0
+  description: API documentation for US-26 project settings.
+
+servers:
+  - url: /api
+
+paths:
+  /projects/{projectId}:
+    patch:
+      summary: Change project settings
+      operationId: updateProjectSettings
+      description: Only the project owner can update its name or description.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+                  description: Must not be blank after trimming.
+                description:
+                  type: string
+              anyOf:
+                - required: [name]
+                - required: [description]
+      responses:
+        '200':
+          description: Project settings updated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - id
+                  - name
+                  - description
+                  - createdAt
+                  - updatedAt
+                  - role
+                  - taskAccess
+                  - permissions
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                  updatedAt:
+                    type: string
+                    format: date-time
+                  role:
+                    type: string
+                    example: OWNER
+                  taskAccess:
+                    type: string
+                    example: EDIT_ALL
+                  permissions:
+                    type: object
+                    properties:
+                      canCreateTask:
+                        type: boolean
+                      canManageMembers:
+                        type: boolean
+        '401':
+          description: UNAUTHENTICATED
+        '403':
+          description: FORBIDDEN - Not the project owner.
+        '404':
+          description: NOT_FOUND - Project does not exist or user is not a member.
+        '422':
+          description: VALIDATION_FAILED - Invalid or empty update.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
