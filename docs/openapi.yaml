@@ -3,8 +3,7 @@ openapi: 3.0.3
 info:
   title: Khatet API
   version: 0.2.0
-  description: API documentation for US-26 project settings.
-
+description: API documentation for US-26 project settings and US-11 member removal.
 servers:
   - url: /api
 
@@ -91,6 +90,51 @@ paths:
           description: NOT_FOUND - Project does not exist or user is not a member.
         '422':
           description: VALIDATION_FAILED - Invalid or empty update.
+
+  /projects/{projectId}/members/{userId}:
+    delete:
+      summary: Remove a team member
+      operationId: removeProjectMember
+      description: >
+        Only the project owner can remove a team member.
+        Removal is blocked if the member is the only assignee
+        of any task. Otherwise, their task assignments are removed,
+        while tasks and previous chat messages are preserved.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Team member removed successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [userId]
+                properties:
+                  userId:
+                    type: string
+                    format: uuid
+        '401':
+          description: UNAUTHENTICATED - Sign-in required.
+        '403':
+          description: FORBIDDEN - Only the project owner can remove members.
+        '404':
+          description: NOT_FOUND - Project or member not found, or owner removal attempted.
+        '409':
+          description: ONLY_ASSIGNEE - Reassign affected tasks before removing the member.
 
 components:
   securitySchemes:

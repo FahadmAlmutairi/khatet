@@ -246,4 +246,125 @@ describe.skipIf(!hasTestDatabase)('members and invitations', () => {
       expect((await answer(sara, 'abc', 'decline')).status).toBe(404)
     })
   })
-})
+
+
+  describe('US-11: DELETE /api/projects/:projectId/members/:userId', () => {
+    let member
+
+    const remove = (as, userId, projectId = project.id) =>
+      request(app)
+        .delete(`/api/projects/${projectId}/members/${userId}`)
+        .set(authHeader(as))
+
+    beforeEach(async () => {
+      member = await createUser('member')
+      await prisma.projectMember.create({
+        data: { projectId: project.id, userId: member.id },
+      })
+    })
+
+    it('lets the owner remove a member and revokes project access', async () => {
+      const res = await remove(owner, member.id)
+
+      expect(res.status).toBe(200)
+      expect(res.body).toEqual({ userId: member.id })
+
+      expect(
+        await prisma.projectMember.count({
+          where: { projectId: project.id, userId: member.id },
+        }),
+      ).toBe(0)
+
+      const opened = await request(app)
+        .get(`/api/projects/${project.id}`)
+        .set(authHeader(member))
+
+      expect(opened.status).toBe(404)
+    })
+
+    it('allows only the owner to remove members', async () => {
+      const other = await createUser('other')
+      await prisma.projectMember.create({
+        data: { projectId: project.id, userId: other.id },
+      })
+
+      const res = await remove(member, other.id)
+      expect(res.status).toBe(403)
+
+      const outsider = await createUser('outsider')
+      expect((await remove(outsider, member.id)).status).toBe(404)
+      expect((await remove(owner, owner.id)).status).toBe(404)
+    })
+
+    it('refuses missing or invalid member IDs', async () => {
+      expect((await remove(owner, randomUUID())).status).toBe(404)
+      expect((await remove(owner, 'abc')).status).toBe(404)
+    })
+
+    it('prevents removing the only assignee of a task', async () => {
+      const task = await prisma.task.create({
+        data: {
+          projectId: project.id,
+          title: 'Important task',
+          position: 1,
+          createdById: owner.id,
+          assignees: { create: [{ userId: member.id }] },
+        },
+      })
+
+      const res = await remove(owner, member.id)
+
+      expect(res.status).toBe(409)
+      expect(res.body.error.code).toBe('ONLY_ASSIGNEE')
+
+      expect(
+        await prisma.projectMember.count({
+          where: { projectId: project.id, userId: member.id },
+        }),
+      ).toBe(1)
+
+      expect(
+        await prisma.taskAssignee.count({
+          where: { taskId: task.id, userId: member.id },
+        }),
+      ).toBe(1)
+    })
+
+    it('removes shared assignments but preserves tasks and chat history', async () => {
+      const task = await prisma.task.create({
+        data: {
+          projectId: project.id,
+          title: 'Shared task',
+          position: 1,
+          createdById: member.id,
+          assignees: {
+            create: [{ userId: member.id }, { userId: owner.id }],
+          },
+        },
+      })
+
+      const message = await prisma.chatMessage.create({
+        data: {
+          projectId: project.id,
+          authorId: member.id,
+          text: 'Previous project discussion',
+        },
+      })
+
+      expect((await remove(owner, member.id)).status).toBe(200)
+
+      expect(await prisma.task.findUnique({ where: { id: task.id } }))
+        .not.toBeNull()
+
+      expect(
+        await prisma.taskAssignee.findMany({
+          where: { taskId: task.id },
+          select: { userId: true },
+        }),
+      ).toEqual([{ userId: owner.id }])
+
+      expect(await prisma.chatMessage.findUnique({
+        where: { id: message.id },
+      })).not.toBeNull()
+    })
+  })})

@@ -8,7 +8,7 @@
 import { Router } from 'express'
 import { prisma } from '../db.js'
 import { requireAuth, requireUsername } from '../auth/requireAuth.js'
-import { invalid, notFound } from '../lib/errors.js'
+import { ApiError, invalid, notFound } from '../lib/errors.js'
 import { TRANSACTION_OPTIONS } from '../lib/transactions.js'
 import { findMembership, findOwnerMembership, isUuid } from '../projects/access.js'
 
@@ -175,3 +175,67 @@ async function answerInvitation(req, res, accept) {
 
 membersRouter.post('/invitations/:invitationId/accept', signedIn, (req, res) => answerInvitation(req, res, true))
 membersRouter.post('/invitations/:invitationId/decline', signedIn, (req, res) => answerInvitation(req, res, false))
+
+// US-11: Only the owner can remove a team member.
+membersRouter.delete('/projects/:projectId/members/:userId', signedIn, async (req, res) => {
+  const { projectId } = await findOwnerMembership(
+    req.params.projectId,
+    req.user.id,
+    'Only the project owner can remove members.',
+  )
+
+  const { userId } = req.params
+  const gone = () => notFound('This member is no longer in the project.')
+  if (!isUuid(userId)) throw gone()
+
+  await prisma.$transaction(async (tx) => {
+    // Serialize membership and task changes for this project.
+    await tx.$queryRaw`SELECT 1 FROM "projects" WHERE "id" = ${projectId}::uuid FOR UPDATE`
+
+    const member = await tx.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+    })
+    if (!member || member.role !== 'MEMBER') throw gone()
+
+    const assignments = await tx.taskAssignee.findMany({
+      where: { userId, task: { projectId } },
+      select: { taskId: true },
+    })
+
+    const onlyAssignedTasks = []
+    for (const assignment of assignments) {
+      const count = await tx.taskAssignee.count({
+        where: { taskId: assignment.taskId },
+      })
+      if (count === 1) {
+        const task = await tx.task.findUnique({
+          where: { id: assignment.taskId },
+          select: { id: true, title: true },
+        })
+        if (task) onlyAssignedTasks.push(task)
+      }
+    }
+
+    if (onlyAssignedTasks.length) {
+      throw new ApiError(
+        409,
+        'ONLY_ASSIGNEE',
+        'Reassign these tasks before removing this member.',
+        onlyAssignedTasks.map((task) => ({
+          field: 'tasks',
+          message: `${task.title} (${task.id})`,
+        })),
+      )
+    }
+
+    await tx.taskAssignee.deleteMany({
+      where: { userId, task: { projectId } },
+    })
+
+    await tx.projectMember.delete({
+      where: { projectId_userId: { projectId, userId } },
+    })
+  }, TRANSACTION_OPTIONS)
+
+  res.json({ userId })
+})
