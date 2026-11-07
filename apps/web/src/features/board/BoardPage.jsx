@@ -3,7 +3,7 @@ import { useOutletContext, useSearchParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
-import { useMembers, useMoveTask, useTasks, useUpdateTask } from '../../api/hooks.js'
+import { useMe, useMembers, useMoveTask, useTasks, useUpdateTask } from '../../api/hooks.js'
 import { ChatIcon, PlusIcon } from '../../components/icons.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { BoardSkeleton } from '../../components/ui/Skeleton.jsx'
@@ -15,6 +15,7 @@ import ChatPanel from '../chat/ChatPanel.jsx'
 import InviteDialog from '../members/InviteDialog.jsx'
 import BoardColumns from './BoardColumns.jsx'
 import CreateTaskDialog from './CreateTaskDialog.jsx'
+import FilterBar from './FilterBar.jsx'
 import TaskDetails from './TaskDetails.jsx'
 
 function accessNote(project) {
@@ -30,6 +31,7 @@ export default function BoardPage() {
   const { project } = useOutletContext()
   const tasks = useTasks(project.id)
   const members = useMembers(project.id)
+  const me = useMe()
   const moveTask = useMoveTask(project.id)
   const updateTask = useUpdateTask()
   const toast = useToast()
@@ -56,13 +58,60 @@ export default function BoardPage() {
     document.querySelector(`[data-task-id="${pending.taskId}"] h3 button`)?.focus()
   }, [tasks.data])
 
+  const filters = useMemo(
+    () => ({
+      assignee: new Set(searchParams.getAll('assignee')),
+      status: new Set(searchParams.getAll('status')),
+      priority: new Set(searchParams.getAll('priority')),
+    }),
+    [searchParams],
+  )
+  const hasFilters = filters.assignee.size > 0 || filters.status.size > 0 || filters.priority.size > 0
+  const filteredTasks = useMemo(() => {
+    if (!tasks.data) return []
+    return tasks.data.filter(
+      (task) =>
+        (!filters.assignee.size || task.assigneeIds.some((id) => filters.assignee.has(id))) &&
+        (!filters.status.size || filters.status.has(task.status)) &&
+        (!filters.priority.size || (task.priority && filters.priority.has(task.priority))),
+    )
+  }, [filters, tasks.data])
+
+  function updateFilters(nextFilters) {
+    const next = new URLSearchParams(searchParams)
+    for (const key of ['assignee', 'status', 'priority']) {
+      next.delete(key)
+      for (const value of nextFilters[key]) next.append(key, value)
+    }
+    setSearchParams(next)
+  }
+
+  function toggleFilter(type, value) {
+    const next = {
+      assignee: new Set(filters.assignee),
+      status: new Set(filters.status),
+      priority: new Set(filters.priority),
+    }
+    if (next[type].has(value)) next[type].delete(value)
+    else next[type].add(value)
+    updateFilters(next)
+  }
+
+  function clearFilters() {
+    updateFilters({ assignee: new Set(), status: new Set(), priority: new Set() })
+  }
+
   function openTask(taskId) {
-    setSearchParams({ task: taskId })
+    const next = new URLSearchParams(searchParams)
+    next.set('task', taskId)
+    setSearchParams(next)
   }
 
   function closeTask() {
     const taskId = openTaskId
-    setSearchParams({}, { replace: true })
+    const next = new URLSearchParams(searchParams)
+    next.delete('task')
+    setSearchParams(next, { replace: true })
     // G11: if the control that opened the task is gone (a menu item), focus returns to its card.
     setTimeout(() => {
       if (document.activeElement && document.activeElement !== document.body) return
@@ -171,13 +220,31 @@ export default function BoardPage() {
           </div>
         )}
         {tasks.data && members.data && (
-          <BoardColumns
-            tasks={tasks.data}
-            usernames={usernames}
-            onOpen={openTask}
-            onMove={move}
-            onCreate={project.permissions.canCreateTask ? () => setCreating(true) : undefined}
-          />
+          <div className="flex flex-col gap-5">
+            <FilterBar
+              members={members.data.members}
+              currentUserId={me.data?.id}
+              filters={filters}
+              onToggle={toggleFilter}
+              onClear={clearFilters}
+            />
+            {hasFilters && filteredTasks.length === 0 && tasks.data.length > 0 ? (
+              <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-surface p-8 text-center">
+                <p className="text-body">No tasks match these filters</p>
+                <Button variant="secondary" onClick={clearFilters} className="mt-4">
+                  Clear filters
+                </Button>
+              </div>
+            ) : (
+              <BoardColumns
+                tasks={filteredTasks}
+                usernames={usernames}
+                onOpen={openTask}
+                onMove={move}
+                onCreate={project.permissions.canCreateTask ? () => setCreating(true) : undefined}
+              />
+            )}
+          </div>
         )}
       </div>
 
