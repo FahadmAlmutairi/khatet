@@ -107,14 +107,10 @@ function SortableProject({ project, current, open, mobile, onNavigate, onToggle,
   )
 }
 
-function Sidebar({ onNavigate, openProjects, onToggleProject, mobile = false }) {
+function Sidebar({ onNavigate, onSignOut, openProjects, onToggleProject, mobile = false }) {
   const { projectId } = useParams()
   const me = useMe()
   const order = useProjectOrder(useProjects().data, me.data?.id)
-  const signOut = useSignOut()
-  const navigate = useNavigate()
-  // Signing out is asked first, so a stray click does not end the session.
-  const [confirmSignOut, setConfirmSignOut] = useState(false)
   // A drag ends with the button still under the pointer, so its click must not also open or close the project.
   const draggedRef = useRef(false)
 
@@ -223,7 +219,7 @@ function Sidebar({ onNavigate, openProjects, onToggleProject, mobile = false }) 
         </NavLink>
         <button
           type="button"
-          onClick={() => setConfirmSignOut(true)}
+          onClick={onSignOut}
           className="flex h-11 w-full items-center gap-2 rounded-lg px-2 lg:h-9 text-left text-sm text-nav hover:bg-surface"
         >
           <SignOutIcon />
@@ -234,33 +230,6 @@ function Sidebar({ onNavigate, openProjects, onToggleProject, mobile = false }) 
           <span className="truncate text-sm font-medium text-body">{me.data?.username}</span>
         </div>
       </div>
-      <Dialog
-        open={confirmSignOut}
-        onClose={() => setConfirmSignOut(false)}
-        title="Sign out of Khatet?"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setConfirmSignOut(false)}>
-              Cancel
-            </Button>
-            <Button
-              loading={signOut.isPending}
-              onClick={() =>
-                signOut.mutate(undefined, {
-                  onSuccess: () => {
-                    setConfirmSignOut(false)
-                    navigate('/sign-in', { replace: true })
-                  },
-                })
-              }
-            >
-              Sign out
-            </Button>
-          </>
-        }
-      >
-        <p className="text-base">You will need a new email code to sign in again.</p>
-      </Dialog>
     </div>
   )
 }
@@ -362,8 +331,45 @@ const RAIL_WIDTH = 64
 
 const panelButton = 'inline-flex size-8 items-center justify-center rounded-md text-nav hover:bg-surface hover:text-heading'
 
+// Asked before signing out, so a stray tap does not end the session. It lives here, outside the
+// phone drawer, because iPhone Safari did not show a <dialog> opened from inside that fixed overlay.
+function SignOutDialog({ open, onClose }) {
+  const signOut = useSignOut()
+  const navigate = useNavigate()
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Sign out of Khatet?"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            loading={signOut.isPending}
+            onClick={() =>
+              signOut.mutate(undefined, {
+                onSuccess: () => {
+                  onClose()
+                  navigate('/sign-in', { replace: true })
+                },
+              })
+            }
+          >
+            Sign out
+          </Button>
+        </>
+      }
+    >
+      <p className="text-base">You will need a new email code to sign in again.</p>
+    </Dialog>
+  )
+}
+
 export default function AppShell() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
   // Desktop: the sidebar can be hidden to give the board more room; the choice is remembered.
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const hideButtonRef = useRef(null)
@@ -489,7 +495,7 @@ export default function AppShell() {
               </span>
             </button>
           </div>
-          <Sidebar openProjects={openProjects} onToggleProject={toggleProject} />
+          <Sidebar onSignOut={() => setConfirmSignOut(true)} openProjects={openProjects} onToggleProject={toggleProject} />
         </aside>
       )}
 
@@ -513,7 +519,14 @@ export default function AppShell() {
                 <CloseIcon />
               </button>
             </div>
-            <Sidebar mobile onNavigate={() => setMenuOpen(false)} openProjects={openProjects} onToggleProject={toggleProject} />
+            <Sidebar
+              mobile
+              onNavigate={() => setMenuOpen(false)}
+              onSignOut={() => {
+                setMenuOpen(false)
+                setConfirmSignOut(true)
+              }}
+              openProjects={openProjects} onToggleProject={toggleProject} />
           </aside>
         </div>
       )}
@@ -545,6 +558,7 @@ export default function AppShell() {
           </div>
         </main>
       </div>
+      <SignOutDialog open={confirmSignOut} onClose={() => setConfirmSignOut(false)} />
     </div>
   )
 }

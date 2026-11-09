@@ -80,6 +80,22 @@ describe('sign in (US-01, US-02)', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/sign-in'))
   })
 
+  it('asks before signing out from the phone sidebar', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects')
+    await user.click(await screen.findByRole('button', { name: 'Open sidebar' }))
+    const drawer = document.getElementById('mobile-sidebar')
+    await user.click(within(drawer).getByRole('button', { name: 'Sign out' }))
+
+    // The drawer closes and the question shows on its own, outside it.
+    const dialog = await screen.findByRole('dialog', { name: 'Sign out of Khatet?' })
+    expect(document.getElementById('mobile-sidebar')).toBeNull()
+    expect(dialog.closest('#mobile-sidebar')).toBeNull()
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    expect(router.state.location.pathname).toBe('/projects')
+  })
+
   it('shows no step count on the sign-in pages', async () => {
     renderApp('/sign-in')
     await screen.findByRole('heading', { name: 'Sign in or create an account' })
