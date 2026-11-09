@@ -1,8 +1,9 @@
+import { ChevronIcon } from '../../components/icons.jsx'
 import { PRIORITIES, STATUSES, priorityLabel, statusLabel } from '../../lib/domain.js'
 
 function FilterMenu({ label, options, selected, onToggle }) {
   return (
-    <details className="relative">
+    <details className="group relative">
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-control border border-line bg-white px-3 text-label font-medium text-heading hover:bg-surface [&::-webkit-details-marker]:hidden">
         {label}
         {selected.size > 0 && (
@@ -10,7 +11,9 @@ function FilterMenu({ label, options, selected, onToggle }) {
             {selected.size}
           </span>
         )}
-        <span aria-hidden="true">⌄</span>
+        <span className="-mr-0.5 inline-flex text-muted transition-transform duration-200 group-open:rotate-180">
+          <ChevronIcon direction="down" size={14} />
+        </span>
       </summary>
       <fieldset className="absolute z-30 mt-1.5 min-w-52 rounded-xl border border-line bg-white p-2 shadow-[0_12px_24px_rgba(38,54,41,0.16)]">
         <legend className="sr-only">Filter by {label.toLowerCase()}</legend>
