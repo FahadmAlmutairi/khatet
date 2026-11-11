@@ -4,6 +4,7 @@ import { useInviteMember } from '../../api/hooks.js'
 import Button from '../../components/ui/Button.jsx'
 import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import { FieldError } from '../../components/ui/Field.jsx'
+import { useFocusFirstInvalid } from '../../components/ui/useFocusFirstInvalid.js'
 import { useToast } from '../../components/ui/toastContext.js'
 
 // Figma: invite window 220:344. Opened from the Members page and from the board header,
@@ -11,6 +12,7 @@ import { useToast } from '../../components/ui/toastContext.js'
 // US-07: the owner invites a registered user by username.
 export default function InviteDialog({ open, onClose, projectId, backLabel = 'Members' }) {
   const invite = useInviteMember(projectId)
+  const formRef = useFocusFirstInvalid(invite.error)
   const toast = useToast()
   const [username, setUsername] = useState('')
   const id = useId()
@@ -37,7 +39,7 @@ export default function InviteDialog({ open, onClose, projectId, backLabel = 'Me
   return (
     <Dialog open={open} onClose={close} variant="page" width={560} labelledBy={`${id}-title`}>
       <MobileBackBar label={backLabel} onBack={close} />
-      <form onSubmit={submit} noValidate className="flex flex-col gap-[18px] px-5 pt-3 pb-6 sm:px-7 sm:pt-7 sm:pb-6">
+      <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-[18px] px-5 pt-3 pb-6 sm:px-7 sm:pt-7 sm:pb-6">
         <div className="flex flex-col gap-1.5">
           <h2 id={`${id}-title`} className="text-[26px] leading-8 font-bold text-body">
             Invite a team member
@@ -66,7 +68,7 @@ export default function InviteDialog({ open, onClose, projectId, backLabel = 'Me
             aria-required="true"
             aria-invalid={Boolean(usernameError)}
             aria-describedby={usernameError ? `${id}-error` : `${id}-hint`}
-            className="h-11 w-full rounded-[10px] border border-input bg-white px-[14px] text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
+            className="h-11 w-full rounded-[10px] border border-input bg-white px-[14px] text-base sm:text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
           />
           {usernameError ? (
             <FieldError id={`${id}-error`}>{usernameError}</FieldError>

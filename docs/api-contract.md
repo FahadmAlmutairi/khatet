@@ -35,6 +35,7 @@ PATCH  /api/projects/:projectId/members/:userId     (owner: task access)
 DELETE /api/projects/:projectId/members/:userId     (owner: remove member)
 POST   /api/projects/:projectId/leave               (Team Member)
 POST   /api/projects/:projectId/invitations         (owner: invite by username)
+DELETE /api/projects/:projectId/invitations/:invitationId  (owner: cancel a pending invitation, 204)
 POST   /api/invitations/:invitationId/accept
 POST   /api/invitations/:invitationId/decline
 GET    /api/projects/:projectId/tasks?assignee=&status=&priority=&q=
@@ -193,7 +194,7 @@ Task access for members:
 - `EDIT_ASSIGNED` (default): edit and move only the tasks assigned to them.
 - `EDIT_ALL`: create, edit, move, and delete any task.
 - Every member can read and send project chat messages. Only the owner manages members, invitations, task access, phases, and project settings.
-- Removing a member (`DELETE /api/projects/:projectId/members/:userId`) or leaving (`POST /api/projects/:projectId/leave`) answers 409 with code `ONLY_ASSIGNEE` and the affected tasks while that person is the only assignee of a task. The owner cannot leave their own project (403).
+- Removing a member (`DELETE /api/projects/:projectId/members/:userId`) or leaving (`POST /api/projects/:projectId/leave`) answers 409 with code `ONLY_ASSIGNEE` and the affected tasks (one `fieldErrors` entry per task: `field: "tasks"`, `message` is the task title, `taskId` its ID) while that person is the only assignee of a task. The owner cannot leave their own project (403).
 - A signed-in user can open only the projects they belong to (NFR-11). Integration tests cover every endpoint with each access level.
 
 In addition:

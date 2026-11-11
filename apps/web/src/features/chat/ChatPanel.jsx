@@ -6,6 +6,7 @@ import { ChatIcon, CloseIcon, SendIcon } from '../../components/icons.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { FieldError } from '../../components/ui/Field.jsx'
 import { ErrorState, LoadingState, Notice } from '../../components/ui/States.jsx'
+import { COVERS_PAGE_QUERY, inertOthers } from '../../lib/inertOthers.js'
 
 const MAX_MESSAGE_LENGTH = 2000
 
@@ -89,7 +90,7 @@ function Composer({ projectId, inputRef, onSent }) {
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) submit(event)
           }}
-          className="max-h-32 min-h-11 w-full resize-none rounded-lg border border-input bg-white px-3 py-2.5 text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
+          className="max-h-32 min-h-11 w-full resize-none rounded-lg border border-input bg-white px-3 py-2.5 text-base sm:text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
         />
         <Button type="submit" size="icon" loading={send.isPending} aria-label="Send message">
           {!send.isPending && <SendIcon />}
@@ -116,6 +117,21 @@ export default function ChatPanel({ project, open, onClose }) {
   const listRef = useRef(null)
   const inputRef = useRef(null)
   const stickToBottom = useRef(true)
+  const panelRef = useRef(null)
+  // On a phone the chat covers the whole page, so it acts as a modal dialog there: the page behind
+  // is inert until it closes (review M10). On a desktop it sits beside the board, which stays usable.
+  const [coversPage, setCoversPage] = useState(() => window.matchMedia?.(COVERS_PAGE_QUERY).matches ?? false)
+  useEffect(() => {
+    const query = window.matchMedia?.(COVERS_PAGE_QUERY)
+    if (!query) return undefined
+    const onChange = () => setCoversPage(query.matches)
+    query.addEventListener('change', onChange)
+    return () => query.removeEventListener('change', onChange)
+  }, [])
+  useEffect(() => {
+    if (!open || !coversPage || !panelRef.current) return undefined
+    return inertOthers(panelRef.current)
+  }, [open, coversPage])
 
   // Opening the chat puts the cursor in the message box.
   useEffect(() => {
@@ -141,6 +157,9 @@ export default function ChatPanel({ project, open, onClose }) {
 
   return (
     <aside
+      ref={panelRef}
+      role={coversPage ? 'dialog' : undefined}
+      aria-modal={coversPage ? 'true' : undefined}
       aria-labelledby={titleId}
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
@@ -182,11 +201,13 @@ export default function ChatPanel({ project, open, onClose }) {
           </div>
         )}
         {messages.data?.length > 0 && (
-          <ol role="log" aria-label="Messages" className="flex flex-col gap-4">
-            {messages.data.map((message) => (
-              <ChatMessage key={message.id} message={message} mine={message.authorId === me.data?.id} />
-            ))}
-          </ol>
+          <div role="log" aria-label="Messages">
+            <ol className="flex flex-col gap-4">
+              {messages.data.map((message) => (
+                <ChatMessage key={message.id} message={message} mine={message.authorId === me.data?.id} />
+              ))}
+            </ol>
+          </div>
         )}
       </div>
 

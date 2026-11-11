@@ -143,10 +143,27 @@ export function useInviteMember(projectId) {
   })
 }
 
+export function useCancelInvitation(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (invitationId) => api.cancelInvitation(projectId, invitationId),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: keys.members(projectId) }),
+  })
+}
+
 // ---------- Tasks ----------
 
+// Teammates' changes show up within 20 seconds while the board is open (review M9), until the
+// Socket.IO updates planned for Sprint 3 replace this.
+const TASKS_REFRESH_MS = 20_000
+
 export function useTasks(projectId) {
-  return useQuery({ queryKey: keys.tasks(projectId), queryFn: () => api.getTasks(projectId), select: withoutPending })
+  return useQuery({
+    queryKey: keys.tasks(projectId),
+    queryFn: () => api.getTasks(projectId),
+    select: withoutPending,
+    refetchInterval: TASKS_REFRESH_MS,
+  })
 }
 
 export function useTask(taskId) {

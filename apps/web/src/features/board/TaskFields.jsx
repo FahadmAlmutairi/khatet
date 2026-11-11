@@ -2,7 +2,7 @@ import { fieldError } from '../../api/errors.js'
 import { useId } from 'react'
 import { SmallCheckIcon } from '../../components/icons.jsx'
 import { FieldError, TextArea, TextField } from '../../components/ui/Field.jsx'
-import { dateFromToday, formatDueDate, PRIORITIES } from '../../lib/domain.js'
+import { dateFromToday, formatDueDate, PRIORITIES, MAX_TEXT_LENGTH } from '../../lib/domain.js'
 import AssigneePicker from './AssigneePicker.jsx'
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -50,7 +50,7 @@ function PriorityPicker({ value, onChange, error }) {
           </label>
         ))}
       </div>
-      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
+      {error && <FieldError id={`${id}-error`} role={null}>{error}</FieldError>}
     </fieldset>
   )
 }
@@ -70,6 +70,7 @@ export default function TaskFields({ values, onChange, members, error }) {
   return (
     <div className="flex flex-col gap-5">
       <TextField
+        errorRole={null}
         label="Task title"
         required
         value={values.title}
@@ -87,6 +88,7 @@ export default function TaskFields({ values, onChange, members, error }) {
       />
       <div className="flex flex-col gap-2">
         <TextField
+        errorRole={null}
           label="Due date"
           type="date"
           data-field="dueDate"
@@ -121,7 +123,9 @@ export default function TaskFields({ values, onChange, members, error }) {
         error={fieldError(error, 'priority')}
       />
       <TextArea
+        errorRole={null}
         label="Description"
+        maxLength={MAX_TEXT_LENGTH}
         rows={3}
         value={values.description}
         onChange={set('description')}

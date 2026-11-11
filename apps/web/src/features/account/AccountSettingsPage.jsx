@@ -5,6 +5,7 @@ import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { FieldError, TextField } from '../../components/ui/Field.jsx'
+import { useFocusFirstInvalid } from '../../components/ui/useFocusFirstInvalid.js'
 import { LoadingState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
 
@@ -20,6 +21,7 @@ function changeHint(me, now = new Date()) {
 
 function ProfileForm({ me }) {
   const setUsername = useSetUsername()
+  const formRef = useFocusFirstInvalid(setUsername.error)
   const toast = useToast()
   const [username, setValue] = useState(me.username ?? '')
   const unchanged = username.trim().replace(/^@/, '').toLowerCase() === me.username
@@ -34,7 +36,7 @@ function ProfileForm({ me }) {
   const usernameError = fieldError(setUsername.error, 'username')
 
   return (
-    <form onSubmit={save} noValidate className="flex max-w-md flex-col gap-6">
+    <form ref={formRef} onSubmit={save} noValidate className="flex max-w-md flex-col gap-6">
       <TextField label="Email" name="email" value={me.email} readOnly disabled />
       <TextField
         label="Username"

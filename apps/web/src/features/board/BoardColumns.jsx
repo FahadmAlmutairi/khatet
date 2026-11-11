@@ -19,6 +19,7 @@ import StatusIcon from '../../components/StatusIcon.jsx'
 import InfoTip from '../../components/ui/InfoTip.jsx'
 import { ACTIVE_STATUSES, STATUSES } from '../../lib/domain.js'
 import { EASE, playCardMoves } from '../../lib/motion.js'
+import { fullPosition } from './boardPosition.js'
 import TaskCard, { TaskCardBody } from './TaskCard.jsx'
 
 const ACCENTS = {
@@ -31,7 +32,7 @@ const ACCENTS = {
 const COLUMN_PREFIX = 'column:'
 const isColumnId = (id) => String(id).startsWith(COLUMN_PREFIX)
 
-function Lane({ status, tasks, usernames, onOpen, onMove, onCreate }) {
+function Lane({ status, tasks, usernames, onOpen, onMove, onReorder, onCreate }) {
   const { setNodeRef, isOver } = useDroppable({ id: `${COLUMN_PREFIX}${status.value}`, data: { type: 'column', status: status.value } })
   const headingId = `column-${status.value}`
 
@@ -60,8 +61,18 @@ function Lane({ status, tasks, usernames, onOpen, onMove, onCreate }) {
       </h2>
       <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
         <ul className="flex flex-1 flex-col gap-3">
-          {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} usernames={usernames} onOpen={onOpen} onMove={onMove} quiet={status.value === 'DONE'} />
+          {tasks.map((task, index) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              usernames={usernames}
+              onOpen={onOpen}
+              onMove={onMove}
+              onReorder={onReorder}
+              canMoveUp={index > 0}
+              canMoveDown={index < tasks.length - 1}
+              quiet={status.value === 'DONE'}
+            />
           ))}
           {tasks.length === 0 && (
             <li className="flex flex-col items-start gap-2 rounded-[10px] border border-dashed border-line px-3 py-4 text-sm leading-[21px] text-muted">
@@ -85,7 +96,7 @@ function Lane({ status, tasks, usernames, onOpen, onMove, onCreate }) {
 }
 
 // Backlog sits under the lanes, collapsed by default (Figma 324:778, "Backlog / Secondary").
-function BacklogPanel({ tasks, usernames, onOpen, onMove, open, onToggle }) {
+function BacklogPanel({ tasks, usernames, onOpen, onMove, onReorder, open, onToggle }) {
   const { setNodeRef, isOver } = useDroppable({ id: `${COLUMN_PREFIX}BACKLOG`, data: { type: 'column', status: 'BACKLOG' } })
 
   return (
@@ -119,8 +130,20 @@ function BacklogPanel({ tasks, usernames, onOpen, onMove, open, onToggle }) {
         {open && (
           <SortableContext items={tasks.map((task) => task.id)} strategy={rectSortingStrategy}>
             <ul className="motion-reveal mt-3 flex flex-wrap gap-3">
-              {tasks.map((task) => (
-                <TaskCard key={task.id} className="w-[250px] max-w-full" task={task} usernames={usernames} onOpen={onOpen} onMove={onMove} />
+              {tasks.map((task, index) => (
+                <TaskCard
+                  key={task.id}
+                  className="w-[250px] max-w-full"
+                  task={task}
+                  usernames={usernames}
+                  onOpen={onOpen}
+                  onMove={onMove}
+                  onReorder={onReorder}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < tasks.length - 1}
+                  upLabel="Move left"
+                  downLabel="Move right"
+                />
               ))}
               {tasks.length === 0 && <li className="py-2 text-sm text-muted">The backlog is empty.</li>}
             </ul>
@@ -144,7 +167,7 @@ function idsByStatus(tasks) {
   return ids
 }
 
-export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreate }) {
+export default function BoardColumns({ tasks, allTasks = tasks, usernames, onOpen, onMove, onCreate }) {
   // Phone: the status chips work as tabs for the lane in view (one lane per screen, with its neighbours peeking in).
   const scrollerRef = useRef(null)
   const [visibleLane, setVisibleLane] = useState(0)
@@ -183,6 +206,7 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
     playCardMoves(document)
   }, [tasks])
   const savedIds = useMemo(() => idsByStatus(tasks), [tasks])
+  const fullIds = useMemo(() => idsByStatus(allTasks), [allTasks])
   const ids = dragIds ?? savedIds
   const columnTasks = (status) => ids[status].map((id) => byId.get(id)).filter(Boolean)
   const activeTask = activeId ? byId.get(activeId) : null
@@ -257,21 +281,31 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
 
     const overContainer = containerOf(over.id, current)
     let status
-    let position
+    let order
     if (overContainer === 'BACKLOG' && !backlogOpen) {
       status = 'BACKLOG'
-      position = current.BACKLOG.filter((id) => id !== task.id).length + 1
+      order = [...current.BACKLOG.filter((id) => id !== task.id), task.id]
     } else {
       status = containerOf(active.id, current)
       const items = current[status]
       const from = items.indexOf(active.id)
       const to = overContainer === status && !isColumnId(over.id) ? items.indexOf(over.id) : from
-      position = arrayMove(items, from, to).indexOf(active.id) + 1
+      order = arrayMove(items, from, to)
     }
+    const position = fullPosition(order, task.id, fullIds[status] ?? [])
 
-    const savedPosition = savedIds[task.status].indexOf(task.id) + 1
+    const savedPosition = fullIds[task.status].indexOf(task.id) + 1
     if (status === task.status && position === savedPosition) return
     onMove(task, status, position, { dragged: true })
+  }
+
+  // "Move up" and "Move down" in the card menu: the keyboard and single-tap way to reorder (WCAG 2.1.1, 2.5.7).
+  function reorder(task, step) {
+    const visible = savedIds[task.status]
+    const from = visible.indexOf(task.id)
+    const to = from + step
+    if (from < 0 || to < 0 || to >= visible.length) return
+    onMove(task, task.status, fullPosition(arrayMove(visible, from, to), task.id, fullIds[task.status]))
   }
 
   // Phone lanes snap to the centre so both neighbours peek in; wider screens snap to the start.
@@ -330,7 +364,7 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
       onDragCancel={finish}
       accessibility={{
         announcements,
-        screenReaderInstructions: { draggable: 'Use Move to in the task menu to move a task between stages.' },
+        screenReaderInstructions: { draggable: 'Use the task menu to move a task to another stage, or up and down within its stage.' },
       }}
     >
       {/* A soft fade at the right edge shows the chip row scrolls; it goes once the last chip is in view. */}
@@ -376,6 +410,7 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
             usernames={usernames}
             onOpen={onOpen}
             onMove={onMove}
+            onReorder={reorder}
             onCreate={status.value === 'TODO' ? onCreate : undefined}
           />
         ))}
@@ -386,6 +421,7 @@ export default function BoardColumns({ tasks, usernames, onOpen, onMove, onCreat
           usernames={usernames}
           onOpen={onOpen}
           onMove={onMove}
+          onReorder={reorder}
           open={backlogOpen}
           onToggle={() => setBacklogOpen((value) => !value)}
         />

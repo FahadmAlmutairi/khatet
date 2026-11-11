@@ -6,11 +6,14 @@ import { useUpdateProject } from '../../api/hooks.js'
 import { useDocumentTitle } from '../../app/pageMeta.js'
 import Button from '../../components/ui/Button.jsx'
 import { FieldError, TextArea, TextField } from '../../components/ui/Field.jsx'
+import { useFocusFirstInvalid } from '../../components/ui/useFocusFirstInvalid.js'
 import { useToast } from '../../components/ui/toastContext.js'
+import { MAX_TEXT_LENGTH } from '../../lib/domain.js'
 
 export default function ProjectSettingsPage() {
   const { project } = useOutletContext()
   const updateProject = useUpdateProject(project.id)
+  const formRef = useFocusFirstInvalid(updateProject.error)
   const toast = useToast()
   const [name, setName] = useState(project.name)
   const [description, setDescription] = useState(project.description ?? '')
@@ -52,7 +55,7 @@ export default function ProjectSettingsPage() {
         <h1 className="text-title font-bold text-body">Project settings</h1>
         <p className="text-sm text-muted">Update the name and description shown across this workspace.</p>
       </div>
-      <form onSubmit={submit} noValidate className="flex flex-col gap-5 rounded-xl border border-line bg-white p-5 sm:p-6">
+      <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-5 rounded-xl border border-line bg-white p-5 sm:p-6">
         <TextField
           label="Project name"
           required
@@ -67,6 +70,7 @@ export default function ProjectSettingsPage() {
         <TextArea
           label="Description (optional)"
           rows={4}
+          maxLength={MAX_TEXT_LENGTH}
           value={description}
           onChange={(event) => {
             setDescription(event.target.value)

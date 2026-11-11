@@ -4,6 +4,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router'
 import { apiReady } from '../api/config.js'
+import { inertOthers } from '../lib/inertOthers.js'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
@@ -453,13 +454,29 @@ export default function AppShell() {
 
   const crumbs = useBreadcrumb()
   const pageKey = useLocation().pathname
+  // The phone sidebar is a modal dialog: the page behind is inert, Escape closes it, focus goes back
+  // to the menu button, and it closes if the window grows to the desktop layout (review M10).
+  const menuButtonRef = useRef(null)
+  const drawerRef = useRef(null)
   useEffect(() => {
     if (!menuOpen) return undefined
     function onKeyDown(event) {
       if (event.key === 'Escape') setMenuOpen(false)
     }
+    const wide = window.matchMedia?.('(min-width: 1024px)')
+    function onWide() {
+      if (wide?.matches) setMenuOpen(false)
+    }
     document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
+    wide?.addEventListener('change', onWide)
+    const release = drawerRef.current ? inertOthers(drawerRef.current) : () => {}
+    const button = menuButtonRef.current
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      wide?.removeEventListener('change', onWide)
+      release()
+      if (document.activeElement === document.body || !document.activeElement) button?.focus()
+    }
   }, [menuOpen])
 
   return (
@@ -471,8 +488,9 @@ export default function AppShell() {
         Skip to main content
       </a>
 
-      {collapsed && <Rail onExpand={toggleSidebar} onOpenProject={openProjectFromRail} expandButtonRef={showButtonRef} />}
-      {!collapsed && (
+      {/* While the phone sidebar is open the desktop one is not rendered, so element IDs stay unique. */}
+      {collapsed && !menuOpen && <Rail onExpand={toggleSidebar} onOpenProject={openProjectFromRail} expandButtonRef={showButtonRef} />}
+      {!collapsed && !menuOpen && (
         <aside className="sidebar-enter sticky top-0 z-30 hidden h-dvh w-[248px] shrink-0 flex-col gap-6 border-r border-line bg-white p-4 lg:flex">
           <div className="flex items-center justify-between">
             <Link to="/projects" className="inline-flex size-8 items-center justify-center">
@@ -500,10 +518,12 @@ export default function AppShell() {
       )}
 
       {menuOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <div ref={drawerRef} className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-heading/30" onClick={() => setMenuOpen(false)} aria-hidden="true" />
           <aside
             id="mobile-sidebar"
+            role="dialog"
+            aria-modal="true"
             aria-label="Sidebar"
             className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col gap-6 bg-white p-4 shadow-xl"
           >
@@ -535,6 +555,7 @@ export default function AppShell() {
         <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-[#e3e5de] bg-white px-4 lg:px-8">
           <button
             type="button"
+            ref={menuButtonRef}
             onClick={() => setMenuOpen(true)}
             aria-label="Open sidebar"
             aria-expanded={menuOpen}

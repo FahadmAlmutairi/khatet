@@ -32,6 +32,8 @@ const realMembersAndNotifications = {
   leaveProject: (projectId) => apiFetch(`/projects/${projectId}/leave`, { method: 'POST' }),
   inviteMember: (projectId, username) =>
     apiFetch(`/projects/${projectId}/invitations`, { method: 'POST', body: { username } }),
+  cancelInvitation: (projectId, invitationId) =>
+    apiFetch(`/projects/${projectId}/invitations/${invitationId}`, { method: 'DELETE' }),
   acceptInvitation: (invitationId) => apiFetch(`/invitations/${invitationId}/accept`, { method: 'POST' }),
   declineInvitation: (invitationId) => apiFetch(`/invitations/${invitationId}/decline`, { method: 'POST' }),
   getNotifications: () => apiFetch('/notifications'),

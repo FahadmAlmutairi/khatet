@@ -1,10 +1,11 @@
 import { forwardRef, useId } from 'react'
 import { ErrorIcon } from '../icons.jsx'
 
+// 16px text on phones: iPhone Safari zooms the page into any field with smaller text (review H3).
 const inputClass =
-  'min-h-11 w-full rounded-lg border bg-white px-3 text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked disabled:bg-surface disabled:text-muted'
+  'min-h-11 w-full rounded-lg border bg-white px-3 text-base text-body placeholder:text-muted sm:text-sm aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked disabled:bg-surface disabled:text-muted'
 
-function FieldShell({ id, label, required, hint, hintClassName = 'text-sm text-muted', error, children }) {
+function FieldShell({ id, label, required, hint, hintClassName = 'text-sm text-muted', error, errorRole, children }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={id} className="text-sm font-medium text-body">
@@ -22,13 +23,15 @@ function FieldShell({ id, label, required, hint, hintClassName = 'text-sm text-m
           {hint}
         </p>
       )}
-      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
+      {error && <FieldError id={`${id}-error`} role={errorRole}>{error}</FieldError>}
     </div>
   )
 }
 
 // An inline error under a field: the icon, then the message (Figma: Create task errors).
-export function FieldError({ id, role, children }) {
+// It is announced when it appears (review M3). A form with an ErrorSummary passes errorRole={null},
+// because the summary already announces every error.
+export function FieldError({ id, role = 'alert', children }) {
   return (
     <p id={id} role={role} className="flex items-start gap-1.5 text-sm text-blocked">
       <span className="flex h-5 items-center">
@@ -45,10 +48,10 @@ function describedBy(id, hint, error) {
   return undefined
 }
 
-export function TextField({ label, required, hint, hintClassName, error, className = '', ...props }) {
+export function TextField({ label, required, hint, hintClassName, error, errorRole, className = '', ...props }) {
   const id = useId()
   return (
-    <FieldShell id={id} label={label} required={required} hint={hint} hintClassName={hintClassName} error={error}>
+    <FieldShell id={id} label={label} required={required} hint={hint} hintClassName={hintClassName} error={error} errorRole={errorRole}>
       <input
         id={id}
         aria-invalid={Boolean(error)}
@@ -61,10 +64,10 @@ export function TextField({ label, required, hint, hintClassName, error, classNa
   )
 }
 
-export function TextArea({ label, required, hint, error, rows = 3, className = '', ...props }) {
+export function TextArea({ label, required, hint, error, errorRole, rows = 3, className = '', ...props }) {
   const id = useId()
   return (
-    <FieldShell id={id} label={label} required={required} hint={hint} error={error}>
+    <FieldShell id={id} label={label} required={required} hint={hint} error={error} errorRole={errorRole}>
       <textarea
         id={id}
         rows={rows}

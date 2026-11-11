@@ -2,8 +2,10 @@ import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { errorMessage, fieldError } from '../../api/errors.js'
 import { useMe, useSetUsername } from '../../api/hooks.js'
+import { takeReturnTo } from '../../api/returnTo.js'
 import Button from '../../components/ui/Button.jsx'
 import { FieldError, TextField } from '../../components/ui/Field.jsx'
+import { useFocusFirstInvalid } from '../../components/ui/useFocusFirstInvalid.js'
 import { LoadingState } from '../../components/ui/States.jsx'
 import AuthLayout from './AuthLayout.jsx'
 
@@ -12,6 +14,7 @@ export default function ChooseUsernamePage() {
   const navigate = useNavigate()
   const me = useMe()
   const setUsername = useSetUsername()
+  const formRef = useFocusFirstInvalid(setUsername.error)
   const [username, setValue] = useState('')
 
   if (me.isPending) return <LoadingState />
@@ -20,7 +23,7 @@ export default function ChooseUsernamePage() {
 
   function submit(event) {
     event.preventDefault()
-    setUsername.mutate(username, { onSuccess: () => navigate('/projects', { replace: true }) })
+    setUsername.mutate(username, { onSuccess: () => navigate(takeReturnTo(), { replace: true }) })
   }
 
   const usernameError = fieldError(setUsername.error, 'username')
@@ -28,7 +31,7 @@ export default function ChooseUsernamePage() {
   return (
     <AuthLayout title="Choose your username">
       <p className="text-sm leading-[21px] text-muted">Teammates use it to invite you.</p>
-      <form onSubmit={submit} noValidate className="flex flex-col gap-6">
+      <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-6">
         <TextField
           label="Unique username"
           name="username"

@@ -1,10 +1,17 @@
 import { useId, useState } from 'react'
-import { useNavigate, useOutletContext } from 'react-router'
+import { Link, useNavigate, useOutletContext } from 'react-router'
 import { apiReady } from '../../api/config.js'
 import { errorMessage } from '../../api/errors.js'
 import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
-import { useLeaveProject, useMe, useMembers, useRemoveMember, useUpdateMemberAccess } from '../../api/hooks.js'
+import {
+  useCancelInvitation,
+  useLeaveProject,
+  useMe,
+  useMembers,
+  useRemoveMember,
+  useUpdateMemberAccess,
+} from '../../api/hooks.js'
 import Avatar from '../../components/Avatar.jsx'
 import { ChevronIcon } from '../../components/icons.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -204,6 +211,79 @@ function MemberRow({ member, isOwner, isYou, onManage, onRemove, onLeave }) {
   )
 }
 
+// A 409 ONLY_ASSIGNEE answer lists the tasks that have nobody else assigned, as links to them (review M8).
+function MemberActionError({ error, projectId }) {
+  const tasks = (error?.fieldErrors ?? []).filter((item) => item.field === 'tasks')
+  return (
+    <div role="alert" className="flex flex-col gap-1.5 text-sm text-blocked">
+      <p>{errorMessage(error)}</p>
+      {tasks.length > 0 && (
+        <ul className="list-disc pl-5 text-body">
+          {tasks.map((task) => (
+            <li key={task.taskId ?? task.message}>
+              {task.taskId ? (
+                <Link to={`/projects/${projectId}/board?task=${task.taskId}`} className="underline underline-offset-2 hover:text-heading">
+                  {task.message}
+                </Link>
+              ) : (
+                task.message
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// Invitations not yet answered, with a way to withdraw each one. Only the owner sees them (review M7).
+function PendingInvitations({ invitations, projectId }) {
+  const cancel = useCancelInvitation(projectId)
+  const toast = useToast()
+  if (!invitations.length) return null
+
+  function withdraw(invitation) {
+    cancel.mutate(invitation.id, {
+      onSuccess: () => toast(`The invitation to ${invitation.username} was cancelled.`),
+      onError: (error) => toast(errorMessage(error), 'error'),
+    })
+  }
+
+  return (
+    <section aria-labelledby="pending-invitations" className="mt-8 flex flex-col gap-3">
+      <h2 id="pending-invitations" className="text-base font-semibold text-body">
+        Pending invitations · {invitations.length}
+      </h2>
+      <ul className="flex flex-col gap-2.5">
+        {invitations.map((invitation) => (
+          <li
+            key={invitation.id}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-white px-4 py-3"
+          >
+            <span className="flex min-w-0 items-center gap-3">
+              <Avatar username={invitation.username} />
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate text-sm font-semibold text-body">{invitation.username}</span>
+                <span className="text-xs text-muted">
+                  Invited {new Date(invitation.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                </span>
+              </span>
+            </span>
+            <Button
+              variant="secondary"
+              loading={cancel.isPending && cancel.variables === invitation.id}
+              onClick={() => withdraw(invitation)}
+              aria-label={`Cancel the invitation to ${invitation.username}`}
+            >
+              Cancel invitation
+            </Button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 function RemoveMemberDialog({ member, projectId, onClose }) {
   const remove = useRemoveMember(projectId)
   const toast = useToast()
@@ -234,7 +314,7 @@ function RemoveMemberDialog({ member, projectId, onClose }) {
         </>
       }
     >
-      {remove.isError && <p role="alert" className="text-sm text-blocked">{errorMessage(remove.error)}</p>}
+      {remove.isError && <MemberActionError error={remove.error} projectId={projectId} />}
       <p className="text-sm text-body">
         This action removes the team member from the project. They will need a new invitation to regain access.
       </p>
@@ -274,7 +354,7 @@ function LeaveProjectDialog({ project, open, onClose }) {
         </>
       }
     >
-      {leave.isError && <p role="alert" className="text-sm text-blocked">{errorMessage(leave.error)}</p>}
+      {leave.isError && <MemberActionError error={leave.error} projectId={project.id} />}
       <p className="text-sm text-body">
         You will need a new invitation to rejoin. Your past messages and task history will remain in the project.
       </p>
@@ -357,6 +437,7 @@ export default function MembersPage() {
               ))}
             </ul>
           </div>
+          {isOwner && <PendingInvitations invitations={members.data.invitations ?? []} projectId={project.id} />}
         </>
       )}
 

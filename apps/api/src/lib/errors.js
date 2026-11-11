@@ -19,6 +19,9 @@ export const forbidden = (message) => new ApiError(403, 'FORBIDDEN', message)
 
 export const notFound = (message) => new ApiError(404, 'NOT_FOUND', message)
 
+// The longest description or blocked reason a task or project can have (review M12).
+export const MAX_TEXT_LENGTH = 5000
+
 export const invalid = (fieldErrors, message = 'Check the highlighted fields.') =>
   new ApiError(422, 'VALIDATION_FAILED', message, fieldErrors)
 
@@ -38,6 +41,11 @@ export function errorHandler(error, req, res, _next) {
   if (error instanceof ApiError) {
     return res.status(error.status).json({
       error: { code: error.code, message: error.message, fieldErrors: error.fieldErrors, requestId: req.id },
+    })
+  }
+  if (error.type === 'entity.too.large') {
+    return res.status(413).json({
+      error: { code: 'PAYLOAD_TOO_LARGE', message: 'The request is too large.', fieldErrors: [], requestId: req.id },
     })
   }
   if (error.type === 'entity.parse.failed') {

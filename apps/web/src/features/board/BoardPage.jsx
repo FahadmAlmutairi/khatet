@@ -238,6 +238,7 @@ export default function BoardPage() {
             ) : (
               <BoardColumns
                 tasks={filteredTasks}
+                allTasks={tasks.data}
                 usernames={usernames}
                 onOpen={openTask}
                 onMove={move}

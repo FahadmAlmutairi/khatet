@@ -93,7 +93,7 @@ export default function AssigneePicker({ members, value, onChange, error, requir
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search members"
               aria-label="Search members"
-              className="h-11 w-full rounded-lg border-2 border-action bg-white px-3 focus-visible:outline-none text-sm text-body placeholder:text-muted"
+              className="h-11 w-full rounded-lg border-2 border-action bg-white px-3 focus-visible:outline-none text-base sm:text-sm text-body placeholder:text-muted"
             />
             <p className="px-2 pt-2 pb-1 text-xs font-medium text-muted">Project members</p>
             <ul className="flex flex-col gap-1">
@@ -121,7 +121,7 @@ export default function AssigneePicker({ members, value, onChange, error, requir
           </div>
         )}
       </div>
-      {error && <FieldError id={`${id}-error`}>{error}</FieldError>}
+      {error && <FieldError id={`${id}-error`} role={null}>{error}</FieldError>}
     </div>
   )
 }

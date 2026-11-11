@@ -1,14 +1,36 @@
+import { useEffect, useRef, useState } from 'react'
 import { ChevronIcon } from '../../components/icons.jsx'
 import { PRIORITIES, STATUSES, priorityLabel, statusLabel } from '../../lib/domain.js'
 
-function FilterMenu({ label, options, selected, onToggle }) {
+// Only one menu is open at a time, and it closes on Escape or a click outside it (review M5).
+function FilterMenu({ label, options, selected, onToggle, open, onOpenChange }) {
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return undefined
+    function onPointerDown(event) {
+      if (!ref.current?.contains(event.target)) onOpenChange(false)
+    }
+    function onKeyDown(event) {
+      if (event.key !== 'Escape') return
+      onOpenChange(false)
+      ref.current?.querySelector('summary')?.focus()
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open, onOpenChange])
+
   return (
-    <details className="group relative">
+    <details ref={ref} open={open} onToggle={(event) => onOpenChange(event.currentTarget.open)} className="group relative">
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-control border border-line bg-white px-3 text-label font-medium text-heading hover:bg-surface [&::-webkit-details-marker]:hidden">
         {label}
         {selected.size > 0 && (
-          <span className="inline-flex min-w-5 justify-center rounded-full bg-nav-active px-1 text-xs" aria-label={`${selected.size} selected`}>
+          <span className="inline-flex min-w-5 justify-center rounded-full bg-nav-active px-1 text-xs">
             {selected.size}
+            <span className="sr-only"> selected</span>
           </span>
         )}
         <span className="-mr-0.5 inline-flex text-muted transition-transform duration-200 group-open:rotate-180">
@@ -65,15 +87,38 @@ export default function FilterBar({ members, currentUserId, filters, onToggle, o
       return a.label.localeCompare(b.label)
     })
   const assigneeNames = new Map(assigneeOptions.map((option) => [option.value, option.label]))
-  const hasFilters = filters.assignee.size > 0 || filters.status.size > 0 || filters.priority.size > 0
+  const activeCount = filters.assignee.size + filters.status.size + filters.priority.size
+  const hasFilters = activeCount > 0
+  const [openMenu, setOpenMenu] = useState(null)
+  // On a phone the menus sit behind one Filter button, so the first lane starts higher up (review M6).
+  const [shownOnPhone, setShownOnPhone] = useState(false)
+  const menuProps = (key) => ({
+    open: openMenu === key,
+    onOpenChange: (next) => setOpenMenu((current) => (next ? key : current === key ? null : current)),
+  })
 
   return (
-    <section aria-label="Task filters" className="flex flex-col gap-3 rounded-[var(--radius-card)] border border-line bg-surface p-3 sm:p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-sm font-medium text-heading">Filter tasks</span>
-        <FilterMenu label="Assignee" options={assigneeOptions} selected={filters.assignee} onToggle={(value) => onToggle('assignee', value)} />
-        <FilterMenu label="Status" options={STATUSES} selected={filters.status} onToggle={(value) => onToggle('status', value)} />
-        <FilterMenu label="Priority" options={PRIORITIES} selected={filters.priority} onToggle={(value) => onToggle('priority', value)} />
+    <section aria-label="Task filters" className="flex flex-col gap-3 max-sm:gap-2 rounded-[var(--radius-card)] border border-line bg-surface p-3 max-sm:border-0 max-sm:bg-transparent max-sm:p-0 sm:p-4">
+      <button
+        type="button"
+        onClick={() => setShownOnPhone((value) => !value)}
+        aria-expanded={shownOnPhone}
+        aria-controls="filter-menus"
+        className="flex min-h-11 items-center justify-between gap-2 rounded-control border border-line bg-white px-3 text-label font-medium text-heading sm:hidden"
+      >
+        <span>
+          Filter tasks
+          {hasFilters && ` (${activeCount})`}
+        </span>
+        <span className={`inline-flex text-muted transition-transform duration-200 ${shownOnPhone ? 'rotate-180' : ''}`}>
+          <ChevronIcon direction="down" size={14} />
+        </span>
+      </button>
+      <div id="filter-menus" className={`${shownOnPhone ? 'flex' : 'hidden'} flex-wrap items-center gap-2 sm:flex`}>
+        <span className="mr-1 text-sm font-medium text-heading max-sm:sr-only">Filter tasks</span>
+        <FilterMenu label="Assignee" options={assigneeOptions} selected={filters.assignee} onToggle={(value) => onToggle('assignee', value)} {...menuProps('assignee')} />
+        <FilterMenu label="Status" options={STATUSES} selected={filters.status} onToggle={(value) => onToggle('status', value)} {...menuProps('status')} />
+        <FilterMenu label="Priority" options={PRIORITIES} selected={filters.priority} onToggle={(value) => onToggle('priority', value)} {...menuProps('priority')} />
         {hasFilters && (
           <button type="button" onClick={onClear} className="min-h-11 rounded-control px-3 text-label font-medium text-heading underline hover:bg-surface-subtle">
             Clear filters

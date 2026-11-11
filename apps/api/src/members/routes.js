@@ -2,6 +2,7 @@
 // GET   /api/projects/:projectId/members          US-09: owner and members; the owner also sees pending invitations
 // PATCH /api/projects/:projectId/members/:userId  US-10: owner sets task access, body: { "taskAccess": "EDIT_ALL" }
 // POST  /api/projects/:projectId/invitations      US-07: owner invites a registered user, body: { "username": "sara" }
+// DELETE /api/projects/:projectId/invitations/:invitationId  owner withdraws a pending invitation
 // POST  /api/invitations/:invitationId/accept     US-08: the invitee joins with Edit assigned tasks access
 // POST  /api/invitations/:invitationId/decline    US-08: the invitee does not join
 // Response shapes match the sample versions in apps/web/src/api/mockServer.js.
@@ -141,6 +142,21 @@ membersRouter.post('/projects/:projectId/invitations', signedIn, async (req, res
   res.status(201).json({ id: invitation.id, username, createdAt: invitation.createdAt })
 })
 
+// The owner withdraws a pending invitation. Its notification goes with it (cascade).
+membersRouter.delete('/projects/:projectId/invitations/:invitationId', signedIn, async (req, res) => {
+  const { projectId } = await findOwnerMembership(
+    req.params.projectId,
+    req.user.id,
+    'Only the project owner can cancel invitations.',
+  )
+  const { invitationId } = req.params
+  const gone = () => notFound('This invitation is no longer pending.')
+  if (!isUuid(invitationId)) throw gone()
+  const { count } = await prisma.invitation.deleteMany({ where: { id: invitationId, projectId, status: 'PENDING' } })
+  if (count === 0) throw gone()
+  res.status(204).end()
+})
+
 // US-08: only the invited user can answer, and only while the invitation is pending.
 // The answer and its effects are saved in one transaction (docs/data-model.md, Database rules).
 async function answerInvitation(req, res, accept) {
@@ -223,7 +239,8 @@ membersRouter.delete('/projects/:projectId/members/:userId', signedIn, async (re
         'Reassign these tasks before removing this member.',
         onlyAssignedTasks.map((task) => ({
           field: 'tasks',
-          message: `${task.title} (${task.id})`,
+          message: task.title,
+          taskId: task.id,
         })),
       )
     }
@@ -294,7 +311,8 @@ membersRouter.post('/projects/:projectId/leave', signedIn, async (req, res) => {
         'Reassign these tasks before leaving the project.',
         onlyAssignedTasks.map((task) => ({
           field: 'tasks',
-          message: `${task.title} (${task.id})`,
+          message: task.title,
+          taskId: task.id,
         })),
       )
     }

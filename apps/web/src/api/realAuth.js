@@ -4,7 +4,8 @@
 import { ApiError } from './errors.js'
 import { apiUrl } from './config.js'
 import { adoptUser } from './mockServer.js'
-import { supabase } from './supabase.js'
+import { rememberReturnTo } from './returnTo.js'
+import { cachedAccessToken, supabase } from './supabase.js'
 
 const PENDING_EMAIL_KEY = 'khatet.pendingEmail'
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -43,11 +44,26 @@ export function warmUpApi() {
 
 // Calls the Express API with the signed-in user's token and turns its error shape
 // (docs/api-contract.md, Errors) into an ApiError.
+// When the session has expired, the user is signed out here and sent to sign in, and comes back
+// to this page afterwards (review H4 and M1). /me handles its own 401 during sign-in.
+let endingSession = false
+async function endSession() {
+  if (endingSession) return
+  endingSession = true
+  rememberReturnTo(`${window.location.pathname}${window.location.search}`)
+  await supabase().auth.signOut({ scope: 'local' }).catch(() => {})
+  adoptUser(null)
+  window.location.replace('/sign-in')
+}
+
 export async function apiFetch(path, { method = 'GET', body, keepalive = false } = {}) {
-  const { data } = await supabase().auth.getSession()
+  // A keepalive request is sent as the page closes, so it uses the token in memory and calls fetch
+  // without an await first; a closing page may not run code after one (iPhone Safari).
+  const token =
+    keepalive && cachedAccessToken() ? cachedAccessToken() : (await supabase().auth.getSession()).data.session?.access_token
   const headers = { Accept: 'application/json' }
   if (body !== undefined) headers['Content-Type'] = 'application/json'
-  if (data.session) headers.Authorization = `Bearer ${data.session.access_token}`
+  if (token) headers.Authorization = `Bearer ${token}`
 
   let response
   try {
@@ -61,6 +77,7 @@ export async function apiFetch(path, { method = 'GET', body, keepalive = false }
     throw new ApiError({ code: 'NETWORK', status: 0, message: 'Khatet could not be reached. Check your connection and try again.' })
   }
 
+  if (response.status === 401 && token && path !== '/me') endSession()
   const payload = await response.json().catch(() => null)
   if (!response.ok) {
     const error = payload?.error ?? {}

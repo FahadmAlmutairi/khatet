@@ -27,7 +27,7 @@ export default function RequireAuth() {
       </div>
     )
   }
-  if (!me.data) return <Navigate to="/sign-in" replace state={{ from: location.pathname }} />
+  if (!me.data) return <Navigate to="/sign-in" replace state={{ from: `${location.pathname}${location.search}` }} />
   if (!me.data.username) return <Navigate to="/sign-in/username" replace />
   return <Outlet />
 }

@@ -4,11 +4,14 @@ import { useCreateProject } from '../../api/hooks.js'
 import Button from '../../components/ui/Button.jsx'
 import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import { FieldError, TextArea, TextField } from '../../components/ui/Field.jsx'
+import { useFocusFirstInvalid } from '../../components/ui/useFocusFirstInvalid.js'
+import { MAX_TEXT_LENGTH } from '../../lib/domain.js'
 
 // US-05: a project needs a name; the description is optional.
 // Figma: a centred window on desktop (1035:6527) and a full page on mobile (744:2).
 export default function CreateProjectDialog({ open, onClose, onCreated }) {
   const createProject = useCreateProject()
+  const formRef = useFocusFirstInvalid(createProject.error)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const titleId = useId()
@@ -38,7 +41,7 @@ export default function CreateProjectDialog({ open, onClose, onCreated }) {
   return (
     <Dialog open={open} onClose={close} variant="page" width={560} labelledBy={titleId}>
       <MobileBackBar label="Home" onBack={close} />
-      <form onSubmit={submit} noValidate className="flex flex-col gap-4 px-5 pt-3 pb-6 sm:p-7">
+      <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-4 px-5 pt-3 pb-6 sm:p-7">
         <div className="flex flex-col gap-2">
           <h2 id={titleId} className="text-[26px] leading-normal font-bold text-body sm:text-2xl sm:font-semibold">
             Create a project
@@ -60,6 +63,7 @@ export default function CreateProjectDialog({ open, onClose, onCreated }) {
         <TextArea
           label="Description (optional)"
           rows={3}
+          maxLength={MAX_TEXT_LENGTH}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           placeholder="What is this project about?"

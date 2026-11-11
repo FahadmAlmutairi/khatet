@@ -22,7 +22,19 @@ export function BlockedPill() {
 // Card layout from Figma page 08, Board (324:778): title, due line, blocked pill,
 // then priority on the left and assignees on the right (with the actions button on touch screens).
 // Done cards sit flatter so the work still open stands out (B3).
-export function TaskCardBody({ task, usernames, onOpen, onMove, isOverlay = false, quiet = false }) {
+export function TaskCardBody({
+  task,
+  usernames,
+  onOpen,
+  onMove,
+  onReorder,
+  canMoveUp = false,
+  canMoveDown = false,
+  upLabel = 'Move up',
+  downLabel = 'Move down',
+  isOverlay = false,
+  quiet = false,
+}) {
   // A card that has just been flagged gives one soft pulse on its red edge (not on page load).
   const wasBlocked = useRef(task.isBlocked)
   const [pulse, setPulse] = useState(false)
@@ -80,6 +92,12 @@ export function TaskCardBody({ task, usernames, onOpen, onMove, isOverlay = fals
                 buttonContent={<MoreIcon />}
                 buttonClassName="inline-flex size-11 shrink-0 lg:size-8 items-center justify-center rounded-lg border border-line bg-white text-heading hover:bg-surface"
                 items={[
+                  ...(task.permissions.canMove && onReorder && canMoveUp
+                    ? [{ key: 'up', label: upLabel, onSelect: () => onReorder(task, -1) }]
+                    : []),
+                  ...(task.permissions.canMove && onReorder && canMoveDown
+                    ? [{ key: 'down', label: downLabel, onSelect: () => onReorder(task, 1) }]
+                    : []),
                   ...(task.permissions.canMove ? moveMenuItems(task, onMove) : []),
                   { key: 'open', label: 'Open task details', onSelect: () => onOpen(task.id) },
                 ]}
@@ -93,8 +111,8 @@ export function TaskCardBody({ task, usernames, onOpen, onMove, isOverlay = fals
 }
 
 // The whole card is draggable with a mouse or a long press. "Move to…" in the
-// card menu is the keyboard and single-tap alternative (WCAG 2.5.7).
-export default function TaskCard({ task, usernames, onOpen, onMove, className = '', quiet = false }) {
+// card menu, with Move up and Move down, is the keyboard and single-tap alternative (WCAG 2.1.1, 2.5.7).
+export default function TaskCard({ task, usernames, onOpen, onMove, className = '', quiet = false, ...reorderProps }) {
   const { listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
     data: { type: 'task', status: task.status },
@@ -122,7 +140,7 @@ export default function TaskCard({ task, usernames, onOpen, onMove, className = 
     >
       {/* B7: while dragged, the card leaves a dashed slot where it will land. */}
       <div className={isDragging ? 'invisible' : undefined}>
-        <TaskCardBody task={task} usernames={usernames} onOpen={onOpen} onMove={onMove} quiet={quiet} />
+        <TaskCardBody task={task} usernames={usernames} onOpen={onOpen} onMove={onMove} quiet={quiet} {...reorderProps} />
       </div>
     </li>
   )

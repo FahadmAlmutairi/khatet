@@ -13,7 +13,7 @@ import Menu from '../../components/ui/Menu.jsx'
 import InfoTip from '../../components/ui/InfoTip.jsx'
 import { ErrorState, LoadingState, Notice, StateBadge } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
-import { dueLine, formatDueDate, statusLabel } from '../../lib/domain.js'
+import { dueLine, formatDueDate, statusLabel, MAX_TEXT_LENGTH } from '../../lib/domain.js'
 import { fadeOutCard, rememberCardPositions } from '../../lib/motion.js'
 import { moveMenuItems } from './moveMenu.jsx'
 import TaskFields from './TaskFields.jsx'
@@ -182,7 +182,8 @@ function BlockedControl({ task }) {
               saveReason()
             }}
             enterKeyHint="done"
-            className="h-11 w-full rounded-lg border border-input bg-white px-3 text-sm text-body"
+            maxLength={MAX_TEXT_LENGTH}
+            className="h-11 w-full rounded-lg border border-input bg-white px-3 text-base sm:text-sm text-body"
           />
           {/* There is no Save button: the reason saves itself and says so under the field. */}
           <p aria-live="polite" className="flex min-h-4 items-center gap-1 text-xs text-muted">

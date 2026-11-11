@@ -2,7 +2,7 @@
 import { Router } from 'express'
 import { prisma } from '../db.js'
 import { requireAuth, requireUsername } from '../auth/requireAuth.js'
-import { invalid } from '../lib/errors.js'
+import { invalid, MAX_TEXT_LENGTH } from '../lib/errors.js'
 import { findMembership, findOwnerMembership } from './access.js' 
 
 export const projectsRouter = Router()
@@ -58,6 +58,12 @@ projectsRouter.post('/', async (req, res) => {
   if (name.length > 200) {
     throw invalid([
       { field: 'name', message: 'Keep the project name under 200 characters.' },
+    ])
+  }
+
+  if (description.length > MAX_TEXT_LENGTH) {
+    throw invalid([
+      { field: 'description', message: `Keep the description under ${MAX_TEXT_LENGTH} characters.` },
     ])
   }
 
@@ -125,6 +131,11 @@ projectsRouter.patch('/:projectId', async (req, res) => {
       fieldErrors.push({
         field: 'description',
         message: 'Enter a valid description.',
+      })
+    } else if (req.body.description.trim().length > MAX_TEXT_LENGTH) {
+      fieldErrors.push({
+        field: 'description',
+        message: `Keep the description under ${MAX_TEXT_LENGTH} characters.`,
       })
     } else {
       data.description = req.body.description.trim()

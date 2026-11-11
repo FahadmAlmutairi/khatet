@@ -9,7 +9,7 @@
 import { Router } from 'express'
 import { prisma } from '../db.js'
 import { requireAuth, requireUsername } from '../auth/requireAuth.js'
-import { ApiError, forbidden, invalid } from '../lib/errors.js'
+import { ApiError, forbidden, invalid, MAX_TEXT_LENGTH } from '../lib/errors.js'
 import { TRANSACTION_OPTIONS } from '../lib/transactions.js'
 import { notifyAssigned } from '../notifications/routes.js'
 import { findMembership, isUuid } from '../projects/access.js'
@@ -69,6 +69,9 @@ export async function validateTaskFields(body, projectId, { partial }) {
 
   if ('description' in input) {
     clean.description = typeof input.description === 'string' ? input.description.trim() : ''
+    if (clean.description.length > MAX_TEXT_LENGTH) {
+      errors.push({ field: 'description', message: `Keep the description under ${MAX_TEXT_LENGTH} characters.` })
+    }
   }
 
   if ('priority' in input) {
@@ -217,6 +220,9 @@ tasksRouter.patch('/tasks/:taskId', signedIn, async (req, res) => {
     }
     fields.isBlocked = Boolean(body.isBlocked)
     fields.blockedReason = body.isBlocked ? String(body.blockedReason ?? '').trim() || null : null
+    if (fields.blockedReason && fields.blockedReason.length > MAX_TEXT_LENGTH) {
+      throw invalid([{ field: 'blockedReason', message: `Keep the reason under ${MAX_TEXT_LENGTH} characters.` }])
+    }
   }
 
   const updated = await prisma.$transaction(async (tx) => {

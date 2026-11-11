@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { errorMessage, fieldError } from '../../api/errors.js'
 import { useRequestCode, useVerifyCode } from '../../api/hooks.js'
+import { takeReturnTo } from '../../api/returnTo.js'
 import Button, { Spinner } from '../../components/ui/Button.jsx'
 import AuthLayout, { SampleSignInNote } from './AuthLayout.jsx'
 import CodeInput, { LENGTH as CODE_LENGTH } from './CodeInput.jsx'
@@ -35,7 +36,7 @@ export default function VerifyCodePage() {
     if (checking.current) return
     checking.current = true
     verify.mutate(value, {
-      onSuccess: (user) => navigate(user.username ? '/projects' : '/sign-in/username', { replace: true }),
+      onSuccess: (user) => navigate(user.username ? takeReturnTo() : '/sign-in/username', { replace: true }),
       onSettled: () => {
         checking.current = false
         // Digits typed while this check was on its way would otherwise never be checked.

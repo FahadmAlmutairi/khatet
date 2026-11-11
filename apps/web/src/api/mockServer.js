@@ -405,6 +405,18 @@ export function leaveProject(projectId) {
   })
 }
 
+export function cancelInvitation(projectId, invitationId) {
+  return respond('cancelInvitation', () => {
+    const membership = requireMembership(projectId)
+    if (membership.role !== 'OWNER') throw forbidden('Only the project owner can cancel invitations.')
+    const index = db.invitations.findIndex((item) => item.id === invitationId && item.projectId === projectId && item.status === 'PENDING')
+    if (index < 0) throw notFound('This invitation is no longer pending.')
+    db.invitations.splice(index, 1)
+    db.notifications = db.notifications.filter((item) => item.invitationId !== invitationId)
+    return null
+  })
+}
+
 export function inviteMember(projectId, username) {
   return respond('inviteMember', () => {
     const membership = requireMembership(projectId)

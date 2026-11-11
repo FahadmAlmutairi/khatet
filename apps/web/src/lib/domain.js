@@ -104,3 +104,6 @@ export function dueLine(dueDate, status, now = new Date()) {
   const date = formatDueDate(dueDate, { short: true })
   return { text: overdue ? `Overdue · ${date}` : `Due ${date}`, overdue }
 }
+
+// The longest description or blocked reason the API accepts (review M12).
+export const MAX_TEXT_LENGTH = 5000
