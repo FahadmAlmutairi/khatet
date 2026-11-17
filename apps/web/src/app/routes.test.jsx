@@ -1008,6 +1008,45 @@ describe('AI report (US-31)', () => {
   })
 })
 
+describe('project log', () => {
+  it('opens from the sidebar and keeps the history of a member who left and a deleted task', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/board')
+    const sidebar = await screen.findByRole('complementary')
+    await user.click(await within(sidebar).findByRole('link', { name: 'Project log' }))
+    expect(router.state.location.pathname).toBe('/projects/p-khatet/log')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Project log' }, { timeout: 5000 })).toBeInTheDocument()
+
+    const deleted = await screen.findByText((_, element) => element?.tagName === 'P' && element.textContent === 'fahad deleted “Write the project charter” from Done')
+    expect(within(deleted).queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.getByText('Priority: None to High')).toBeInTheDocument()
+
+    const person = screen.getByLabelText('Person')
+    expect(within(person).getByRole('option', { name: 'nasser (former member)' })).toBeInTheDocument()
+    await user.selectOptions(person, 'u-nasser')
+    await waitFor(() => expect(screen.queryByText(/changed ali’s access/)).not.toBeInTheDocument())
+    expect(screen.getByText((_, element) => element?.tagName === 'P' && element.textContent === 'nasser left the project')).toBeInTheDocument()
+    expect(screen.getByText((_, element) => element?.tagName === 'P' && element.textContent === 'nasser moved “Write the project charter” from To Do to Done')).toBeInTheDocument()
+  })
+
+  it('records a change made on the board', async () => {
+    signIn()
+    await createTask('p-khatet', { title: 'Write the log tests', assigneeIds: ['u-fahad', 'u-saad'] })
+    renderApp('/projects/p-khatet/log')
+    const entry = await screen.findByText(
+      (_, element) => element?.tagName === 'P' && element.textContent === 'fahad created “Write the log tests” and assigned fahad and saad',
+      undefined,
+      { timeout: 5000 },
+    )
+    expect(within(entry).getByRole('link', { name: '“Write the log tests”' })).toHaveAttribute(
+      'href',
+      expect.stringMatching(/\/projects\/p-khatet\/board\?task=/),
+    )
+    expect(screen.getByRole('heading', { level: 2, name: 'Today' })).toBeInTheDocument()
+  })
+})
+
 describe('account settings (US-03)', () => {
   it('opens from the sidebar and changes the username everywhere', async () => {
     signIn()

@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router'
 import AppShell from './AppShell.jsx'
-import { BoardPage, MembersPage, ProjectSettingsPage, ReportPage } from './lazyPages.js'
+import { ActivityPage, BoardPage, MembersPage, ProjectSettingsPage, ReportPage } from './lazyPages.js'
 import RouteError from './RouteError.jsx'
 import AccountSettingsPage from '../features/account/AccountSettingsPage.jsx'
 import ChooseUsernamePage from '../features/auth/ChooseUsernamePage.jsx'
@@ -33,6 +33,7 @@ export const routes = [
               { path: 'board', element: <BoardPage /> },
               { path: 'members', element: <MembersPage /> },
               { path: 'report', element: <ReportPage /> },
+              { path: 'log', element: <ActivityPage /> },
               { path: 'settings', element: <ProjectSettingsPage /> },
             ],
           },

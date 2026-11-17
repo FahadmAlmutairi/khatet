@@ -114,6 +114,19 @@ export function createSampleData() {
       }),
       task('t-15', 'p-capstone', 'List related papers', 'TODO', 1, ['u-omar'], { priority: 'LOW' }),
     ],
+    // The project log, oldest first. nasser left Khatet, and the task he wrote was deleted, but both stay in the log.
+    activity: [
+      { id: 'a-1', projectId: 'p-khatet', actorId: 'u-fahad', actorUsername: 'fahad', type: 'PROJECT_CREATED', taskId: null, taskTitle: null, details: { name: 'Khatet' }, createdAt: '2026-09-01T09:00:00Z' },
+      { id: 'a-2', projectId: 'p-khatet', actorId: 'u-fahad', actorUsername: 'fahad', type: 'MEMBER_INVITED', taskId: null, taskTitle: null, details: { userId: 'u-nasser', username: 'nasser' }, createdAt: '2026-09-01T09:05:00Z' },
+      { id: 'a-3', projectId: 'p-khatet', actorId: 'u-nasser', actorUsername: 'nasser', type: 'MEMBER_JOINED', taskId: null, taskTitle: null, details: {}, createdAt: '2026-09-01T10:00:00Z' },
+      { id: 'a-4', projectId: 'p-khatet', actorId: 'u-nasser', actorUsername: 'nasser', type: 'TASK_CREATED', taskId: 't-old', taskTitle: 'Write the project charter', details: { status: 'TODO', assignees: ['nasser'] }, createdAt: '2026-09-14T09:30:00Z' },
+      { id: 'a-5', projectId: 'p-khatet', actorId: 'u-nasser', actorUsername: 'nasser', type: 'TASK_MOVED', taskId: 't-old', taskTitle: 'Write the project charter', details: { from: 'TODO', to: 'DONE' }, createdAt: '2026-09-20T12:00:00Z' },
+      { id: 'a-6', projectId: 'p-khatet', actorId: 'u-nasser', actorUsername: 'nasser', type: 'MEMBER_LEFT', taskId: null, taskTitle: null, details: {}, createdAt: '2026-09-28T15:00:00Z' },
+      { id: 'a-7', projectId: 'p-khatet', actorId: 'u-fahad', actorUsername: 'fahad', type: 'TASK_DELETED', taskId: 't-old', taskTitle: 'Write the project charter', details: { status: 'DONE' }, createdAt: '2026-10-01T08:00:00Z' },
+      { id: 'a-8', projectId: 'p-khatet', actorId: 'u-saad', actorUsername: 'saad', type: 'TASK_UPDATED', taskId: 't-8', taskTitle: 'Define board hierarchy', details: { changes: [{ field: 'priority', from: null, to: 'HIGH' }, { field: 'assignees', added: ['fahad'], removed: [] }] }, createdAt: '2026-10-04T10:15:00Z' },
+      { id: 'a-9', projectId: 'p-khatet', actorId: 'u-fahad', actorUsername: 'fahad', type: 'TASK_MOVED', taskId: 't-8', taskTitle: 'Define board hierarchy', details: { from: 'IN_PROGRESS', to: 'READY_FOR_REVIEW' }, createdAt: '2026-10-05T09:40:00Z' },
+      { id: 'a-10', projectId: 'p-khatet', actorId: 'u-fahad', actorUsername: 'fahad', type: 'MEMBER_ACCESS_CHANGED', taskId: null, taskTitle: null, details: { userId: 'u-ali', username: 'ali', from: 'EDIT_ASSIGNED', to: 'VIEW_ONLY' }, createdAt: '2026-10-05T10:00:00Z' },
+    ],
     // US-24: project chat, oldest first.
     messages: [
       { id: 'm-1', projectId: 'p-khatet', authorId: 'u-saad', text: 'I pushed the sign-in screens. Can someone review them today?', createdAt: '2026-10-05T09:12:00Z' },

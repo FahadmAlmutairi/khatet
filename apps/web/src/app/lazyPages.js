@@ -4,4 +4,5 @@ import { lazy } from 'react'
 export const BoardPage = lazy(() => import('../features/board/BoardPage.jsx'))
 export const MembersPage = lazy(() => import('../features/members/MembersPage.jsx'))
 export const ReportPage = lazy(() => import('../features/report/ReportPage.jsx'))
+export const ActivityPage = lazy(() => import('../features/activity/ActivityPage.jsx'))
 export const ProjectSettingsPage = lazy(() => import('../features/projects/ProjectSettingsPage.jsx'))

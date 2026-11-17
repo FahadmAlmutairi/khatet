@@ -185,6 +185,17 @@ export default function BoardPage() {
     openTask(taskId)
   }
 
+  // US-25: "Reference in chat" in task details closes the task and opens the chat with the
+  // task already in the message box.
+  const [chatDraft, setChatDraft] = useState(null)
+  function referenceInChat(task) {
+    const next = new URLSearchParams(searchParams)
+    next.delete('task')
+    setSearchParams(next, { replace: true })
+    setChatDraft({ taskId: task.id, title: task.title })
+    setChatOpen(true)
+  }
+
   const note = accessNote(project)
 
   return (
@@ -296,7 +307,14 @@ export default function BoardPage() {
         )}
       </div>
 
-      <ChatPanel project={project} open={chatOpen} onClose={closeChat} onOpenTask={openTaskFromChat} />
+      <ChatPanel
+        project={project}
+        open={chatOpen}
+        onClose={closeChat}
+        onOpenTask={openTaskFromChat}
+        draftTask={chatDraft}
+        onDraftUsed={() => setChatDraft(null)}
+      />
 
       {project.permissions.canManageMembers && (
         <InviteDialog open={inviting} onClose={() => setInviting(false)} projectId={project.id} backLabel="Board" />
@@ -319,6 +337,7 @@ export default function BoardPage() {
             usernames={usernames}
             onClose={closeTask}
             onMove={move}
+            onReferenceInChat={referenceInChat}
           />
         </>
       )}

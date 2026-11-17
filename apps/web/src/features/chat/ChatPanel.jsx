@@ -79,7 +79,7 @@ function ChatMessage({ message, mine, taskTitles, onOpenTask }) {
 
 // Enter sends, Shift+Enter starts a new line (US-24). Typing # lists the project's tasks by
 // title; picking one puts "#Title" in the box, which is sent as a task link (US-25).
-function Composer({ projectId, tasks, inputRef, onSent }) {
+function Composer({ projectId, tasks, inputRef, onSent, draftTask, onDraftUsed }) {
   const send = useSendMessage(projectId)
   const [text, setText] = useState('')
   const [emptyError, setEmptyError] = useState(false)
@@ -103,6 +103,24 @@ function Composer({ projectId, tasks, inputRef, onSent }) {
     inputRef.current.setSelectionRange(caretAfterPick.current, caretAfterPick.current)
     caretAfterPick.current = null
   }, [text, inputRef])
+
+  // A task sent from task details ("Reference in chat") is added at the end of the message box.
+  const handledDraft = useRef(null)
+  useEffect(() => {
+    // Each draft is added once, also when React runs the effect twice in development.
+    if (!draftTask || handledDraft.current === draftTask) return
+    handledDraft.current = draftTask
+    const label = draftTask.title
+    setText((current) => {
+      const next = `${current}${current && !current.endsWith(' ') ? ' ' : ''}#${label} `
+      caretAfterPick.current = next.length
+      return next
+    })
+    setReferences((current) => [...current.filter((item) => item.label !== label), { label, taskId: draftTask.taskId }])
+    setMention(null)
+    inputRef.current?.focus()
+    onDraftUsed?.()
+  }, [draftTask, onDraftUsed, inputRef])
 
   function updateMention(value, caret) {
     let next = mentionAt(value, caret)
@@ -238,7 +256,7 @@ function Composer({ projectId, tasks, inputRef, onSent }) {
 
 // US-24: the project chat. A right-hand panel on desktop and the full screen on phones
 // (docs/ui-ux-guidelines.md, Project chat). Every member can read and send at every access level.
-export default function ChatPanel({ project, open, onClose, onOpenTask }) {
+export default function ChatPanel({ project, open, onClose, onOpenTask, draftTask, onDraftUsed }) {
   const messages = useMessages(project.id, { enabled: open })
   const me = useMe()
   // The board already loads every task of the project; the chat reuses that list (US-25).
@@ -359,6 +377,8 @@ export default function ChatPanel({ project, open, onClose, onOpenTask }) {
         projectId={project.id}
         tasks={tasks.data}
         inputRef={inputRef}
+        draftTask={draftTask}
+        onDraftUsed={onDraftUsed}
         onSent={() => {
           stickToBottom.current = true
         }}

@@ -108,6 +108,21 @@ function usernameOf(userId) {
   return db.users.find((user) => user.id === userId)?.username ?? 'unknown'
 }
 
+// The project log: one entry per change, kept after the task is deleted or the member leaves.
+function logActivity(projectId, type, { task = null, details = {} } = {}) {
+  db.activity.push({
+    id: newId('a'),
+    projectId,
+    actorId: currentUserId,
+    actorUsername: usernameOf(currentUserId),
+    type,
+    taskId: task?.id ?? null,
+    taskTitle: task?.title ?? null,
+    details,
+    createdAt: now(),
+  })
+}
+
 function canEditAll(membership) {
   return membership.role === 'OWNER' || membership.taskAccess === 'EDIT_ALL'
 }
@@ -307,6 +322,7 @@ export function createProject({ name, description }) {
     const membership = { projectId: project.id, userId: user.id, role: 'OWNER', taskAccess: 'EDIT_ALL' }
     db.projects.push(project)
     db.members.push(membership)
+    logActivity(project.id, 'PROJECT_CREATED', { details: { name: cleanName } })
     return serializeProject(project, membership)
   })
 }
@@ -349,7 +365,11 @@ export function updateProject(projectId, patch) {
     if (errors.length) throw invalid(errors)
 
     const project = db.projects.find((item) => item.id === projectId)
+    const changes = []
+    if (updates.name !== undefined && updates.name !== project.name) changes.push({ field: 'name', from: project.name, to: updates.name })
+    if (updates.description !== undefined && updates.description !== project.description) changes.push({ field: 'description' })
     Object.assign(project, updates, { updatedAt: now() })
+    if (changes.length) logActivity(projectId, 'PROJECT_UPDATED', { details: { changes } })
     return serializeProject(project, membership)
   })
 }
@@ -380,6 +400,11 @@ export function updateMemberAccess(projectId, userId, taskAccess) {
     if (!ACCESS_VALUES.includes(taskAccess)) throw invalid([{ field: 'taskAccess', message: 'Choose an access level.' }])
     const target = db.members.find((item) => item.projectId === projectId && item.userId === userId)
     if (!target || target.role === 'OWNER') throw notFound('This member is no longer in the project.')
+    if (target.taskAccess !== taskAccess) {
+      logActivity(projectId, 'MEMBER_ACCESS_CHANGED', {
+        details: { userId, username: usernameOf(userId), from: target.taskAccess, to: taskAccess },
+      })
+    }
     target.taskAccess = taskAccess
     return { ...target, username: usernameOf(userId) }
   })
@@ -392,6 +417,7 @@ export function removeMember(projectId, userId) {
     const target = db.members.find((item) => item.projectId === projectId && item.userId === userId)
     if (!target || target.role === 'OWNER') throw notFound('This member is no longer in the project.')
     db.members = db.members.filter((item) => item !== target)
+    logActivity(projectId, 'MEMBER_REMOVED', { details: { userId, username: usernameOf(userId) } })
     return { projectId, userId }
   })
 }
@@ -401,6 +427,7 @@ export function leaveProject(projectId) {
     const membership = requireMembership(projectId)
     if (membership.role === 'OWNER') throw forbidden('The project owner cannot leave their own project.')
     db.members = db.members.filter((item) => item !== membership)
+    logActivity(projectId, 'MEMBER_LEFT')
     return { projectId, userId: membership.userId }
   })
 }
@@ -411,7 +438,10 @@ export function cancelInvitation(projectId, invitationId) {
     if (membership.role !== 'OWNER') throw forbidden('Only the project owner can cancel invitations.')
     const index = db.invitations.findIndex((item) => item.id === invitationId && item.projectId === projectId && item.status === 'PENDING')
     if (index < 0) throw notFound('This invitation is no longer pending.')
-    db.invitations.splice(index, 1)
+    const [cancelled] = db.invitations.splice(index, 1)
+    logActivity(projectId, 'INVITATION_CANCELLED', {
+      details: { userId: cancelled.invitedUserId, username: usernameOf(cancelled.invitedUserId) },
+    })
     db.notifications = db.notifications.filter((item) => item.invitationId !== invitationId)
     return null
   })
@@ -450,6 +480,7 @@ export function inviteMember(projectId, username) {
       read: false,
       createdAt: invitation.createdAt,
     })
+    logActivity(projectId, 'MEMBER_INVITED', { details: { userId: user.id, username: value } })
     return { id: invitation.id, username: value, createdAt: invitation.createdAt }
   })
 }
@@ -466,6 +497,7 @@ function respondToInvitation(name, invitationId, accept) {
     for (const notification of db.notifications) {
       if (notification.invitationId === invitationId) notification.read = true
     }
+    logActivity(invitation.projectId, accept ? 'MEMBER_JOINED' : 'INVITATION_DECLINED')
     return { id: invitation.id, status: invitation.status, projectId: invitation.projectId }
   })
 }
@@ -522,6 +554,7 @@ export function createTask(projectId, input) {
     }
     db.tasks.push(task)
     notifyAssignees(task, task.assigneeIds)
+    logActivity(projectId, 'TASK_CREATED', { task, details: { status: 'TODO', assignees: task.assigneeIds.map(usernameOf) } })
     return withPermissions(task, membership)
   })
 }
@@ -539,10 +572,31 @@ export function updateTask(taskId, patch) {
       fields.blockedReason = patch.isBlocked ? (patch.blockedReason ?? '').trim() || null : null
     }
     const added = (fields.assigneeIds ?? []).filter((id) => !task.assigneeIds.includes(id))
+    const before = { ...task }
     Object.assign(task, fields, { updatedAt: now() })
     notifyAssignees(task, added)
+    const changes = describeChanges(before, task)
+    if (changes.length) logActivity(task.projectId, 'TASK_UPDATED', { task, details: { changes } })
     return withPermissions(task, membership)
   })
+}
+
+// Same shape as the API's project log (apps/api/src/tasks/routes.js, describeChanges).
+function describeChanges(before, after) {
+  const changes = []
+  for (const field of ['title', 'priority', 'dueDate', 'isBlocked']) {
+    if (before[field] !== after[field]) changes.push({ field, from: before[field], to: after[field] })
+  }
+  if (after.isBlocked && before.blockedReason !== after.blockedReason) {
+    changes.push({ field: 'blockedReason', from: before.blockedReason, to: after.blockedReason })
+  }
+  if (before.description !== after.description) changes.push({ field: 'description' })
+  const added = after.assigneeIds.filter((id) => !before.assigneeIds.includes(id))
+  const removed = before.assigneeIds.filter((id) => !after.assigneeIds.includes(id))
+  if (added.length || removed.length) {
+    changes.push({ field: 'assignees', added: added.map(usernameOf), removed: removed.map(usernameOf) })
+  }
+  return changes
 }
 
 // Whole-number positions per column: the server shifts the other cards (decided 5 Oct 2026).
@@ -557,6 +611,7 @@ export function moveTask(taskId, { status, position }) {
     const index = Math.min(Math.max((position ?? target.length + 1) - 1, 0), target.length)
     target.splice(index, 0, task)
 
+    if (status !== task.status) logActivity(task.projectId, 'TASK_MOVED', { task, details: { from: task.status, to: status } })
     task.status = status
     if (status !== 'IN_PROGRESS') {
       task.isBlocked = false
@@ -574,6 +629,7 @@ export function deleteTask(taskId) {
     const { task, membership } = findTask(taskId)
     if (!taskPermissions(task, membership).canDelete) throw forbidden('You need Edit all tasks access to delete tasks.')
     db.tasks = db.tasks.filter((item) => item.id !== taskId)
+    logActivity(task.projectId, 'TASK_DELETED', { task, details: { status: task.status } })
     renumber(columnTasks(task.projectId, task.status))
     return { id: taskId }
   })
@@ -748,5 +804,28 @@ export function generateReport(projectId) {
     }
     db.reports.push(report)
     return serializeReport(report)
+  })
+}
+
+// ---------- Project log ----------
+
+const ACTIVITY_PAGE = 50
+
+export function getActivity(projectId, { actorId, before, limit = ACTIVITY_PAGE } = {}) {
+  return respond('getActivity', () => {
+    requireMembership(projectId)
+    const all = db.activity
+      .filter((event) => event.projectId === projectId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
+    const matching = actorId ? all.filter((event) => event.actorId === actorId) : all
+    const start = before ? matching.findIndex((event) => event.id === before) + 1 : 0
+    const events = matching.slice(start, start + limit)
+    const actors = new Map()
+    for (const event of all) if (event.actorId && !actors.has(event.actorId)) actors.set(event.actorId, event.actorUsername)
+    return {
+      events,
+      nextCursor: start + limit < matching.length ? events.at(-1).id : null,
+      actors: [...actors].map(([id, username]) => ({ id, username })).sort((a, b) => a.username.localeCompare(b.username)),
+    }
   })
 }

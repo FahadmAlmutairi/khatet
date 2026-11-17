@@ -8,7 +8,7 @@ import { inertOthers } from '../lib/inertOthers.js'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
-import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SettingsIcon, SignOutIcon } from '../components/icons.jsx'
+import { BoardIcon, ChevronIcon, HistoryIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SettingsIcon, SignOutIcon } from '../components/icons.jsx'
 import Logo from '../components/Logo.jsx'
 import Button from '../components/ui/Button.jsx'
 import Dialog from '../components/ui/Dialog.jsx'
@@ -92,6 +92,12 @@ function SortableProject({ project, current, open, mobile, onNavigate, onToggle,
             <NavLink to={`/projects/${project.id}/members`} className={subNavClass(mobile)} onClick={onNavigate}>
               <MembersIcon />
               Members
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to={`/projects/${project.id}/log`} className={subNavClass(mobile)} onClick={onNavigate}>
+              <HistoryIcon />
+              Project log
             </NavLink>
           </li>
           {project.role === 'OWNER' && apiReady.projectSettings && (

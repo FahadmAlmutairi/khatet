@@ -1,0 +1,86 @@
+import { formatDueDate, priorityLabel, statusLabel, taskAccessLabel } from '../../lib/domain.js'
+
+const FIELD_LABELS = { title: 'title', priority: 'priority', dueDate: 'due date', blockedReason: 'blocked reason' }
+
+function list(names) {
+  if (names.length <= 1) return names.join('')
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+}
+
+function fieldValue(field, value) {
+  if (field === 'priority') return priorityLabel(value)
+  if (field === 'dueDate') return value ? formatDueDate(value) : 'no date'
+  return value ? `“${value}”` : 'nothing'
+}
+
+// One line per change in an edit, for example "Priority: Low to High".
+function changeLines(changes = []) {
+  return changes.map((change) => {
+    if (change.field === 'description') return 'Changed the description'
+    if (change.field === 'isBlocked') return change.to ? 'Flagged as blocked' : 'Cleared the blocked flag'
+    if (change.field === 'assignees') {
+      const parts = []
+      if (change.added.length) parts.push(`added ${list(change.added)}`)
+      if (change.removed.length) parts.push(`removed ${list(change.removed)}`)
+      return `Assignees: ${parts.join(', ')}`
+    }
+    if (change.field === 'name') return `Name: “${change.from}” to “${change.to}”`
+    const label = FIELD_LABELS[change.field] ?? change.field
+    const name = label.charAt(0).toUpperCase() + label.slice(1)
+    return `${name}: ${fieldValue(change.field, change.from)} to ${fieldValue(change.field, change.to)}`
+  })
+}
+
+// The sentence for one log entry: before and after go around the task title, and more holds
+// extra lines shown under it.
+export function describeActivity(event) {
+  const details = event.details ?? {}
+  switch (event.type) {
+    case 'PROJECT_CREATED':
+      return { before: 'created the project', after: '', more: [] }
+    case 'PROJECT_UPDATED':
+      return { before: 'changed the project settings', after: '', more: changeLines(details.changes) }
+    case 'TASK_CREATED':
+      return {
+        before: 'created',
+        after: details.assignees?.length ? `and assigned ${list(details.assignees)}` : '',
+        more: [],
+      }
+    case 'TASK_UPDATED':
+      return { before: 'edited', after: '', more: changeLines(details.changes) }
+    case 'TASK_MOVED':
+      return { before: 'moved', after: `from ${statusLabel(details.from)} to ${statusLabel(details.to)}`, more: [] }
+    case 'TASK_DELETED':
+      return { before: 'deleted', after: details.status ? `from ${statusLabel(details.status)}` : '', more: [] }
+    case 'MEMBER_INVITED':
+      return { before: `invited ${details.username}`, after: '', more: [] }
+    case 'INVITATION_CANCELLED':
+      return { before: `cancelled the invitation to ${details.username}`, after: '', more: [] }
+    case 'INVITATION_DECLINED':
+      return { before: 'declined the invitation', after: '', more: [] }
+    case 'MEMBER_JOINED':
+      return { before: 'joined the project', after: '', more: [] }
+    case 'MEMBER_ACCESS_CHANGED':
+      return {
+        before: `changed ${details.username}’s access from ${taskAccessLabel(details.from)} to ${taskAccessLabel(details.to)}`,
+        after: '',
+        more: [],
+      }
+    case 'MEMBER_REMOVED':
+      return { before: `removed ${details.username} from the project`, after: '', more: [] }
+    case 'MEMBER_LEFT':
+      return { before: 'left the project', after: '', more: [] }
+    default:
+      return { before: 'made a change', after: '', more: [] }
+  }
+}
+
+const dayFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+export function dayLabel(date, now = new Date()) {
+  const start = (value) => new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime()
+  const diff = Math.round((start(now) - start(date)) / 86_400_000)
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Yesterday'
+  return dayFormat.format(date)
+}

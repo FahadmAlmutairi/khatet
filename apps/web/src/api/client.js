@@ -60,6 +60,17 @@ const realReports = {
   generateReport: (projectId) => apiFetch(`/projects/${projectId}/reports`, { method: 'POST' }),
 }
 
+// The project log (docs/api-contract.md, Project log).
+const realActivity = {
+  getActivity: (projectId, { actorId, before } = {}) => {
+    const query = new URLSearchParams()
+    if (actorId) query.set('actorId', actorId)
+    if (before) query.set('before', before)
+    const suffix = query.size ? `?${query}` : ''
+    return apiFetch(`/projects/${projectId}/activity${suffix}`)
+  },
+}
+
 const auth = useRealAuth
   ? {
       requestCode: realAuth.requestCode,
@@ -73,5 +84,5 @@ const auth = useRealAuth
 export const api = {
   ...sample,
   ...auth,
-  ...(useRealAuth ? { ...realProjects, ...realMembersAndNotifications, ...realReports } : {}),
+  ...(useRealAuth ? { ...realProjects, ...realMembersAndNotifications, ...realReports, ...realActivity } : {}),
 }

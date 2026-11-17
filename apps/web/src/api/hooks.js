@@ -2,7 +2,7 @@
 // The screens only use these hooks, so swapping the sample API for the real
 // Express client later changes this file and ./client.js, not the screens.
 import { useEffect, useRef, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chatSocketEnabled, getChatSocket, joinProjectRoom } from './chatSocket.js'
 import { api } from './client.js'
 
@@ -16,6 +16,7 @@ export const keys = {
   notifications: ['notifications'],
   messages: (projectId) => ['messages', projectId],
   report: (projectId) => ['report', projectId],
+  activity: (projectId, actorId) => ['activity', projectId, actorId ?? 'all'],
 }
 
 // ---------- Session ----------
@@ -469,5 +470,18 @@ export function useGenerateReport(projectId) {
   return useMutation({
     mutationFn: () => api.generateReport(projectId),
     onSuccess: (report) => queryClient.setQueryData(keys.report(projectId), report),
+  })
+}
+
+// ---------- Project log ----------
+
+// Newest first, 50 at a time; fetchNextPage loads older entries. Refetched each time the page opens.
+export function useActivity(projectId, actorId) {
+  return useInfiniteQuery({
+    queryKey: keys.activity(projectId, actorId),
+    queryFn: ({ pageParam }) => api.getActivity(projectId, { actorId, before: pageParam }),
+    initialPageParam: undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    staleTime: 0,
   })
 }

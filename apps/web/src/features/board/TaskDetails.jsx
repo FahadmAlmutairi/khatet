@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { errorMessage } from '../../api/errors.js'
 import { useDeleteTaskWithUndo, useTask, useUpdateTask } from '../../api/hooks.js'
 import { AvatarStack } from '../../components/Avatar.jsx'
-import { ChevronIcon, CloseIcon, ErrorIcon, MoreIcon, OverdueIcon, SmallCheckIcon } from '../../components/icons.jsx'
+import { ChatIcon, ChevronIcon, CloseIcon, ErrorIcon, MoreIcon, OverdueIcon, SmallCheckIcon } from '../../components/icons.jsx'
 import PriorityBadge from '../../components/PriorityBadge.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -242,7 +242,7 @@ function DeleteTaskDialog({ open, task, onCancel, onDeleted, projectId }) {
   )
 }
 
-function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete, onMove }) {
+function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete, onMove, onReferenceInChat }) {
   const { canEdit, canDelete } = task.permissions
   const assignees = task.assigneeIds.map((id) => ({ id, username: usernames.get(id) ?? 'unknown' }))
   const due = dueLine(task.dueDate, task.status) ?? { overdue: false }
@@ -250,6 +250,13 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
   return (
     <div className="flex flex-col gap-5">
       <TopBar eyebrow={eyebrow} onClose={onClose}>
+        {/* US-25: every member can chat, so every member can mention the task there. */}
+        {onReferenceInChat && (
+          <button type="button" onClick={() => onReferenceInChat(task)} className={`${outlineButton} gap-2 px-4`}>
+            <ChatIcon />
+            Reference in chat
+          </button>
+        )}
         {canEdit && (
           <button type="button" onClick={onEdit} className={`${outlineButton} px-4`}>
             Edit
@@ -392,7 +399,7 @@ function TaskEditForm({ task, titleId, eyebrow, members, onClose, onDone, regist
   )
 }
 
-function TaskDetailsBody({ taskId, titleId, projectId, projectName, members, usernames, onClose, onMove, registerCloseGuard }) {
+function TaskDetailsBody({ taskId, titleId, projectId, projectName, members, usernames, onClose, onMove, onReferenceInChat, registerCloseGuard }) {
   const task = useTask(taskId)
   const [mode, setMode] = useState('view')
   const data = task.data
@@ -432,6 +439,7 @@ function TaskDetailsBody({ taskId, titleId, projectId, projectName, members, use
           onEdit={() => setMode('edit')}
           onDelete={() => setMode('delete')}
           onMove={onMove}
+          onReferenceInChat={onReferenceInChat}
         />
       )}
       <DeleteTaskDialog
