@@ -3,6 +3,7 @@ import { Link, useOutletContext } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useActivity, useMembers, useTasks } from '../../api/hooks.js'
 import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
+import Avatar from '../../components/Avatar.jsx'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { EmptyState, ErrorState, LoadingState } from '../../components/ui/States.jsx'
@@ -33,18 +34,18 @@ export default function ActivityPage() {
   return (
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <Breadcrumb items={crumbs} className="lg:hidden" />
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <h1 className="text-title font-bold text-body">Project log</h1>
         {actors.length > 0 && (
-          <div className="flex flex-col gap-1.5 max-sm:w-full">
-            <label htmlFor={filterId} className="text-sm font-medium text-body">
+          <div className="flex items-center gap-2 max-sm:w-full">
+            <label htmlFor={filterId} className="shrink-0 text-sm font-medium text-body">
               Person
             </label>
             <select
               id={filterId}
               value={actorId}
               onChange={(event) => setActorId(event.target.value)}
-              className="min-h-11 rounded-lg border border-line bg-white px-3 text-base text-body sm:min-w-48 sm:text-sm"
+              className="min-h-11 flex-1 rounded-control border border-input bg-white px-3 text-base text-body sm:min-h-10 sm:min-w-44 sm:text-sm"
             >
               <option value="">Everyone</option>
               {actors.map((actor) => (
@@ -80,11 +81,8 @@ export default function ActivityPage() {
           <ol className="flex flex-col divide-y divide-line rounded-xl border border-line bg-white">
             {items.map((event) => (
               <li key={event.id} className="flex items-start gap-3 px-4 py-3">
-                <span
-                  aria-hidden="true"
-                  className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-nav-active text-xs font-semibold text-heading"
-                >
-                  {event.actorUsername.charAt(0).toUpperCase()}
+                <span aria-hidden="true" className="-my-1 flex">
+                  <Avatar username={event.actorUsername} size="sm" />
                 </span>
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <p className="text-sm text-body">
@@ -96,7 +94,7 @@ export default function ActivityPage() {
                     </p>
                   ))}
                 </div>
-                <time dateTime={event.createdAt} className="shrink-0 text-xs text-muted">
+                <time dateTime={event.createdAt} className="shrink-0 text-xs leading-5 text-muted tabular-nums">
                   {timeFormat.format(new Date(event.createdAt))}
                 </time>
               </li>
