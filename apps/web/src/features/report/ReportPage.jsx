@@ -40,7 +40,7 @@ export default function ReportPage() {
   )
 
   return (
-    <section className="flex w-full max-w-4xl flex-col gap-6">
+    <section className="flex w-full max-w-3xl flex-col gap-6">
       <Breadcrumb items={crumbs} className="lg:hidden" />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
