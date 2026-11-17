@@ -184,6 +184,12 @@ The API must not mutate project data during upload, mapping, or review.
 
 Only the Project Owner can generate a report; every participant can list and read reports with their generation date. `POST /reports` returns a report ID with status `RUNNING`. Within 30 seconds the report becomes `READY` with a summary, warnings, and suggestions, or `FAILED` with a typed error that the UI shows with a retry button. Generating a report never changes tasks, assignments, dates, or permissions, and there is no endpoint to apply a suggestion. Provider credentials stay server-side.
 
+**Sprint 3 shape (US-31, planned 15 Nov 2026).** To fit the sprint, the first version answers in one request instead of the `RUNNING` lifecycle above; the AI call already times out at 30 seconds (`apps/api/src/ai/reportClient.js`). The web app (`apps/web/src/api/client.js`) expects:
+
+- `GET /api/projects/:projectId/reports/latest`, any member: 200 with the report, or 404 `NO_REPORT` when none exists yet.
+- `POST /api/projects/:projectId/reports`, owner only (403 `FORBIDDEN` for members): 201 with the new report. A second run within 10 minutes gets 429 `REPORT_TOO_SOON` with `nextAllowedAt` (ISO date and time) next to `code` and `message` in the error. AI failures use the codes from `reportClient.js` (`AI_TIMEOUT`, `AI_BUSY`, `AI_QUOTA`, `AI_NOT_CONFIGURED`, `AI_EMPTY_REPORT`, `AI_FAILED`) with a message that is safe to show.
+- A report is `{ id, projectId, content, model, promptVersion, createdAt, createdBy: { id, username } }`. `content` is the AI text with the three `## ` headings from `reportPrompt.js`.
+
 ## Authentication and permissions
 
 The web app signs in with Supabase Auth (6-digit email code that expires after 10 minutes and works only once) and sends the Supabase access token as `Authorization: Bearer <token>`. The API verifies the token on every request and on the Socket.IO handshake. A new user must choose a unique username before using projects.

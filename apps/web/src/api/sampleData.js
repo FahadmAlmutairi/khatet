@@ -120,6 +120,28 @@ export function createSampleData() {
       { id: 'm-2', projectId: 'p-khatet', authorId: 'u-fahad', text: 'Yes, I will look after lunch.', createdAt: '2026-10-05T09:20:00Z' },
       { id: 'm-3', projectId: 'p-khatet', authorId: 'u-omar', text: 'The test plan is in Ready for Review.', createdAt: '2026-10-05T11:02:00Z' },
     ],
+    // US-31: one earlier AI report, so a member of Study Planner sees a report.
+    reports: [
+      {
+        id: 'r-1',
+        projectId: 'p-study',
+        createdById: 'u-saad',
+        model: 'gpt-6-luna',
+        promptVersion: 1,
+        createdAt: '2026-10-05T07:30:00Z',
+        content: [
+          '## Progress summary',
+          'One of three tasks is done. "Solve past exam questions" is in progress with saad and omar, and "Summarise chapter 4 (trees)" is still to do.',
+          '',
+          '## Warnings',
+          '- "Summarise chapter 4 (trees)" is due on 12 Oct and has not started.',
+          '',
+          '## Suggestions',
+          '- fahad could start "Summarise chapter 4 (trees)" this week.',
+          '- saad and omar could agree who finishes "Solve past exam questions".',
+        ].join('\n'),
+      },
+    ],
     notifications: [
       {
         id: 'n-1',

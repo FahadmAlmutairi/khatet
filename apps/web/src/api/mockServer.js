@@ -650,3 +650,84 @@ export function sendMessage(projectId, text) {
 export function addSampleMessage(projectId, authorId, text) {
   db.messages.push({ id: newId('m'), projectId, authorId, text, createdAt: now() })
 }
+
+// ---------- AI report (US-31) ----------
+
+// Same rule as the API: one report per project every 10 minutes (429 REPORT_TOO_SOON).
+export const REPORT_INTERVAL_MS = 10 * 60 * 1000
+
+function serializeReport(report) {
+  return {
+    id: report.id,
+    projectId: report.projectId,
+    content: report.content,
+    model: report.model,
+    promptVersion: report.promptVersion,
+    createdAt: report.createdAt,
+    createdBy: { id: report.createdById, username: usernameOf(report.createdById) },
+  }
+}
+
+function latestReport(projectId) {
+  return db.reports
+    .filter((item) => item.projectId === projectId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+}
+
+export function getLatestReport(projectId) {
+  return respond('getLatestReport', () => {
+    requireMembership(projectId)
+    const report = latestReport(projectId)
+    if (!report) throw new ApiError({ code: 'NO_REPORT', status: 404, message: 'No report has been generated for this project yet.' })
+    return serializeReport(report)
+  })
+}
+
+// Writes the report from the board's numbers, in the same three sections as the real prompt.
+export function generateReport(projectId) {
+  return respond('generateReport', () => {
+    const membership = requireMembership(projectId)
+    if (membership.role !== 'OWNER') throw forbidden('Only the project owner can generate a report.')
+    const previous = latestReport(projectId)
+    if (previous) {
+      const nextAllowedAt = new Date(new Date(previous.createdAt).getTime() + REPORT_INTERVAL_MS)
+      if (nextAllowedAt > new Date()) {
+        throw new ApiError({
+          code: 'REPORT_TOO_SOON',
+          status: 429,
+          message: 'A report was generated less than 10 minutes ago. Try again later.',
+          nextAllowedAt: nextAllowedAt.toISOString(),
+        })
+      }
+    }
+    const tasks = projectTasks(projectId)
+    const done = tasks.filter((task) => task.status === 'DONE').length
+    const today = new Date().toISOString().slice(0, 10)
+    const overdue = tasks.filter((task) => task.dueDate && task.dueDate < today && task.status !== 'DONE')
+    const blocked = tasks.filter((task) => task.isBlocked)
+    const warnings = [
+      ...overdue.map((task) => `- "${task.title}" is overdue (due ${task.dueDate}).`),
+      ...blocked.map((task) => `- "${task.title}" is blocked: ${task.blockedReason || 'no reason given'}.`),
+    ]
+    const report = {
+      id: newId('r'),
+      projectId,
+      createdById: membership.userId,
+      model: 'sample',
+      promptVersion: 1,
+      createdAt: now(),
+      content: [
+        '## Progress summary',
+        `${done} of ${tasks.length} tasks are done.`,
+        '',
+        '## Warnings',
+        ...(warnings.length ? warnings : ['No warnings.']),
+        '',
+        '## Suggestions',
+        overdue[0] ? `- Agree a new due date for "${overdue[0].title}".` : '- Keep the board up to date after each meeting.',
+      ].join('\n'),
+    }
+    db.reports.push(report)
+    return serializeReport(report)
+  })
+}
