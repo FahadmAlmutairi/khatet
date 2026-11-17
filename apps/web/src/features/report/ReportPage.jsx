@@ -90,7 +90,8 @@ function Snapshot({ projectId }) {
   const stats = projectStats(tasks.data)
   const tiles = [
     { label: 'Done', value: stats.done },
-    { label: 'In progress', value: stats.byStatus.IN_PROGRESS + stats.byStatus.READY_FOR_REVIEW },
+    { label: 'In progress', value: stats.byStatus.IN_PROGRESS },
+    { label: 'Ready for review', value: stats.byStatus.READY_FOR_REVIEW },
     { label: 'Blocked', value: stats.blocked.length, alert: true },
     { label: 'Overdue', value: stats.overdue.length, alert: true },
   ]
@@ -99,11 +100,11 @@ function Snapshot({ projectId }) {
       <h2 id="snapshot-title" className="text-sm font-semibold text-heading">
         On the board now
       </h2>
-      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {tiles.map((tile) => (
-          <div key={tile.label} className="flex flex-col-reverse gap-1 rounded-xl border border-line bg-white px-4 py-3">
+          <div key={tile.label} className="flex flex-col-reverse gap-1 rounded-xl border border-line bg-white px-3.5 py-2.5 max-sm:last:col-span-2 sm:px-4 sm:py-3">
             <dt className="text-xs text-muted">{tile.label}</dt>
-            <dd className={`text-xl font-semibold ${tile.alert && tile.value > 0 ? 'text-blocked' : 'text-heading'}`}>{tile.value}</dd>
+            <dd className={`text-lg font-semibold sm:text-xl ${tile.alert && tile.value > 0 ? 'text-blocked' : 'text-heading'}`}>{tile.value}</dd>
           </div>
         ))}
       </dl>

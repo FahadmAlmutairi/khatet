@@ -2,6 +2,7 @@
 // reviewed before the backend routes exist. It applies the same permission rules as
 // docs/api-contract.md so the screens show the right states, but the real checks
 // belong to the backend. Data resets when the page reloads.
+import { formatDueDate } from '../lib/domain.js'
 import { ApiError } from './errors.js'
 import { createSampleData } from './sampleData.js'
 
@@ -781,7 +782,7 @@ export function generateReport(projectId) {
     const overdue = tasks.filter((task) => task.dueDate && task.dueDate < today && task.status !== 'DONE')
     const blocked = tasks.filter((task) => task.isBlocked)
     const warnings = [
-      ...overdue.map((task) => `- **"${task.title}" is overdue**: it was due on ${task.dueDate}.`),
+      ...overdue.map((task) => `- **"${task.title}" is overdue**: It was due on ${formatDueDate(task.dueDate, { short: true })}.`),
       ...blocked.map((task) => `- **"${task.title}" is blocked**: ${task.blockedReason || 'no reason given'}.`),
     ]
     const report = {
@@ -800,8 +801,8 @@ export function generateReport(projectId) {
         '',
         '## Suggestions',
         overdue[0]
-          ? `- **Agree a new due date for "${overdue[0].title}"**: it is the oldest overdue task.`
-          : '- **Keep the board up to date**: move cards after each meeting.',
+          ? `- **Agree a new due date for "${overdue[0].title}"**: It is the oldest overdue task.`
+          : '- **Keep the board up to date**: Move cards after each meeting.',
       ].join('\n'),
     }
     db.reports.push(report)

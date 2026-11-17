@@ -989,7 +989,7 @@ describe('AI report (US-31)', () => {
     renderApp('/projects/p-study/report')
     const report = await screen.findByRole('article', { name: /^Generated .+ by saad$/ })
     expect(within(report).getByRole('heading', { name: 'Warnings · 1' })).toBeInTheDocument()
-    expect(within(report).getByText('it is due on 12 Oct.')).toBeInTheDocument()
+    expect(within(report).getByText('It is due on 12 Oct.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Generate/ })).not.toBeInTheDocument()
   })
 
