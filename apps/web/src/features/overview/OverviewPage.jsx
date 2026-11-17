@@ -246,9 +246,15 @@ function NeedsAttention({ projectId, tasks, usernames }) {
 
 function LatestReport({ projectId, className }) {
   const report = useLatestReport(projectId)
-  const summary = report.data ? reportParts(report.data.content).summary[0] : null
+  const parts = report.data ? reportParts(report.data.content) : null
+  const summary = parts?.summary[0]
+  const warnings = parts?.warnings.length ?? 0
   return (
-    <Card title="Latest AI report" className={className}>
+    <Card
+      title="Latest AI report"
+      className={className}
+      action={warnings > 0 && <Chip>{warnings} {warnings === 1 ? 'warning' : 'warnings'}</Chip>}
+    >
       {report.isPending && <p className="text-sm text-muted">Loading…</p>}
       {report.isError && <p className="text-sm text-blocked">{errorMessage(report.error)}</p>}
       {report.isSuccess && !report.data && <p className="text-sm text-muted">No report yet.</p>}
