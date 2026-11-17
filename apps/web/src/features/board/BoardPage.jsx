@@ -62,12 +62,12 @@ export default function BoardPage() {
   const filters = useMemo(
     () => ({
       assignee: new Set(searchParams.getAll('assignee')),
-      status: new Set(searchParams.getAll('status')),
       priority: new Set(searchParams.getAll('priority')),
     }),
     [searchParams],
   )
-  const hasFilters = filters.assignee.size > 0 || filters.status.size > 0 || filters.priority.size > 0
+  // The board's columns already show the status, so there is no status filter (removed 17 Nov 2026).
+  const hasFilters = filters.assignee.size > 0 || filters.priority.size > 0
   // US-23: the search text lives in the address (?q=) like the filters, so a reload keeps it.
   const search = searchParams.get('q') ?? ''
   const searchText = search.trim().toLocaleLowerCase()
@@ -77,14 +77,13 @@ export default function BoardPage() {
       (task) =>
         (!searchText || task.title.toLocaleLowerCase().includes(searchText)) &&
         (!filters.assignee.size || task.assigneeIds.some((id) => filters.assignee.has(id))) &&
-        (!filters.status.size || filters.status.has(task.status)) &&
         (!filters.priority.size || (task.priority && filters.priority.has(task.priority))),
     )
   }, [filters, searchText, tasks.data])
 
   function updateFilters(nextFilters) {
     const next = new URLSearchParams(searchParams)
-    for (const key of ['assignee', 'status', 'priority']) {
+    for (const key of ['assignee', 'priority']) {
       next.delete(key)
       for (const value of nextFilters[key]) next.append(key, value)
     }
@@ -94,7 +93,6 @@ export default function BoardPage() {
   function toggleFilter(type, value) {
     const next = {
       assignee: new Set(filters.assignee),
-      status: new Set(filters.status),
       priority: new Set(filters.priority),
     }
     if (next[type].has(value)) next[type].delete(value)
@@ -103,7 +101,7 @@ export default function BoardPage() {
   }
 
   function clearFilters() {
-    updateFilters({ assignee: new Set(), status: new Set(), priority: new Set() })
+    updateFilters({ assignee: new Set(), priority: new Set() })
   }
 
   function changeSearch(value) {

@@ -405,25 +405,33 @@ describe('board (US-16, US-21)', () => {
     expect(await screen.findByRole('dialog', { name: /Create a task/ })).toBeInTheDocument()
   })
 
+  it('offers no status filter, since the columns show the status', async () => {
+    signIn()
+    renderApp('/projects/p-khatet/board')
+    await screen.findByText('Prepare usability test script')
+    expect(screen.queryByText('Status', { selector: 'summary' })).not.toBeInTheDocument()
+    expect(screen.getByText('Priority', { selector: 'summary' })).toBeInTheDocument()
+  })
+
   it('keeps multi-value task filters in the board address and lets each active filter be removed', async () => {
     signIn()
     const user = userEvent.setup()
-    const router = renderApp('/projects/p-khatet/board?status=TODO&status=IN_PROGRESS&priority=HIGH')
-    expect(await screen.findByText('Prepare usability test script')).toBeInTheDocument()
-    expect(screen.getByText('Status: To Do')).toBeInTheDocument()
-    expect(screen.getByText('Status: In Progress')).toBeInTheDocument()
+    const router = renderApp('/projects/p-khatet/board?priority=LOW&priority=HIGH&assignee=u-fahad')
+    expect(await screen.findByText('Fix CSV validation errors')).toBeInTheDocument()
+    expect(screen.getByText('Priority: Low')).toBeInTheDocument()
     expect(screen.getByText('Priority: High')).toBeInTheDocument()
-    expect(router.state.location.search).toBe('?status=TODO&status=IN_PROGRESS&priority=HIGH')
-
-    await user.click(screen.getByRole('button', { name: 'Remove Status: To Do filter' }))
-    await waitFor(() => expect(router.state.location.search).toBe('?status=IN_PROGRESS&priority=HIGH'))
+    expect(screen.getByText('Assignee: Me')).toBeInTheDocument()
     expect(screen.queryByText('Prepare usability test script')).not.toBeInTheDocument()
-    expect(screen.getByText('Fix CSV validation errors')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Remove Assignee: Me filter' }))
+    await waitFor(() => expect(router.state.location.search).toBe('?priority=LOW&priority=HIGH'))
+    expect(screen.getByText('Prepare usability test script')).toBeInTheDocument()
+    expect(screen.queryByText('Build the board columns')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Fix CSV validation errors' }))
     const taskDialog = await screen.findByRole('dialog')
-    expect(router.state.location.search).toBe('?status=IN_PROGRESS&priority=HIGH&task=t-6')
+    expect(router.state.location.search).toBe('?priority=LOW&priority=HIGH&task=t-6')
     await user.click(within(taskDialog).getByRole('button', { name: 'Close' }))
-    await waitFor(() => expect(router.state.location.search).toBe('?status=IN_PROGRESS&priority=HIGH'))
+    await waitFor(() => expect(router.state.location.search).toBe('?priority=LOW&priority=HIGH'))
   })
 
   it('offers Me first, filters by assignee, and clears an empty result', async () => {
@@ -438,11 +446,9 @@ describe('board (US-16, US-21)', () => {
     await waitFor(() => expect(router.state.location.search).toBe('?assignee=u-fahad'))
     expect(screen.getByText('Assignee: Me')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Clear filters' }))
-    await user.click(screen.getByText('Status', { selector: 'summary' }))
-    await user.click(screen.getByRole('checkbox', { name: 'Done' }))
+    // fahad has no Low priority task, so Me plus Low matches nothing.
     await user.click(screen.getByText('Priority', { selector: 'summary' }))
-    await user.click(screen.getByRole('checkbox', { name: 'High' }))
+    await user.click(screen.getByRole('checkbox', { name: 'Low' }))
     expect(await screen.findByText('No tasks match these filters')).toBeInTheDocument()
     await user.click(within(screen.getByText('No tasks match these filters').parentElement).getByRole('button', { name: 'Clear filters' }))
     await waitFor(() => expect(router.state.location.search).toBe(''))
@@ -490,10 +496,10 @@ describe('board (US-16, US-21)', () => {
 
   it('combines the search with the filters (US-23)', async () => {
     signIn()
-    renderApp('/projects/p-khatet/board?q=board&status=READY_FOR_REVIEW')
-    expect(await screen.findByText('Define board hierarchy')).toBeInTheDocument()
-    expect(screen.queryByText('Build the board columns')).not.toBeInTheDocument()
-    expect(screen.getByText('Status: Ready for Review')).toBeInTheDocument()
+    renderApp('/projects/p-khatet/board?q=board&assignee=u-omar')
+    expect(await screen.findByText('Build the board columns')).toBeInTheDocument()
+    expect(screen.queryByText('Define board hierarchy')).not.toBeInTheDocument()
+    expect(screen.getByText('Assignee: omar')).toBeInTheDocument()
   })
 
   it('shows a board of 30 tasks (NFR-07)', async () => {

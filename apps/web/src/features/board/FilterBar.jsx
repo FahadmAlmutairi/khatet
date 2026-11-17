@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronIcon, SearchIcon } from '../../components/icons.jsx'
-import { PRIORITIES, STATUSES, priorityLabel, statusLabel } from '../../lib/domain.js'
+import { PRIORITIES, priorityLabel } from '../../lib/domain.js'
 
 // Only one menu is open at a time, and it closes on Escape or a click outside it (review M5).
 function FilterMenu({ label, options, selected, onToggle, open, onOpenChange }) {
@@ -118,7 +118,7 @@ export default function FilterBar({ members, currentUserId, filters, onToggle, o
       return a.label.localeCompare(b.label)
     })
   const assigneeNames = new Map(assigneeOptions.map((option) => [option.value, option.label]))
-  const activeCount = filters.assignee.size + filters.status.size + filters.priority.size
+  const activeCount = filters.assignee.size + filters.priority.size
   const hasFilters = activeCount > 0
   const [openMenu, setOpenMenu] = useState(null)
   // On a phone the menus sit behind one Filter button, so the first lane starts higher up (review M6).
@@ -150,7 +150,6 @@ export default function FilterBar({ members, currentUserId, filters, onToggle, o
         <div id="filter-menus" className={`${shownOnPhone ? 'flex' : 'hidden'} flex-wrap items-center gap-2 sm:flex`}>
           <span className="mr-1 text-sm font-medium text-heading max-sm:sr-only">Filter tasks</span>
           <FilterMenu label="Assignee" options={assigneeOptions} selected={filters.assignee} onToggle={(value) => onToggle('assignee', value)} {...menuProps('assignee')} />
-          <FilterMenu label="Status" options={STATUSES} selected={filters.status} onToggle={(value) => onToggle('status', value)} {...menuProps('status')} />
           <FilterMenu label="Priority" options={PRIORITIES} selected={filters.priority} onToggle={(value) => onToggle('priority', value)} {...menuProps('priority')} />
           {hasFilters && (
             <button type="button" onClick={onClear} className="min-h-11 rounded-control px-3 text-label font-medium text-heading underline hover:bg-surface-subtle">
@@ -164,9 +163,6 @@ export default function FilterBar({ members, currentUserId, filters, onToggle, o
         <div className="flex flex-wrap items-center gap-2" aria-label="Active filters">
           {[...filters.assignee].map((value) => (
             <FilterChip key={`assignee-${value}`} label={`Assignee: ${assigneeNames.get(value) ?? value}`} onRemove={() => onToggle('assignee', value)} />
-          ))}
-          {[...filters.status].map((value) => (
-            <FilterChip key={`status-${value}`} label={`Status: ${statusLabel(value)}`} onRemove={() => onToggle('status', value)} />
           ))}
           {[...filters.priority].map((value) => (
             <FilterChip key={`priority-${value}`} label={`Priority: ${priorityLabel(value)}`} onRemove={() => onToggle('priority', value)} />
