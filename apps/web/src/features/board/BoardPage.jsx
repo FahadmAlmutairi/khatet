@@ -17,6 +17,7 @@ import BoardColumns from './BoardColumns.jsx'
 import CreateTaskDialog from './CreateTaskDialog.jsx'
 import FilterBar from './FilterBar.jsx'
 import TaskDetails from './TaskDetails.jsx'
+import { COVERS_PAGE_QUERY } from '../../lib/inertOthers.js'
 
 function accessNote(project) {
   if (project.role === 'OWNER' || project.taskAccess === 'EDIT_ALL') return null
@@ -161,6 +162,13 @@ export default function BoardPage() {
     setTimeout(() => chatButtonRef.current?.focus(), 0)
   }
 
+  // US-25: a task link in chat opens the task. On a phone the chat covers the board, so it closes
+  // first, without moving focus back to the chat button behind the task.
+  function openTaskFromChat(taskId) {
+    if (window.matchMedia?.(COVERS_PAGE_QUERY).matches) setChatOpen(false)
+    openTask(taskId)
+  }
+
   const note = accessNote(project)
 
   return (
@@ -249,7 +257,7 @@ export default function BoardPage() {
         )}
       </div>
 
-      <ChatPanel project={project} open={chatOpen} onClose={closeChat} />
+      <ChatPanel project={project} open={chatOpen} onClose={closeChat} onOpenTask={openTaskFromChat} />
 
       {project.permissions.canManageMembers && (
         <InviteDialog open={inviting} onClose={() => setInviting(false)} projectId={project.id} backLabel="Board" />
