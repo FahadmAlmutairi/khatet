@@ -7,7 +7,8 @@ import { renderApp } from '../../test/renderApp.jsx'
 
 async function openChat(user, path = '/projects/p-khatet/board') {
   renderApp(path)
-  await user.click(await screen.findByRole('button', { name: 'Project chat' }))
+  // The board page loads lazily; the first import in a cold CI worker can take over a second.
+  await user.click(await screen.findByRole('button', { name: 'Project chat' }, { timeout: 5000 }))
   return screen.findByRole('complementary', { name: 'Project chat' })
 }
 
