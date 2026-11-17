@@ -615,8 +615,23 @@ export function markNotificationRead(notificationId) {
 export const MAX_MESSAGE_LENGTH = 2000
 const MESSAGE_LIST_LIMIT = 100
 
+// US-25: a task is mentioned as #[task:<taskId>]. Each message lists the tasks it mentions with
+// their current title, or a null title once the task is deleted.
+const TASK_TOKEN = /#\[task:([^\]\s]+)\]/g
+
+function referencedTaskIds(text) {
+  return [...new Set([...text.matchAll(TASK_TOKEN)].map((match) => match[1]))]
+}
+
 function serializeMessage(message) {
-  return { ...message, authorUsername: usernameOf(message.authorId) }
+  return {
+    ...message,
+    authorUsername: usernameOf(message.authorId),
+    references: referencedTaskIds(message.text).map((taskId) => ({
+      taskId,
+      title: db.tasks.find((task) => task.id === taskId && task.projectId === message.projectId)?.title ?? null,
+    })),
+  }
 }
 
 // Same shape as GET /api/projects/:projectId/messages: oldest first, the latest 100,
@@ -640,6 +655,10 @@ export function sendMessage(projectId, text) {
     if (value.length > MAX_MESSAGE_LENGTH) {
       throw invalid([{ field: 'text', message: `Keep the message under ${MAX_MESSAGE_LENGTH} characters.` }])
     }
+    const outside = referencedTaskIds(value).filter(
+      (taskId) => !db.tasks.some((task) => task.id === taskId && task.projectId === projectId),
+    )
+    if (outside.length) throw invalid([{ field: 'text', message: 'A mentioned task is not in this project.' }])
     const message = { id: newId('m'), projectId, authorId: membership.userId, text: value, createdAt: now() }
     db.messages.push(message)
     return serializeMessage(message)

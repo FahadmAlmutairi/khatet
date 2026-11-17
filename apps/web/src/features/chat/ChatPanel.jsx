@@ -1,12 +1,13 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { errorMessage, fieldError } from '../../api/errors.js'
-import { useMe, useMessages, useSendMessage } from '../../api/hooks.js'
+import { useMe, useMessages, useSendMessage, useTasks } from '../../api/hooks.js'
 import Avatar from '../../components/Avatar.jsx'
 import { ChatIcon, CloseIcon, SendIcon } from '../../components/icons.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { FieldError } from '../../components/ui/Field.jsx'
 import { ErrorState, LoadingState, Notice } from '../../components/ui/States.jsx'
 import { COVERS_PAGE_QUERY, inertOthers } from '../../lib/inertOthers.js'
+import { encodeReferences, mentionAt, splitMessage } from './taskRefs.js'
 
 const MAX_MESSAGE_LENGTH = 2000
 
@@ -20,7 +21,41 @@ function messageTime(value, now = new Date()) {
   return date.toDateString() === now.toDateString() ? timeFormat.format(date) : dayTimeFormat.format(date)
 }
 
-function ChatMessage({ message, mine }) {
+const MAX_SUGGESTIONS = 6
+
+// US-25: a mentioned task shows as a chip with its current title; clicking it opens the task.
+// The API sends each title with the message; the board's own task list is the fallback.
+function TaskChip({ taskId, message, taskTitles, onOpenTask }) {
+  const reference = message.references?.find((item) => item.taskId === taskId)
+  const title = reference ? reference.title : taskTitles?.get(taskId)
+  const deleted = reference ? reference.title === null : taskTitles ? !taskTitles.has(taskId) : false
+  if (deleted) {
+    return <span className="mx-0.5 inline-flex items-center rounded-md bg-surface-subtle px-1.5 text-muted italic">Deleted task</span>
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => onOpenTask(taskId)}
+      aria-label={`Open task ${title ?? ''}`.trim()}
+      className="mx-0.5 inline rounded-md bg-nav-active px-1.5 py-px text-left font-medium text-heading underline-offset-2 hover:underline focus-visible:underline"
+    >
+      <span aria-hidden="true" className="text-muted">#</span>
+      {title ?? 'Task'}
+    </button>
+  )
+}
+
+function MessageText({ message, taskTitles, onOpenTask }) {
+  return splitMessage(message.text).map((part, index) =>
+    part.type === 'text' ? (
+      part.text
+    ) : (
+      <TaskChip key={index} taskId={part.taskId} message={message} taskTitles={taskTitles} onOpenTask={onOpenTask} />
+    ),
+  )
+}
+
+function ChatMessage({ message, mine, taskTitles, onOpenTask }) {
   return (
     <li className="flex items-start gap-2.5">
       <Avatar username={message.authorUsername} size="sm" />
@@ -34,19 +69,60 @@ function ChatMessage({ message, mine }) {
             {messageTime(message.createdAt)}
           </time>
         </p>
-        <p className="mt-0.5 text-sm whitespace-pre-wrap text-body [overflow-wrap:anywhere]">{message.text}</p>
+        <p className="mt-0.5 text-sm whitespace-pre-wrap text-body [overflow-wrap:anywhere]">
+          <MessageText message={message} taskTitles={taskTitles} onOpenTask={onOpenTask} />
+        </p>
       </div>
     </li>
   )
 }
 
-// Enter sends, Shift+Enter starts a new line (US-24).
-function Composer({ projectId, inputRef, onSent }) {
+// Enter sends, Shift+Enter starts a new line (US-24). Typing # lists the project's tasks by
+// title; picking one puts "#Title" in the box, which is sent as a task link (US-25).
+function Composer({ projectId, tasks, inputRef, onSent }) {
   const send = useSendMessage(projectId)
   const [text, setText] = useState('')
   const [emptyError, setEmptyError] = useState(false)
+  const [references, setReferences] = useState([])
+  const [mention, setMention] = useState(null)
+  const [activeIndex, setActiveIndex] = useState(0)
+  const caretAfterPick = useRef(null)
   const errorId = useId()
   const inputId = useId()
+  const listId = useId()
+
+  const suggestions = useMemo(() => {
+    if (!mention || !tasks) return []
+    const query = mention.query.trim().toLocaleLowerCase()
+    return tasks.filter((task) => task.title.toLocaleLowerCase().includes(query)).slice(0, MAX_SUGGESTIONS)
+  }, [mention, tasks])
+  const listOpen = Boolean(mention) && suggestions.length > 0
+
+  useLayoutEffect(() => {
+    if (caretAfterPick.current === null || !inputRef.current) return
+    inputRef.current.setSelectionRange(caretAfterPick.current, caretAfterPick.current)
+    caretAfterPick.current = null
+  }, [text, inputRef])
+
+  function updateMention(value, caret) {
+    let next = mentionAt(value, caret)
+    // Right after a pick the caret follows "#Title ", which is not a new search.
+    if (next && references.some((item) => next.query.startsWith(item.label))) next = null
+    setMention(next)
+    if (next?.query !== mention?.query) setActiveIndex(0)
+  }
+
+  function pick(task) {
+    const label = task.title
+    const before = text.slice(0, mention.start)
+    const after = text.slice(inputRef.current?.selectionStart ?? text.length)
+    const inserted = `#${label} `
+    setText(before + inserted + after)
+    setReferences((current) => [...current.filter((item) => item.label !== label), { label, taskId: task.id }])
+    caretAfterPick.current = before.length + inserted.length
+    setMention(null)
+    inputRef.current?.focus()
+  }
 
   const serverError = send.isError ? (fieldError(send.error, 'text') ?? errorMessage(send.error)) : null
   const error = emptyError ? 'Write a message first.' : serverError
@@ -59,9 +135,11 @@ function Composer({ projectId, inputRef, onSent }) {
       inputRef.current?.focus()
       return
     }
-    send.mutate(text, {
+    send.mutate(encodeReferences(text, references), {
       onSuccess: () => {
         setText('')
+        setReferences([])
+        setMention(null)
         onSent()
       },
     })
@@ -72,7 +150,33 @@ function Composer({ projectId, inputRef, onSent }) {
       <label htmlFor={inputId} className="sr-only">
         Message
       </label>
-      <div className="flex items-end gap-2">
+      <div className="relative flex items-end gap-2">
+        {listOpen && (
+          <ul
+            id={listId}
+            role="listbox"
+            aria-label="Tasks to mention"
+            className="absolute right-0 bottom-full left-0 z-10 mb-2 max-h-64 overflow-y-auto rounded-xl border border-line bg-white p-1.5 shadow-[0_12px_24px_rgba(38,54,41,0.16)]"
+          >
+            {suggestions.map((task, index) => (
+              <li
+                key={task.id}
+                id={`${listId}-${task.id}`}
+                role="option"
+                aria-selected={index === activeIndex}
+                // mousedown, not click, so the message box keeps focus and its caret.
+                onMouseDown={(event) => {
+                  event.preventDefault()
+                  pick(task)
+                }}
+                onMouseEnter={() => setActiveIndex(index)}
+                className={`flex min-h-11 cursor-pointer items-center rounded-lg px-2.5 text-sm text-body ${index === activeIndex ? 'bg-nav-active' : ''}`}
+              >
+                <span className="truncate">{task.title}</span>
+              </li>
+            ))}
+          </ul>
+        )}
         <textarea
           ref={inputRef}
           id={inputId}
@@ -82,12 +186,36 @@ function Composer({ projectId, inputRef, onSent }) {
           placeholder="Write a message"
           aria-invalid={Boolean(error)}
           aria-describedby={error ? errorId : undefined}
+          aria-controls={listOpen ? listId : undefined}
+          aria-activedescendant={listOpen ? `${listId}-${suggestions[activeIndex]?.id}` : undefined}
           onChange={(event) => {
             setText(event.target.value)
+            updateMention(event.target.value, event.target.selectionStart)
             if (emptyError) setEmptyError(false)
             if (send.isError) send.reset()
           }}
+          onSelect={(event) => updateMention(event.currentTarget.value, event.currentTarget.selectionStart)}
+          onBlur={() => setMention(null)}
           onKeyDown={(event) => {
+            if (listOpen) {
+              if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault()
+                const step = event.key === 'ArrowDown' ? 1 : -1
+                setActiveIndex((index) => (index + step + suggestions.length) % suggestions.length)
+                return
+              }
+              if ((event.key === 'Enter' || event.key === 'Tab') && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault()
+                pick(suggestions[activeIndex])
+                return
+              }
+              if (event.key === 'Escape') {
+                // Closes the list only; a second Esc closes the chat.
+                event.stopPropagation()
+                setMention(null)
+                return
+              }
+            }
             if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) submit(event)
           }}
           className="max-h-32 min-h-11 w-full resize-none rounded-lg border border-input bg-white px-3 py-2.5 text-base sm:text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
@@ -103,16 +231,19 @@ function Composer({ projectId, inputRef, onSent }) {
           </FieldError>
         </div>
       )}
-      <p className="mt-1.5 hidden text-xs text-muted lg:block">Enter to send, Shift+Enter for a new line.</p>
+      <p className="mt-1.5 hidden text-xs text-muted lg:block">Enter to send, Shift+Enter for a new line, # to mention a task.</p>
     </form>
   )
 }
 
 // US-24: the project chat. A right-hand panel on desktop and the full screen on phones
 // (docs/ui-ux-guidelines.md, Project chat). Every member can read and send at every access level.
-export default function ChatPanel({ project, open, onClose }) {
+export default function ChatPanel({ project, open, onClose, onOpenTask }) {
   const messages = useMessages(project.id, { enabled: open })
   const me = useMe()
+  // The board already loads every task of the project; the chat reuses that list (US-25).
+  const tasks = useTasks(project.id)
+  const taskTitles = useMemo(() => (tasks.data ? new Map(tasks.data.map((task) => [task.id, task.title])) : null), [tasks.data])
   const titleId = useId()
   const listRef = useRef(null)
   const inputRef = useRef(null)
@@ -204,7 +335,13 @@ export default function ChatPanel({ project, open, onClose }) {
           <div role="log" aria-label="Messages">
             <ol className="flex flex-col gap-4">
               {messages.data.map((message) => (
-                <ChatMessage key={message.id} message={message} mine={message.authorId === me.data?.id} />
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  mine={message.authorId === me.data?.id}
+                  taskTitles={taskTitles}
+                  onOpenTask={onOpenTask}
+                />
               ))}
             </ol>
           </div>
@@ -220,6 +357,7 @@ export default function ChatPanel({ project, open, onClose }) {
 
       <Composer
         projectId={project.id}
+        tasks={tasks.data}
         inputRef={inputRef}
         onSent={() => {
           stickToBottom.current = true

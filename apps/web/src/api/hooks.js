@@ -1,8 +1,9 @@
 // TanStack Query hooks with the query keys from docs/api-contract.md.
 // The screens only use these hooks, so swapping the sample API for the real
 // Express client later changes this file and ./client.js, not the screens.
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { chatSocketEnabled, getChatSocket, joinProjectRoom } from './chatSocket.js'
 import { api } from './client.js'
 
 export const keys = {
@@ -341,26 +342,90 @@ export function useRespondToInvitation() {
 // ---------- Project chat (US-24) ----------
 
 // NFR-09: a message reaches the team within 5 seconds, so the open chat asks for new
-// messages every 3 seconds until Socket.IO replaces refreshing in Sprint 3.
+// messages every 3 seconds whenever Socket.IO is not connected (TR-05).
 export const CHAT_REFRESH_MS = 3000
+
+// Adds messages to the end of the chat, skipping any already shown.
+// Before the first load there is nothing to add to: the load brings the latest messages.
+function appendMessages(shown, newer) {
+  if (!shown) return shown
+  const known = new Set(shown.map((message) => message.id))
+  const fresh = newer.filter((message) => !known.has(message.id))
+  return fresh.length ? [...shown, ...fresh] : shown
+}
+
+// TR-05: while the chat is open, joins the project's Socket.IO room and adds each `message:new`
+// to the chat. Returns true while the room is joined; the chat refreshes every 3 seconds otherwise.
+// After a reconnect it loads anything sent while it was away through REST.
+export function useChatSocket(projectId, { enabled = true } = {}) {
+  const queryClient = useQueryClient()
+  const [live, setLive] = useState(false)
+
+  useEffect(() => {
+    if (!enabled || !chatSocketEnabled) return undefined
+    let active = true
+    let socket = null
+
+    async function join() {
+      const joined = await joinProjectRoom(socket, projectId)
+      if (!active) return
+      setLive(joined)
+      if (joined) queryClient.invalidateQueries({ queryKey: keys.messages(projectId) })
+    }
+    function onMessage(message) {
+      if (message?.projectId !== projectId) return
+      queryClient.setQueryData(keys.messages(projectId), (shown) => appendMessages(shown, [message]))
+    }
+    function onDisconnect() {
+      setLive(false)
+    }
+
+    getChatSocket()
+      .then((loaded) => {
+        if (!active) return
+        socket = loaded
+        socket.on('connect', join)
+        socket.on('disconnect', onDisconnect)
+        socket.on('message:new', onMessage)
+        if (socket.connected) join()
+        else socket.connect()
+      })
+      // If the client cannot load, the chat simply keeps refreshing every 3 seconds.
+      .catch(() => {})
+
+    return () => {
+      active = false
+      setLive(false)
+      if (!socket) return
+      socket.off('connect', join)
+      socket.off('disconnect', onDisconnect)
+      socket.off('message:new', onMessage)
+      socket.emit('chat:leave', { projectId })
+      // The socket is only needed while a chat is open; this frees the free Render server.
+      socket.disconnect()
+    }
+  }, [enabled, projectId, queryClient])
+
+  return enabled && chatSocketEnabled && live
+}
 
 // The first request loads the latest messages; each refresh asks only for the ones after
 // the newest message already shown and adds them to the end.
 export function useMessages(projectId, { enabled = true } = {}) {
   const queryClient = useQueryClient()
+  const live = useChatSocket(projectId, { enabled })
   return useQuery({
     queryKey: keys.messages(projectId),
     enabled,
-    refetchInterval: enabled ? CHAT_REFRESH_MS : false,
+    refetchInterval: enabled && !live ? CHAT_REFRESH_MS : false,
     queryFn: async () => {
       const shown = queryClient.getQueryData(keys.messages(projectId))
       const last = shown?.at(-1)
       if (!last) return api.getMessages(projectId)
       try {
         const newer = await api.getMessages(projectId, { after: last.id })
-        if (newer.length === 0) return shown
-        const known = new Set(shown.map((message) => message.id))
-        return [...shown, ...newer.filter((message) => !known.has(message.id))]
+        // A message:new may have arrived during the request, so add to what is shown now.
+        return appendMessages(queryClient.getQueryData(keys.messages(projectId)) ?? shown, newer)
       } catch (error) {
         // The cursor is no longer accepted (for example after a data reset): load the latest again.
         if (error.code === 'VALIDATION_FAILED') return api.getMessages(projectId)

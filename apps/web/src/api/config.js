@@ -11,12 +11,15 @@ export const useRealAuth = Boolean(apiUrl && supabaseUrl && supabaseKey) && env.
 
 // Screens whose Express routes may not be built yet. Shown on the live site by choice; until the
 // route ships, the action shows the API's error. Set an entry to false to hide it again.
+// chatSocket (TR-05): Socket.IO on the Express server (chat:join, message:new). Off until Hamzah's
+//   server side is on Render; chat keeps the 3-second refresh until then and whenever the socket drops.
 // memberRemoval: DELETE /api/projects/:projectId/members/:userId and POST /api/projects/:projectId/leave
 // projectSettings: PATCH /api/projects/:projectId
 // aiReport (US-31): GET /api/projects/:projectId/reports/latest and POST /api/projects/:projectId/reports.
 //   Hidden on the live site until Salman's routes are merged and OPENAI_API_KEY is on Render; the
 //   sample data always shows it.
 export const apiReady = {
+  chatSocket: false,
   memberRemoval: true,
   projectSettings: true,
   aiReport: false,
