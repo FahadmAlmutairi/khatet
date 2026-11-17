@@ -174,7 +174,7 @@ function UpcomingWork({ projectId, tasks, usernames }) {
           type="button"
           aria-pressed={mine === value}
           onClick={() => setMine(value)}
-          className={`min-h-9 rounded-full px-3 text-xs font-medium ${mine === value ? 'bg-nav-active text-heading' : 'text-muted'}`}
+          className={`min-h-11 rounded-full px-3.5 text-xs font-medium sm:min-h-9 sm:px-3 ${mine === value ? 'bg-nav-active text-heading' : 'text-muted'}`}
         >
           {label}
         </button>
