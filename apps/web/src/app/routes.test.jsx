@@ -822,7 +822,7 @@ describe('members (US-07, US-09, US-10)', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Remove omar from project' }))
     const confirmation = screen.getByRole('dialog', { name: 'Remove omar from this project?' })
-    expect(within(confirmation).getByText(/They will lose access to this project and its workspace/)).toBeInTheDocument()
+    expect(within(confirmation).getByText(/They lose access to this project and need a new invitation/)).toBeInTheDocument()
     await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
     expect(screen.getByText('omar')).toBeInTheDocument()
 
@@ -853,7 +853,7 @@ describe('members (US-07, US-09, US-10)', () => {
 
     await user.click(await screen.findByRole('button', { name: 'Leave project' }))
     const confirmation = screen.getByRole('dialog', { name: 'Leave Study Planner?' })
-    expect(within(confirmation).getByText(/You will need a new invitation to rejoin/)).toBeInTheDocument()
+    expect(within(confirmation).getByText(/You lose access and need a new invitation to rejoin/)).toBeInTheDocument()
     await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
     expect(router.state.location.pathname).toBe('/projects/p-study/members')
 

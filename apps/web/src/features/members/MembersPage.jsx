@@ -19,7 +19,7 @@ import Dialog, { MobileBackBar } from '../../components/ui/Dialog.jsx'
 import { MemberRowsSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
-import { taskAccessLabel } from '../../lib/domain.js'
+import { formatShortDate, taskAccessLabel } from '../../lib/domain.js'
 import InviteDialog from './InviteDialog.jsx'
 
 // Figma: owner 211:198, member 216:199, access window 219:327, invite window 220:344;
@@ -139,7 +139,7 @@ function AccessDialog({ member, projectId, onClose }) {
   )
 }
 
-const columns = 'lg:grid lg:grid-cols-[minmax(0,400fr)_170px_minmax(0,370fr)_164px] lg:items-center'
+const columns = 'lg:grid lg:grid-cols-[minmax(0,400fr)_170px_minmax(0,370fr)_200px] lg:items-center'
 
 function MemberRow({ member, isOwner, isYou, onManage, onRemove, onLeave }) {
   const owner = member.role === 'OWNER'
@@ -175,7 +175,7 @@ function MemberRow({ member, isOwner, isYou, onManage, onRemove, onLeave }) {
               type="button"
               onClick={() => onManage(member)}
               aria-label={`Manage access for ${member.username}`}
-              className="inline-flex size-11 items-center justify-center rounded-full text-body hover:bg-surface lg:h-10 lg:w-auto lg:border lg:border-line lg:px-2.5 lg:text-xs lg:font-medium"
+              className="inline-flex size-11 items-center justify-center rounded-full text-body hover:bg-surface lg:h-10 lg:w-auto lg:border lg:border-line lg:px-3.5 lg:text-xs lg:font-medium lg:whitespace-nowrap"
             >
               <span className="lg:hidden">
                 <ChevronIcon />
@@ -265,7 +265,7 @@ function PendingInvitations({ invitations, projectId }) {
               <span className="flex min-w-0 flex-col">
                 <span className="truncate text-sm font-semibold text-body">{invitation.username}</span>
                 <span className="text-xs text-muted">
-                  Invited {new Date(invitation.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                  Invited {formatShortDate(invitation.createdAt)}
                 </span>
               </span>
             </span>
@@ -302,7 +302,7 @@ function RemoveMemberDialog({ member, projectId, onClose }) {
       open={Boolean(member)}
       onClose={onClose}
       title={member ? `Remove ${member.username} from this project?` : undefined}
-      description="They will lose access to this project and its workspace."
+      description="They lose access to this project and need a new invitation to rejoin."
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -315,9 +315,6 @@ function RemoveMemberDialog({ member, projectId, onClose }) {
       }
     >
       {remove.isError && <MemberActionError error={remove.error} projectId={projectId} />}
-      <p className="text-sm text-body">
-        This action removes the team member from the project. They will need a new invitation to regain access.
-      </p>
     </Dialog>
   )
 }
@@ -342,7 +339,7 @@ function LeaveProjectDialog({ project, open, onClose }) {
       open={open}
       onClose={onClose}
       title={`Leave ${project.name}?`}
-      description="You will lose access to this project and its workspace."
+      description="You lose access and need a new invitation to rejoin. Your messages and task history stay in the project."
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
@@ -355,9 +352,6 @@ function LeaveProjectDialog({ project, open, onClose }) {
       }
     >
       {leave.isError && <MemberActionError error={leave.error} projectId={project.id} />}
-      <p className="text-sm text-body">
-        You will need a new invitation to rejoin. Your past messages and task history will remain in the project.
-      </p>
     </Dialog>
   )
 }
