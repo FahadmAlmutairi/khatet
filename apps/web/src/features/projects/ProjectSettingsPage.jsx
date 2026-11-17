@@ -50,7 +50,7 @@ export default function ProjectSettingsPage() {
   }
 
   return (
-    <section className="mx-auto flex w-full max-w-2xl flex-col gap-6">
+    <section className="flex w-full max-w-2xl flex-col gap-6">
       <h1 className="text-title font-bold text-body">Project settings</h1>
       <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-5 rounded-xl border border-line bg-white p-5 sm:p-6">
         <TextField

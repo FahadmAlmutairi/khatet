@@ -32,7 +32,7 @@ export default function ActivityPage() {
   const chosen = actors.find((actor) => actor.id === actorId)
 
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+    <section className="flex w-full max-w-3xl flex-col gap-6">
       <Breadcrumb items={crumbs} className="lg:hidden" />
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <h1 className="text-title font-bold text-body">Project log</h1>
