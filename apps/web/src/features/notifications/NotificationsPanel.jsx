@@ -77,8 +77,8 @@ function NotificationItem({ notification, onOpenTask }) {
   const body = isInvitation
     ? `${notification.actorUsername} invited you to join “${notification.projectName}”.`
     : notification.taskTitle
-      ? `You were assigned to “${notification.taskTitle}” in ${notification.projectName}.`
-      : `A task in ${notification.projectName} was assigned to you and has since been deleted.`
+      ? `${notification.actorUsername} assigned you to “${notification.taskTitle}” in ${notification.projectName}.`
+      : `${notification.actorUsername} assigned you a task in ${notification.projectName} that has since been deleted.`
   const time = notificationTime(notification.createdAt)
 
   const copy = (

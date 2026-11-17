@@ -245,7 +245,7 @@ function DeleteTaskDialog({ open, task, onCancel, onDeleted, projectId }) {
 function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete, onMove }) {
   const { canEdit, canDelete } = task.permissions
   const assignees = task.assigneeIds.map((id) => ({ id, username: usernames.get(id) ?? 'unknown' }))
-  const due = dueLine(task.dueDate, task.status)
+  const due = dueLine(task.dueDate, task.status) ?? { overdue: false }
 
   return (
     <div className="flex flex-col gap-5">

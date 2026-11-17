@@ -94,10 +94,11 @@ export function dateFromToday(days, now = new Date()) {
   return todayKey(date)
 }
 
-// The due line on a board card: "Due 20 Sep", "Due today" or "No due date".
+// The due line on a board card: "Due 20 Sep" or "Due today". Without a due date it is null and the
+// card shows no due line (US-21 AC2, BRD-02: the due date appears only when set).
 // A past due date on an unfinished task reads "Overdue · 20 Sep", so it is not shown by colour alone.
 export function dueLine(dueDate, status, now = new Date()) {
-  if (!dueDate) return { text: 'No due date', overdue: false }
+  if (!dueDate) return null
   const today = todayKey(now)
   if (dueDate === today) return { text: 'Due today', overdue: false }
   const overdue = dueDate < today && status !== 'DONE'
