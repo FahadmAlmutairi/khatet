@@ -48,11 +48,17 @@ export default function OverviewPage() {
       {tasks.data && (
         <>
           <Progress tasks={tasks.data} />
-          <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
-            <UpcomingWork projectId={project.id} tasks={tasks.data} usernames={usernames} />
-            <NeedsAttention projectId={project.id} tasks={tasks.data} usernames={usernames} />
-            {reportAvailable && <LatestReport projectId={project.id} />}
-            <RecentActivity projectId={project.id} wide={!reportAvailable} />
+          {/* Two independent columns on desktop, so a short card never leaves a gap under it.
+              On phones the columns dissolve and Needs attention comes right after Upcoming work. */}
+          <div className="grid gap-4 lg:grid-cols-5 lg:items-start">
+            <div className="contents lg:col-span-3 lg:flex lg:min-w-0 lg:flex-col lg:gap-4">
+              <UpcomingWork projectId={project.id} tasks={tasks.data} usernames={usernames} />
+              <RecentActivity projectId={project.id} className="max-lg:order-1" />
+            </div>
+            <div className="contents lg:col-span-2 lg:flex lg:min-w-0 lg:flex-col lg:gap-4">
+              <NeedsAttention projectId={project.id} tasks={tasks.data} usernames={usernames} />
+              {reportAvailable && <LatestReport projectId={project.id} className="max-lg:order-2" />}
+            </div>
           </div>
         </>
       )}
@@ -118,10 +124,10 @@ function Progress({ tasks }) {
 }
 
 function Chip({ children }) {
-  return <span className="rounded-full bg-priority-high-bg px-2.5 py-1 text-xs font-medium text-priority-high-text">{children}</span>
+  return <span className="shrink-0 whitespace-nowrap rounded-full bg-priority-high-bg px-2.5 py-1 text-xs font-medium text-priority-high-text">{children}</span>
 }
 
-function TaskRow({ projectId, task, usernames, line, alert = false, pill = true }) {
+function TaskRow({ projectId, task, usernames, line, alert = false, pill = true, badge = null }) {
   const assignees = task.assigneeIds.map((id) => ({ id, username: usernames.get(id) ?? 'unknown' }))
   return (
     <li>
@@ -130,10 +136,11 @@ function TaskRow({ projectId, task, usernames, line, alert = false, pill = true 
         className="flex items-center gap-3 rounded-[10px] bg-surface px-3 py-2.5 hover:bg-nav-active"
       >
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="truncate text-sm font-medium text-body">{task.title}</span>
+          <span className="text-sm font-medium break-words text-body max-sm:line-clamp-2 sm:truncate">{task.title}</span>
           <span className={`truncate text-xs ${alert ? 'text-blocked' : 'text-muted'}`}>{line}</span>
         </span>
         {pill && <StatusPill status={task.status} className="max-sm:hidden" />}
+        {badge}
         {assignees.length > 0 && <AvatarStack users={assignees} max={2} />}
       </Link>
     </li>
@@ -213,32 +220,35 @@ function NeedsAttention({ projectId, tasks, usernames }) {
       ) : (
         <ul className="flex flex-col gap-2">
           {shown.map((task) => {
-            const reason = task.isBlocked
-              ? `Blocked${task.blockedReason ? `: ${task.blockedReason}` : ''}`
-              : `Overdue since ${formatDueDate(task.dueDate, { short: true })}`
+            const detail = task.isBlocked
+              ? task.blockedReason
+              : `Due ${formatDueDate(task.dueDate, { short: true })}`
             return (
               <TaskRow
                 key={task.id}
                 projectId={projectId}
                 task={task}
                 usernames={usernames}
-                alert
                 pill={false}
-                line={`${reason} · ${names(task, usernames)}`}
+                line={[names(task, usernames), detail].filter(Boolean).join(' · ')}
+                badge={<Chip>{task.isBlocked ? 'Blocked' : 'Overdue'}</Chip>}
               />
             )
           })}
         </ul>
       )}
+      {flagged.length > shown.length && (
+        <CardLink to={`/projects/${projectId}/board`}>View all {flagged.length} on the board</CardLink>
+      )}
     </Card>
   )
 }
 
-function LatestReport({ projectId }) {
+function LatestReport({ projectId, className }) {
   const report = useLatestReport(projectId)
   const summary = report.data ? reportParts(report.data.content).summary[0] : null
   return (
-    <Card title="Latest AI report">
+    <Card title="Latest AI report" className={className}>
       {report.isPending && <p className="text-sm text-muted">Loading…</p>}
       {report.isError && <p className="text-sm text-blocked">{errorMessage(report.error)}</p>}
       {report.isSuccess && !report.data && <p className="text-sm text-muted">No report yet.</p>}
@@ -253,11 +263,11 @@ function LatestReport({ projectId }) {
   )
 }
 
-function RecentActivity({ projectId, wide }) {
+function RecentActivity({ projectId, className }) {
   const activity = useActivity(projectId)
   const events = (activity.data?.pages[0]?.events ?? []).slice(0, ACTIVITY_LIMIT)
   return (
-    <Card title="Recent activity" className={wide ? 'lg:col-span-2' : ''}>
+    <Card title="Recent activity" className={className}>
       {activity.isPending && <p className="text-sm text-muted">Loading…</p>}
       {activity.isError && <p className="text-sm text-blocked">{errorMessage(activity.error)}</p>}
       {activity.isSuccess && events.length === 0 && <p className="text-sm text-muted">No changes yet.</p>}

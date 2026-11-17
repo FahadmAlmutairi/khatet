@@ -1,4 +1,4 @@
-import { formatDueDate, priorityLabel, statusLabel, taskAccessLabel } from '../../lib/domain.js'
+import { formatDueDate, formatShortDate, priorityLabel, statusLabel, taskAccessLabel } from '../../lib/domain.js'
 
 const FIELD_LABELS = { title: 'title', priority: 'priority', dueDate: 'due date', blockedReason: 'blocked reason' }
 
@@ -113,12 +113,12 @@ export function dayLabel(date, now = new Date()) {
 }
 
 const clockFormat = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' })
-const shortDayFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
 
 // "Today, 09:12", "Yesterday, 16:40" or "5 Oct" (Figma R46).
 export function activityTime(value, now = new Date()) {
   const date = new Date(value)
   const label = dayLabel(date, now)
   if (label === 'Today' || label === 'Yesterday') return `${label}, ${clockFormat.format(date)}`
-  return shortDayFormat.format(date)
+  // "28 Sep", matching due dates (en-GB writes September as "Sept").
+  return formatShortDate(value)
 }

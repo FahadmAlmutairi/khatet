@@ -1025,7 +1025,8 @@ describe('project overview (US-28)', () => {
     expect(screen.getByRole('progressbar', { name: 'Tasks done' })).toHaveAttribute('aria-valuenow', '25')
 
     const attention = screen.getByRole('heading', { name: /^Needs attention · \d+$/ }).closest('section')
-    expect(within(attention).getByText(/^Blocked: .+ · fahad$/)).toBeInTheDocument()
+    expect(within(attention).getByRole('link', { name: /Fix CSV validation errors.*Blocked/ })).toBeInTheDocument()
+    expect(within(attention).getByText('fahad · Waiting for sample file')).toBeInTheDocument()
 
     const upcoming = screen.getByRole('heading', { name: 'Upcoming work' }).closest('section')
     await user.click(within(upcoming).getByRole('button', { name: 'My work' }))
