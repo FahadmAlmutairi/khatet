@@ -29,7 +29,9 @@ export default function TaskActivity({ task }) {
             const { text, more } = describeTaskActivity(event)
             return (
               <li key={event.id} className="flex items-start gap-3 py-2.5">
-                <Avatar username={event.actorUsername} size="xs" />
+                <span aria-hidden="true" className="-my-1 flex">
+                  <Avatar username={event.actorUsername} size="sm" />
+                </span>
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                   <p className="text-sm text-body">
                     <span className="font-semibold text-heading">{event.actorUsername}</span> {text}
@@ -40,7 +42,7 @@ export default function TaskActivity({ task }) {
                     </p>
                   ))}
                 </div>
-                <time dateTime={event.createdAt} className="shrink-0 text-xs text-muted">
+                <time dateTime={event.createdAt} className="shrink-0 text-xs leading-5 text-muted">
                   {activityTime(event.createdAt)}
                 </time>
               </li>

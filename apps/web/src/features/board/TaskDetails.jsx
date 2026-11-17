@@ -29,8 +29,8 @@ const outlineButton =
 function TopBar({ eyebrow, children, onClose }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <p className="text-xs font-medium whitespace-pre text-muted">{eyebrow}</p>
-      <div className="flex items-center gap-2">
+      <p className="min-w-0 truncate text-xs font-medium whitespace-pre text-muted">{eyebrow}</p>
+      <div className="flex shrink-0 items-center gap-2">
         {children}
         <button type="button" onClick={onClose} aria-label="Close" className={`${outlineButton} w-11 lg:w-10`}>
           <CloseIcon />
@@ -245,9 +245,10 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
       <TopBar eyebrow={eyebrow} onClose={onClose}>
         {/* US-25: every member can chat, so every member can mention the task there. */}
         {onReferenceInChat && (
-          <button type="button" onClick={() => onReferenceInChat(task)} className={`${outlineButton} gap-2 px-4`}>
+          <button type="button" onClick={() => onReferenceInChat(task)} className={`${outlineButton} gap-2 max-sm:w-11 sm:px-4`}>
             <ChatIcon />
-            Reference in chat
+            {/* Icon only on phones, so the top bar fits beside the close button. */}
+            <span className="max-sm:sr-only">Reference in chat</span>
           </button>
         )}
         {canEdit && (
@@ -288,7 +289,7 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
           <span className={due.overdue ? 'inline-flex items-center gap-1 text-blocked' : ''}>
             {due.overdue && <OverdueIcon />}
             {/* One text run, so the date and "Overdue" stay on a line and wrap as words, not as columns. */}
-            <span>
+            <span className="sm:whitespace-nowrap">
               {task.dueDate ? formatDueDate(task.dueDate) : 'No due date'}
               {due.overdue && <span className="font-medium whitespace-nowrap"> · Overdue</span>}
             </span>
