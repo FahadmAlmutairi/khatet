@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useOutletContext, useSearchParams } from 'react-router'
+import { Link, useOutletContext, useSearchParams } from 'react-router'
+import { reportAvailable } from '../../api/config.js'
 import { errorMessage } from '../../api/errors.js'
 import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
 import { useMe, useMembers, useMoveTask, useTasks, useUpdateTask } from '../../api/hooks.js'
-import { ChatIcon, PlusIcon } from '../../components/icons.jsx'
+import { ChatIcon, PlusIcon, SparkleIcon } from '../../components/icons.jsx'
 import Button from '../../components/ui/Button.jsx'
 import { BoardSkeleton } from '../../components/ui/Skeleton.jsx'
 import { ErrorState, Notice, StateBadge } from '../../components/ui/States.jsx'
@@ -209,6 +210,17 @@ export default function BoardPage() {
             <ChatIcon />
             Project chat
           </Button>
+          {/* US-31: the AI report sits beside the chat, where the team already looks at the project
+              as a whole, instead of one more line in the sidebar (moved 17 Nov 2026). */}
+          {reportAvailable && (
+            <Link
+              to={`/projects/${project.id}/report`}
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-control border border-line bg-white px-[18px] text-label font-medium text-heading transition-colors duration-150 hover:bg-surface"
+            >
+              <SparkleIcon />
+              AI report
+            </Link>
+          )}
           {/* Inviting from the board takes 3 taps on any screen, without opening the menu for Members (NFR-01). */}
           {project.permissions.canManageMembers && (
             <Button variant="secondary" onClick={() => setInviting(true)}>

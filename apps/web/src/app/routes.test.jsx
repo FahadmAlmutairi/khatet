@@ -999,10 +999,12 @@ describe('AI report (US-31)', () => {
     expect(screen.queryByRole('button', { name: /Generate/ })).not.toBeInTheDocument()
   })
 
-  it('links to the report from the project sidebar', async () => {
+  it('opens the report from the board header', async () => {
     signIn()
-    renderApp('/projects/p-khatet/board')
-    expect(await screen.findAllByRole('link', { name: 'AI report' })).not.toHaveLength(0)
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/board')
+    await user.click(await screen.findByRole('link', { name: 'AI report' }))
+    expect(router.state.location.pathname).toBe('/projects/p-khatet/report')
   })
 })
 
