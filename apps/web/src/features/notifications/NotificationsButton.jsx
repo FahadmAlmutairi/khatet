@@ -42,8 +42,15 @@ export default function NotificationsButton() {
         <span ref={bellRef} className="inline-flex origin-top">
           <BellIcon />
         </span>
+        {/* NOT-01: the badge shows the number itself, not only a dot. Above 9 it reads "9+". */}
         {unread > 0 && (
-          <span aria-hidden="true" className="absolute right-2 top-1.5 size-1.5 rounded-full bg-[#e5484d] ring-2 ring-white" />
+          <span
+            aria-hidden="true"
+            data-testid="unread-badge"
+            className="absolute -right-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#e5484d] px-1 text-[11px] font-semibold leading-none text-white ring-2 ring-white"
+          >
+            {unread > 9 ? '9+' : unread}
+          </span>
         )}
       </button>
       <NotificationsPanel open={open} onClose={() => setOpen(false)} query={notifications} />

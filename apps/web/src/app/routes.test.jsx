@@ -381,6 +381,16 @@ describe('board (US-16, US-21)', () => {
     expect(screen.queryByText('This project has no tasks yet.')).not.toBeInTheDocument()
   })
 
+  it('shows a due line only on cards that have a due date (BRD-02)', async () => {
+    signIn()
+    renderApp('/projects/p-khatet/board')
+    const toDo = await screen.findByRole('region', { name: /^To Do/ })
+    // Three To Do cards; only two have a due date, so only two due lines show.
+    expect(within(toDo).getByRole('button', { name: 'Write sign-in error messages' })).toBeInTheDocument()
+    expect(within(toDo).getAllByText(/^(Due|Overdue)/)).toHaveLength(2)
+    expect(screen.queryByText('No due date')).not.toBeInTheDocument()
+  })
+
   it('shows empty lanes with an Add task action in To Do', async () => {
     signIn()
     const user = userEvent.setup()
@@ -839,6 +849,17 @@ describe('notifications (US-08, US-30)', () => {
     expect(await within(panel).findByText('You joined this project.')).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Notifications, 1 unread' })).toBeInTheDocument()
     expect(await screen.findByRole('link', { name: /Mobile App Study.*Member/ })).toBeInTheDocument()
+  })
+
+  it('shows the unread number on the bell and names who assigned a task (NOT-01, NOT-02)', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects')
+    const bell = await screen.findByRole('button', { name: 'Notifications, 2 unread' })
+    expect(within(bell).getByTestId('unread-badge')).toHaveTextContent('2')
+    await user.click(bell)
+    const panel = screen.getByRole('dialog', { name: /Notifications/ })
+    expect(await within(panel).findByText('saad assigned you to “Summarise chapter 4 (trees)” in Study Planner.')).toBeInTheDocument()
   })
 
   it('shows a pending invitation on Home and accepts it there', async () => {

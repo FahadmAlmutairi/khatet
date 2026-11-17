@@ -69,10 +69,12 @@ export function TaskCardBody({
             {task.title}
           </button>
         </h3>
-        <p className={`inline-flex items-center gap-1 text-xs font-medium leading-4 ${due.overdue ? 'text-blocked' : 'text-muted'}`}>
-          {due.overdue && <OverdueIcon />}
-          {due.text}
-        </p>
+        {due && (
+          <p className={`inline-flex items-center gap-1 text-xs font-medium leading-4 ${due.overdue ? 'text-blocked' : 'text-muted'}`}>
+            {due.overdue && <OverdueIcon />}
+            {due.text}
+          </p>
+        )}
       </div>
       {task.isBlocked && <BlockedPill />}
       <div className="flex w-full items-center justify-between">
