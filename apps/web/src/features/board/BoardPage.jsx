@@ -67,15 +67,19 @@ export default function BoardPage() {
     [searchParams],
   )
   const hasFilters = filters.assignee.size > 0 || filters.status.size > 0 || filters.priority.size > 0
+  // US-23: the search text lives in the address (?q=) like the filters, so a reload keeps it.
+  const search = searchParams.get('q') ?? ''
+  const searchText = search.trim().toLocaleLowerCase()
   const filteredTasks = useMemo(() => {
     if (!tasks.data) return []
     return tasks.data.filter(
       (task) =>
+        (!searchText || task.title.toLocaleLowerCase().includes(searchText)) &&
         (!filters.assignee.size || task.assigneeIds.some((id) => filters.assignee.has(id))) &&
         (!filters.status.size || filters.status.has(task.status)) &&
         (!filters.priority.size || (task.priority && filters.priority.has(task.priority))),
     )
-  }, [filters, tasks.data])
+  }, [filters, searchText, tasks.data])
 
   function updateFilters(nextFilters) {
     const next = new URLSearchParams(searchParams)
@@ -99,6 +103,19 @@ export default function BoardPage() {
 
   function clearFilters() {
     updateFilters({ assignee: new Set(), status: new Set(), priority: new Set() })
+  }
+
+  function changeSearch(value) {
+    const next = new URLSearchParams(searchParams)
+    if (value) next.set('q', value)
+    else next.delete('q')
+    // Each key press replaces the address, so Back leaves the board instead of undoing letters.
+    setSearchParams(next, { replace: true })
+  }
+
+  function clearSearch() {
+    changeSearch('')
+    document.getElementById('task-search')?.focus()
   }
 
   function openTask(taskId) {
@@ -227,8 +244,20 @@ export default function BoardPage() {
               filters={filters}
               onToggle={toggleFilter}
               onClear={clearFilters}
+              search={search}
+              onSearchChange={changeSearch}
             />
-            {hasFilters && filteredTasks.length === 0 && tasks.data.length > 0 ? (
+            <p role="status" className="sr-only">
+              {searchText || hasFilters ? `${filteredTasks.length} of ${tasks.data.length} tasks shown` : ''}
+            </p>
+            {searchText && filteredTasks.length === 0 && tasks.data.length > 0 ? (
+              <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-surface p-8 text-center">
+                <p className="text-body">No tasks match your search</p>
+                <Button variant="secondary" onClick={clearSearch} className="mt-4">
+                  Clear search
+                </Button>
+              </div>
+            ) : hasFilters && filteredTasks.length === 0 && tasks.data.length > 0 ? (
               <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-surface p-8 text-center">
                 <p className="text-body">No tasks match these filters</p>
                 <Button variant="secondary" onClick={clearFilters} className="mt-4">

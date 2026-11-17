@@ -449,6 +449,53 @@ describe('board (US-16, US-21)', () => {
     expect(screen.getByText('Prepare usability test script')).toBeInTheDocument()
   })
 
+  it('searches tasks by title, not case sensitive, and keeps the search in the address (US-23)', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/board')
+    await screen.findByText('Prepare usability test script')
+    await user.type(screen.getByRole('searchbox', { name: 'Search tasks' }), 'BOARD')
+    await waitFor(() => expect(router.state.location.search).toBe('?q=BOARD'))
+    expect(screen.getByText('Build the board columns')).toBeInTheDocument()
+    expect(screen.getByText('Define board hierarchy')).toBeInTheDocument()
+    expect(screen.queryByText('Prepare usability test script')).not.toBeInTheDocument()
+    // The third match is "Draft onboarding checklist copy" in the collapsed Backlog.
+    expect(screen.getByText(/^3 of \d+ tasks shown$/)).toHaveAttribute('role', 'status')
+  })
+
+  it('shows an empty result for a search with no match and clears it (US-23)', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/board?q=zebra')
+    expect(await screen.findByText('No tasks match your search')).toBeInTheDocument()
+    expect(screen.getByRole('searchbox', { name: 'Search tasks' })).toHaveValue('zebra')
+    await user.click(screen.getByRole('button', { name: 'Clear search' }))
+    await waitFor(() => expect(router.state.location.search).toBe(''))
+    expect(screen.getByText('Prepare usability test script')).toBeInTheDocument()
+    expect(screen.getByRole('searchbox', { name: 'Search tasks' })).toHaveFocus()
+  })
+
+  it('clears the search with Escape (US-23, NFR-04)', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/board?q=csv')
+    await screen.findByText('Fix CSV validation errors')
+    expect(screen.queryByText('Prepare usability test script')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('searchbox', { name: 'Search tasks' }))
+    await user.keyboard('{Escape}')
+    await waitFor(() => expect(router.state.location.search).toBe(''))
+    expect(screen.getByRole('searchbox', { name: 'Search tasks' })).toHaveValue('')
+    expect(screen.getByText('Prepare usability test script')).toBeInTheDocument()
+  })
+
+  it('combines the search with the filters (US-23)', async () => {
+    signIn()
+    renderApp('/projects/p-khatet/board?q=board&status=READY_FOR_REVIEW')
+    expect(await screen.findByText('Define board hierarchy')).toBeInTheDocument()
+    expect(screen.queryByText('Build the board columns')).not.toBeInTheDocument()
+    expect(screen.getByText('Status: Ready for Review')).toBeInTheDocument()
+  })
+
   it('shows a board of 30 tasks (NFR-07)', async () => {
     signIn()
     for (let index = 1; index <= 22; index += 1) {
