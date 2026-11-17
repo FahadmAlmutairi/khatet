@@ -12,6 +12,7 @@ import { requireAuth, requireUsername } from '../auth/requireAuth.js'
 import { ApiError, forbidden, invalid, MAX_TEXT_LENGTH } from '../lib/errors.js'
 import { TRANSACTION_OPTIONS } from '../lib/transactions.js'
 import { notifyAssigned } from '../notifications/routes.js'
+import { recordActivity, usernamesFor } from '../activity/record.js'
 import { findMembership, isUuid } from '../projects/access.js'
 
 export const tasksRouter = Router()
@@ -163,6 +164,13 @@ tasksRouter.post('/projects/:projectId/tasks', signedIn, async (req, res) => {
       include: withAssignees,
     })
     await notifyAssigned(tx, { task: created, userIds: assigneeIds, actorId: req.user.id })
+    await recordActivity(tx, {
+      projectId,
+      actor: req.user,
+      type: 'TASK_CREATED',
+      task: created,
+      details: { status: 'TODO', assignees: await usernamesFor(tx, assigneeIds) },
+    })
     return created
   }, TRANSACTION_OPTIONS)
 
@@ -201,6 +209,38 @@ function columnTasks(tx, projectId, status, exceptId) {
   })
 }
 
+const dateText = (date) => (date ? date.toISOString().slice(0, 10) : null)
+
+// What an edit changed, for the project log: [{ field, from, to }]. The description is
+// long, so only the fact that it changed is kept. Assignees list who was added and removed.
+async function describeChanges(tx, before, after) {
+  const changes = []
+  const compare = (field, from, to) => {
+    if (from !== to) changes.push({ field, from, to })
+  }
+  compare('title', before.title, after.title)
+  compare('priority', before.priority, after.priority)
+  compare('dueDate', dateText(before.dueDate), dateText(after.dueDate))
+  compare('isBlocked', before.isBlocked, after.isBlocked)
+  if (after.isBlocked && before.blockedReason !== after.blockedReason) {
+    changes.push({ field: 'blockedReason', from: before.blockedReason, to: after.blockedReason })
+  }
+  if (before.description !== after.description) changes.push({ field: 'description' })
+
+  const was = before.assignees.map((assignee) => assignee.userId)
+  const now = after.assignees.map((assignee) => assignee.userId)
+  const added = now.filter((id) => !was.includes(id))
+  const removed = was.filter((id) => !now.includes(id))
+  if (added.length || removed.length) {
+    changes.push({
+      field: 'assignees',
+      added: await usernamesFor(tx, added),
+      removed: await usernamesFor(tx, removed),
+    })
+  }
+  return changes
+}
+
 // US-14
 tasksRouter.get('/tasks/:taskId', signedIn, async (req, res) => {
   const { task, membership } = await findTask(req.params.taskId, req.user.id)
@@ -235,6 +275,16 @@ tasksRouter.patch('/tasks/:taskId', signedIn, async (req, res) => {
     }
     const saved = await tx.task.update({ where: { id: task.id }, data: fields, include: withAssignees })
     await notifyAssigned(tx, { task: saved, userIds: added, actorId: req.user.id })
+    const changes = await describeChanges(tx, task, saved)
+    if (changes.length) {
+      await recordActivity(tx, {
+        projectId: task.projectId,
+        actor: req.user,
+        type: 'TASK_UPDATED',
+        task: saved,
+        details: { changes },
+      })
+    }
     return saved
   }, TRANSACTION_OPTIONS)
 
@@ -268,6 +318,16 @@ tasksRouter.post('/tasks/:taskId/move', signedIn, async (req, res) => {
     })
     if (target !== source) await renumber(tx, source)
     await renumber(tx, target)
+    // Reordering inside a column is not logged; a change of column is.
+    if (status !== current.status) {
+      await recordActivity(tx, {
+        projectId,
+        actor: req.user,
+        type: 'TASK_MOVED',
+        task,
+        details: { from: current.status, to: status },
+      })
+    }
     return tx.task.findMany({ where: { projectId }, include: withAssignees })
   }, TRANSACTION_OPTIONS)
 
@@ -282,9 +342,16 @@ tasksRouter.delete('/tasks/:taskId', signedIn, async (req, res) => {
 
   await prisma.$transaction(async (tx) => {
     await lockProject(tx, task.projectId)
-    const current = await tx.task.findUnique({ where: { id: task.id }, select: { status: true } })
+    const current = await tx.task.findUnique({ where: { id: task.id }, select: { status: true, title: true } })
     if (!current) return
     await tx.task.delete({ where: { id: task.id } })
+    await recordActivity(tx, {
+      projectId: task.projectId,
+      actor: req.user,
+      type: 'TASK_DELETED',
+      task: { id: task.id, title: current.title },
+      details: { status: current.status },
+    })
     await renumber(tx, await columnTasks(tx, task.projectId, current.status, task.id))
   }, TRANSACTION_OPTIONS)
 

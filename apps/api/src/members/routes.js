@@ -12,6 +12,7 @@ import { requireAuth, requireUsername } from '../auth/requireAuth.js'
 import { ApiError, invalid, notFound } from '../lib/errors.js'
 import { TRANSACTION_OPTIONS } from '../lib/transactions.js'
 import { findMembership, findOwnerMembership, isUuid } from '../projects/access.js'
+import { recordActivity } from '../activity/record.js'
 
 export const membersRouter = Router()
 
@@ -85,16 +86,27 @@ membersRouter.patch('/projects/:projectId/members/:userId', signedIn, async (req
   const { userId } = req.params
   const gone = () => notFound('This member is no longer in the project.')
   if (!isUuid(userId)) throw gone()
-  const { count } = await prisma.projectMember.updateMany({
-    where: { projectId, userId, role: 'MEMBER' },
-    data: { taskAccess },
-  })
-  if (count === 0) throw gone()
+  const member = await prisma.$transaction(async (tx) => {
+    const current = await tx.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+      include: { user: { select: { username: true } } },
+    })
+    if (!current || current.role !== 'MEMBER') throw gone()
+    if (current.taskAccess === taskAccess) return current
 
-  const member = await prisma.projectMember.findUnique({
-    where: { projectId_userId: { projectId, userId } },
-    include: { user: { select: { username: true } } },
-  })
+    const saved = await tx.projectMember.update({
+      where: { projectId_userId: { projectId, userId } },
+      data: { taskAccess },
+      include: { user: { select: { username: true } } },
+    })
+    await recordActivity(tx, {
+      projectId,
+      actor: req.user,
+      type: 'MEMBER_ACCESS_CHANGED',
+      details: { userId, username: current.user.username, from: current.taskAccess, to: taskAccess },
+    })
+    return saved
+  }, TRANSACTION_OPTIONS)
   res.json(serializeMember(member))
 })
 
@@ -136,6 +148,12 @@ membersRouter.post('/projects/:projectId/invitations', signedIn, async (req, res
         createdAt: created.createdAt,
       },
     })
+    await recordActivity(tx, {
+      projectId,
+      actor: req.user,
+      type: 'MEMBER_INVITED',
+      details: { userId: invitedUser.id, username },
+    })
     return created
   }, TRANSACTION_OPTIONS)
 
@@ -152,8 +170,21 @@ membersRouter.delete('/projects/:projectId/invitations/:invitationId', signedIn,
   const { invitationId } = req.params
   const gone = () => notFound('This invitation is no longer pending.')
   if (!isUuid(invitationId)) throw gone()
-  const { count } = await prisma.invitation.deleteMany({ where: { id: invitationId, projectId, status: 'PENDING' } })
-  if (count === 0) throw gone()
+  await prisma.$transaction(async (tx) => {
+    const invitation = await tx.invitation.findFirst({
+      where: { id: invitationId, projectId, status: 'PENDING' },
+      include: { invitedUser: { select: { id: true, username: true } } },
+    })
+    if (!invitation) throw gone()
+    const { count } = await tx.invitation.deleteMany({ where: { id: invitationId, status: 'PENDING' } })
+    if (count === 0) throw gone()
+    await recordActivity(tx, {
+      projectId,
+      actor: req.user,
+      type: 'INVITATION_CANCELLED',
+      details: { userId: invitation.invitedUser.id, username: invitation.invitedUser.username },
+    })
+  }, TRANSACTION_OPTIONS)
   res.status(204).end()
 })
 
@@ -181,6 +212,11 @@ async function answerInvitation(req, res, accept) {
         update: {},
       })
     }
+    await recordActivity(tx, {
+      projectId: invitation.projectId,
+      actor: req.user,
+      type: accept ? 'MEMBER_JOINED' : 'INVITATION_DECLINED',
+    })
     // The invitation is answered, so its notification no longer needs attention.
     await tx.notification.updateMany({ where: { invitationId, userId: req.user.id }, data: { read: true } })
     return invitation
@@ -251,6 +287,13 @@ membersRouter.delete('/projects/:projectId/members/:userId', signedIn, async (re
 
     await tx.projectMember.delete({
       where: { projectId_userId: { projectId, userId } },
+    })
+    const removed = await tx.user.findUnique({ where: { id: userId }, select: { username: true } })
+    await recordActivity(tx, {
+      projectId,
+      actor: req.user,
+      type: 'MEMBER_REMOVED',
+      details: { userId, username: removed?.username ?? null },
     })
   }, TRANSACTION_OPTIONS)
 
@@ -324,6 +367,7 @@ membersRouter.post('/projects/:projectId/leave', signedIn, async (req, res) => {
     await tx.projectMember.delete({
       where: { projectId_userId: { projectId, userId } },
     })
+    await recordActivity(tx, { projectId, actor: req.user, type: 'MEMBER_LEFT' })
   }, TRANSACTION_OPTIONS)
 
   res.json({ projectId, userId })

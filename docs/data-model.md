@@ -34,7 +34,7 @@ User
 | Task | Unit of work shown on the board and timeline. | Title, description, `status`, `priority`, `isBlocked`, `blockedReason`, due date, optional link to one phase, board position, creator, timestamps. |
 | TaskAssignee | Links a task to each assigned member. | A task has at least one assignee; every assignee is a project member. |
 | ChatMessage | Project chat message. | Project, author, text (not empty), optional referenced task (shown as a link), sent time. |
-| ActivityEvent | Task history entry. | Project, task, actor, what changed (status, assignees, priority, due date, Blocked flag), timestamp. |
+| ActivityEvent | One entry in the project log (table `activity_events`, Sprint 3). | Project, actor (ID and the username at the time), `type`, task ID and title at the time (for task events), `details` (JSON, by type below), timestamp. Rows are only added. The task ID has no foreign key and the actor is set to null only if the user row goes, so entries stay after a task is deleted or a member leaves. Deleted with the project. |
 | Notification | In-app update for one user. | User, type (invitation, task assignment, and later report ready), related project/task/invitation, read state. |
 | AIReport | One generated project report. | Project, requested by (or automatic), `status` (`RUNNING`, `READY`, `FAILED`), summary, warnings, suggestions, generated time. Readable by every participant. |
 | ImportJob / ImportIssue | CSV import state and row-level problems (Could have). | Project, initiator, status, created and skipped counts; issues are reviewable before confirm. |
@@ -47,7 +47,10 @@ User
 | Task `priority` | `LOW`, `MEDIUM`, `HIGH` |
 | ProjectMember `role` | `OWNER`, `MEMBER` |
 | ProjectMember `taskAccess` | `VIEW_ONLY`, `EDIT_ASSIGNED`, `EDIT_ALL` |
+| ActivityEvent `type` | `PROJECT_CREATED`, `PROJECT_UPDATED`, `TASK_CREATED`, `TASK_UPDATED`, `TASK_MOVED`, `TASK_DELETED`, `MEMBER_INVITED`, `INVITATION_CANCELLED`, `INVITATION_DECLINED`, `MEMBER_JOINED`, `MEMBER_ACCESS_CHANGED`, `MEMBER_REMOVED`, `MEMBER_LEFT` |
 | Project `reportSchedule` (Could have) | `WEEKLY`, `MONTHLY`, `DISABLED` |
+
+ActivityEvent `details` by type: `TASK_CREATED` `{ status, assignees: [username] }`; `TASK_UPDATED` and `PROJECT_UPDATED` `{ changes: [{ field, from, to }] }`, where `description` carries no values and `assignees` is `{ field, added: [username], removed: [username] }`; `TASK_MOVED` `{ from, to }` (a reorder inside one column is not logged); `TASK_DELETED` `{ status }`; member events `{ userId, username }`, plus `{ from, to }` for `MEMBER_ACCESS_CHANGED`; `PROJECT_CREATED` `{ name }`. `MEMBER_JOINED`, `MEMBER_LEFT` and `INVITATION_DECLINED` have `{}` because the actor is the member. Each entry is written in the same transaction as its change.
 
 Blocked is not a status. `isBlocked` may be true only while the task is `IN_PROGRESS`, with an optional `blockedReason`. Moving a task to Backlog keeps all its details and assignees, and Backlog tasks are kept apart from active work on the board. Status must be understandable through text and icon as well as color.
 

@@ -45,6 +45,7 @@ PATCH  /api/tasks/:taskId
 POST   /api/tasks/:taskId/move
 DELETE /api/tasks/:taskId                           (owner, EDIT_ALL)
 GET    /api/tasks/:taskId/activity
+GET    /api/projects/:projectId/activity?actorId=&taskId=&before=&limit=   (any member: project log)
 GET    /api/projects/:projectId/phases
 POST   /api/projects/:projectId/phases              (owner)
 PATCH  /api/phases/:phaseId                         (owner)
@@ -183,6 +184,12 @@ The API must not mutate project data during upload, mapping, or review.
 **Task references (US-25, Sprint 3).** A message mentions a task with the token `#[task:<taskId>]` in its `text`. On `POST`, a token whose task is not in the same project gets 422 `VALIDATION_FAILED` on the field `text`. Each message from `GET` (and the `POST` answer) adds `references: [{ taskId, title }]`, one entry per mentioned task with its current title, and `title: null` once the task is deleted. The web app shows each token as a chip that opens the task, or "Deleted task" without a link. Until `references` is sent, the web app takes titles from the board's task list.
 
 **Socket.IO (TR-05, Sprint 3).** Socket.IO runs on the same Express server. The client sends its Supabase access token in the handshake as `auth.token`. It emits `chat:join` with `{ projectId }` and waits for the acknowledgement: `{ ok: true }` once the server has checked membership with the shared policy module and joined the socket to the room `project:<projectId>`, or `{ ok: false, error: { code, message } }`. It emits `chat:leave` with `{ projectId }` when the chat closes. After `POST /messages` saves a message, the server emits `message:new` to the room with the same message object the REST routes return. Messages are still stored and loaded through REST; while the socket is not connected, or the join was refused, the web app refreshes every 3 seconds as before.
+
+## Project log contract
+
+The professor asked at the Sprint 2 demo for a project history that survives deleted tasks and departed members, so a reviewer can see what each person did. Every change to tasks, members, invitations and project settings adds an ActivityEvent (docs/data-model.md) in the same transaction.
+
+`GET /api/projects/:projectId/activity`, any member (404 for others, NFR-11), newest first. Query: `actorId` (one person, including former members), `taskId` (one task, including deleted ones), `before` (the `nextCursor` of the previous page) and `limit` (1 to 100, default 50); a value of the wrong form gets 422 `VALIDATION_FAILED` on that field. Answers `{ events, nextCursor, actors }`: each event is `{ id, projectId, type, actorId, actorUsername, taskId, taskTitle, details, createdAt }`, `nextCursor` is null on the last page, and `actors` is `[{ id, username }]` for everyone in the log, for the person filter. The web app shows it on the Project log page in the project's sidebar. `GET /api/tasks/:taskId/activity` (US-19) can read the same table with `taskId`.
 
 ## AI report contract
 

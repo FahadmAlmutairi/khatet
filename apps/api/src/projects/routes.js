@@ -3,7 +3,9 @@ import { Router } from 'express'
 import { prisma } from '../db.js'
 import { requireAuth, requireUsername } from '../auth/requireAuth.js'
 import { invalid, MAX_TEXT_LENGTH } from '../lib/errors.js'
-import { findMembership, findOwnerMembership } from './access.js' 
+import { TRANSACTION_OPTIONS } from '../lib/transactions.js'
+import { recordActivity } from '../activity/record.js'
+import { findMembership, findOwnerMembership } from './access.js'
 
 export const projectsRouter = Router()
 
@@ -77,6 +79,14 @@ projectsRouter.post('/', async (req, res) => {
           userId: req.user.id,
           role: 'OWNER',
           taskAccess: 'EDIT_ALL',
+        },
+      },
+      activityEvents: {
+        create: {
+          actorId: req.user.id,
+          actorUsername: req.user.username,
+          type: 'PROJECT_CREATED',
+          details: { name },
         },
       },
     },
@@ -155,10 +165,17 @@ projectsRouter.patch('/:projectId', async (req, res) => {
     ])
   }
 
-  const project = await prisma.project.update({
-    where: { id: req.params.projectId },
-    data,
-  })
+  const before = membership.project
+  const project = await prisma.$transaction(async (tx) => {
+    const saved = await tx.project.update({ where: { id: before.id }, data })
+    const changes = []
+    if (saved.name !== before.name) changes.push({ field: 'name', from: before.name, to: saved.name })
+    if (saved.description !== before.description) changes.push({ field: 'description' })
+    if (changes.length) {
+      await recordActivity(tx, { projectId: saved.id, actor: req.user, type: 'PROJECT_UPDATED', details: { changes } })
+    }
+    return saved
+  }, TRANSACTION_OPTIONS)
 
   res.json(serializeProject(project, membership))
 })

@@ -2,6 +2,7 @@
 // Sprint 1 tables: users, projects, project members, invitations, notifications (TF-04),
 // and tasks with their assignees (US-13 to US-18, US-21).
 // Sprint 2: project chat messages (US-24).
+// Sprint 3: the project log (activity events), so the team's history stays after tasks are deleted or members leave.
 // Change it only through a migration: npm run db:migrate -- --name what_changed
 
 generator client {
@@ -11,7 +12,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL") // pooled connection, used by the running API
-  directUrl = env("DIRECT_URL")   // direct (session) connection, used by migrations
+  directUrl = env("DIRECT_URL") // direct (session) connection, used by migrations
 }
 
 enum ProjectRole {
@@ -50,6 +51,22 @@ enum TaskPriority {
   HIGH
 }
 
+enum ActivityType {
+  PROJECT_CREATED
+  PROJECT_UPDATED
+  TASK_CREATED
+  TASK_UPDATED
+  TASK_MOVED
+  TASK_DELETED
+  MEMBER_INVITED
+  INVITATION_CANCELLED
+  INVITATION_DECLINED
+  MEMBER_JOINED
+  MEMBER_ACCESS_CHANGED
+  MEMBER_REMOVED
+  MEMBER_LEFT
+}
+
 // A Khatet account, linked to one Supabase Auth user.
 model User {
   id                String    @id @default(uuid()) @db.Uuid
@@ -70,6 +87,7 @@ model User {
   createdTasks        Task[]          @relation("TaskCreator")
   taskAssignments     TaskAssignee[]
   chatMessages        ChatMessage[]
+  activityEvents      ActivityEvent[]
 
   @@map("users")
 }
@@ -82,12 +100,13 @@ model Project {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  createdBy     User            @relation("ProjectCreator", fields: [createdById], references: [id])
-  members       ProjectMember[]
-  invitations   Invitation[]
-  notifications Notification[]
-  tasks         Task[]
-  chatMessages  ChatMessage[]
+  createdBy      User            @relation("ProjectCreator", fields: [createdById], references: [id])
+  members        ProjectMember[]
+  invitations    Invitation[]
+  notifications  Notification[]
+  tasks          Task[]
+  chatMessages   ChatMessage[]
+  activityEvents ActivityEvent[]
 
   @@map("projects")
 }
@@ -211,4 +230,29 @@ model ChatMessage {
 
   @@index([projectId, createdAt, id])
   @@map("chat_messages")
+}
+
+// The project log: one row for each change a member made. Rows are only added, never
+// edited, and stay when the task is deleted or the member leaves. Names and titles are
+// copied at the time of the change, so the log reads the same later. Deleted with the project.
+model ActivityEvent {
+  id            String       @id @default(uuid()) @db.Uuid
+  projectId     String       @map("project_id") @db.Uuid
+  actorId       String?      @map("actor_id") @db.Uuid
+  actorUsername String       @map("actor_username")
+  type          ActivityType
+  // No foreign key, so the event keeps the ID after the task is deleted.
+  taskId        String?      @map("task_id") @db.Uuid
+  taskTitle     String?      @map("task_title")
+  // What changed, by type (docs/data-model.md, ActivityEvent).
+  details       Json         @default("{}")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt, id])
+  @@index([projectId, actorId, createdAt])
+  @@index([taskId, createdAt])
+  @@map("activity_events")
 }
