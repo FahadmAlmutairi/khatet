@@ -812,7 +812,6 @@ describe('members (US-07, US-09, US-10)', () => {
     expect(screen.queryByRole('button', { name: /Manage access/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Invite member' })).not.toBeInTheDocument()
     expect(screen.getAllByText('Edit assigned tasks')).toHaveLength(2)
-    expect(screen.getByText('Only the project owner can invite people or change access.')).toBeInTheDocument()
     expect(screen.getByText('You')).toBeInTheDocument()
   })
 
@@ -947,17 +946,19 @@ describe('AI report (US-31)', () => {
     signIn()
     const user = userEvent.setup()
     renderApp('/projects/p-khatet/report')
-    expect(await screen.findByRole('heading', { name: 'AI report', level: 1 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Reports', level: 1 })).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'No report yet' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Generate report' }))
-    const report = await screen.findByRole('article')
-    for (const heading of ['Progress summary', 'Warnings', 'Suggestions']) {
+    const report = await screen.findByRole('article', { name: /^Generated .+ by fahad$/ })
+    expect(await within(report).findByRole('heading', { name: 'On the board now', level: 2 })).toBeInTheDocument()
+    for (const heading of ['Summary', /^Warnings · \d+$/, 'Suggestions']) {
       expect(within(report).getByRole('heading', { name: heading, level: 2 })).toBeInTheDocument()
     }
-    expect(within(report).getByText(/^Generated .+ by fahad$/)).toBeInTheDocument()
-    expect(within(report).getByText('This report never changes your project.')).toBeInTheDocument()
-    expect(within(report).getByText('"Fix CSV validation errors" is blocked: Waiting for sample file.')).toBeInTheDocument()
-    expect(document.title).toBe('AI report · Khatet · Khatet')
+    expect(within(report).getByText('The AI can be wrong. It never changes your project.')).toBeInTheDocument()
+    // Each warning shows its title and its detail on separate lines.
+    expect(within(report).getByText('"Fix CSV validation errors" is blocked')).toBeInTheDocument()
+    expect(within(report).getByText('Waiting for sample file.')).toBeInTheDocument()
+    expect(document.title).toBe('Reports · Khatet · Khatet')
   })
 
   it('refuses a second report within 10 minutes and says when the next one is allowed', async () => {
@@ -966,7 +967,7 @@ describe('AI report (US-31)', () => {
     renderApp('/projects/p-khatet/report')
     await user.click(await screen.findByRole('button', { name: 'Generate report' }))
     await screen.findByRole('article')
-    await user.click(screen.getByRole('button', { name: 'Generate a new report' }))
+    await user.click(screen.getByRole('button', { name: 'Generate new report' }))
     expect(await screen.findByText(/A report was generated less than 10 minutes ago\. You can generate the next one after/)).toBeInTheDocument()
     expect(screen.getByRole('article')).toBeInTheDocument()
   })
@@ -986,25 +987,67 @@ describe('AI report (US-31)', () => {
   it('shows a member the latest report without a Generate button', async () => {
     signIn()
     renderApp('/projects/p-study/report')
-    const report = await screen.findByRole('article')
-    expect(within(report).getByText(/^Generated .+ by saad$/)).toBeInTheDocument()
-    expect(within(report).getByRole('heading', { name: 'Warnings' })).toBeInTheDocument()
+    const report = await screen.findByRole('article', { name: /^Generated .+ by saad$/ })
+    expect(within(report).getByRole('heading', { name: 'Warnings · 1' })).toBeInTheDocument()
+    expect(within(report).getByText('it is due on 12 Oct.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Generate/ })).not.toBeInTheDocument()
   })
 
   it('tells a member that the owner can generate the first report', async () => {
     signIn()
     renderApp('/projects/p-capstone/report')
-    expect(await screen.findByText('The project owner can generate one. It will show here for everyone in the project.')).toBeInTheDocument()
+    expect(await screen.findByText('The project owner can generate one.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Generate/ })).not.toBeInTheDocument()
   })
 
-  it('opens the report from the board header', async () => {
+  it('opens Reports from the sidebar', async () => {
     signIn()
     const user = userEvent.setup()
     const router = renderApp('/projects/p-khatet/board')
-    await user.click(await screen.findByRole('link', { name: 'AI report' }))
+    const sidebar = await screen.findByRole('complementary')
+    await user.click(await within(sidebar).findByRole('link', { name: 'Reports' }))
     expect(router.state.location.pathname).toBe('/projects/p-khatet/report')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Reports' })).toBeInTheDocument()
+  })
+})
+
+describe('project overview (US-28)', () => {
+  it('opens from the sidebar with progress, upcoming work, attention and recent activity', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/board')
+    const sidebar = await screen.findByRole('complementary')
+    await user.click(await within(sidebar).findByRole('link', { name: 'Overview' }))
+    expect(router.state.location.pathname).toBe('/projects/p-khatet/overview')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Khatet' }, { timeout: 5000 })).toBeInTheDocument()
+
+    expect(await screen.findByRole('heading', { name: '25% complete · 2 of 8 tasks done' })).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Tasks done' })).toHaveAttribute('aria-valuenow', '25')
+
+    const attention = screen.getByRole('heading', { name: /^Needs attention · \d+$/ }).closest('section')
+    expect(within(attention).getByText(/^Blocked: .+ · fahad$/)).toBeInTheDocument()
+
+    const upcoming = screen.getByRole('heading', { name: 'Upcoming work' }).closest('section')
+    await user.click(within(upcoming).getByRole('button', { name: 'My work' }))
+    for (const row of within(upcoming).getAllByRole('link').filter((link) => link.href.includes('task='))) {
+      expect(row).toHaveTextContent('fahad')
+    }
+
+    const activity = screen.getByRole('heading', { name: 'Recent activity' }).closest('section')
+    expect(await within(activity).findByText(/changed ali’s access/)).toBeInTheDocument()
+    await user.click(within(activity).getByRole('link', { name: /View the project log/ }))
+    expect(router.state.location.pathname).toBe('/projects/p-khatet/log')
+  })
+})
+
+describe('task activity', () => {
+  it('shows who changed the task in task details', async () => {
+    signIn()
+    renderApp('/projects/p-khatet/board?task=t-8')
+    const details = await screen.findByRole('dialog', { name: 'Define board hierarchy' }, { timeout: 5000 })
+    const activity = within(details).getByRole('region', { name: 'Activity' })
+    expect(await within(activity).findByText((_, element) => element?.tagName === 'P' && element.textContent === 'fahad moved it from In Progress to Ready for Review')).toBeInTheDocument()
+    expect(within(activity).getByText('Priority: None to High')).toBeInTheDocument()
   })
 })
 

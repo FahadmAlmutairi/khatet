@@ -16,7 +16,7 @@ export const keys = {
   notifications: ['notifications'],
   messages: (projectId) => ['messages', projectId],
   report: (projectId) => ['report', projectId],
-  activity: (projectId, actorId) => ['activity', projectId, actorId ?? 'all'],
+  activity: (projectId, filter = {}) => ['activity', projectId, filter],
 }
 
 // ---------- Session ----------
@@ -173,6 +173,11 @@ export function useTask(taskId) {
   return useQuery({ queryKey: keys.task(taskId), queryFn: () => api.getTask(taskId), enabled: Boolean(taskId) })
 }
 
+// A change to a task adds to the project log, so the log and task activity load again.
+function refreshActivity(queryClient, projectId) {
+  queryClient.invalidateQueries({ queryKey: ['activity', projectId] })
+}
+
 function replaceTask(queryClient, task) {
   queryClient.setQueryData(keys.task(task.id), task)
   queryClient.setQueryData(keys.tasks(task.projectId), (tasks) =>
@@ -186,6 +191,7 @@ export function useCreateTask(projectId) {
     mutationFn: (input) => api.createTask(projectId, input),
     onSuccess: (task) => {
       queryClient.setQueryData(keys.tasks(projectId), (tasks) => (tasks ? [...tasks, task] : tasks))
+      refreshActivity(queryClient, projectId)
     },
   })
 }
@@ -194,7 +200,10 @@ export function useUpdateTask() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ taskId, patch }) => api.updateTask(taskId, patch),
-    onSuccess: (task) => replaceTask(queryClient, task),
+    onSuccess: (task) => {
+      replaceTask(queryClient, task)
+      refreshActivity(queryClient, task.projectId)
+    },
   })
 }
 
@@ -237,6 +246,7 @@ export function useMoveTask(projectId) {
       queryClient.setQueryData(tasksKey, tasks)
     },
     onSettled: () => {
+      refreshActivity(queryClient, projectId)
       if (othersMoving() || !overlapped.current) return
       // Answers skipped above (a failed one too) are settled by one fresh copy from the server.
       overlapped.current = false
@@ -476,10 +486,13 @@ export function useGenerateReport(projectId) {
 // ---------- Project log ----------
 
 // Newest first, 50 at a time; fetchNextPage loads older entries. Refetched each time the page opens.
-export function useActivity(projectId, actorId) {
+// filter: { actorId } for one person, { taskId } for one task (task details).
+export function useActivity(projectId, { actorId, taskId, enabled = true } = {}) {
+  const filter = { ...(actorId ? { actorId } : {}), ...(taskId ? { taskId } : {}) }
   return useInfiniteQuery({
-    queryKey: keys.activity(projectId, actorId),
-    queryFn: ({ pageParam }) => api.getActivity(projectId, { actorId, before: pageParam }),
+    queryKey: keys.activity(projectId, filter),
+    queryFn: ({ pageParam }) => api.getActivity(projectId, { ...filter, before: pageParam }),
+    enabled,
     initialPageParam: undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 0,

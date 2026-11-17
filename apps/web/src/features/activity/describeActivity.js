@@ -14,7 +14,7 @@ function fieldValue(field, value) {
 }
 
 // One line per change in an edit, for example "Priority: Low to High".
-function changeLines(changes = []) {
+export function changeLines(changes = []) {
   return changes.map((change) => {
     if (change.field === 'description') return 'Changed the description'
     if (change.field === 'isBlocked') return change.to ? 'Flagged as blocked' : 'Cleared the blocked flag'
@@ -75,6 +75,33 @@ export function describeActivity(event) {
   }
 }
 
+// The same entry inside one task's details, where the task itself is "it" (Figma: Task details / Activity).
+export function describeTaskActivity(event) {
+  const details = event.details ?? {}
+  switch (event.type) {
+    case 'TASK_CREATED':
+      return {
+        text: details.assignees?.length ? `created the task and assigned ${list(details.assignees)}` : 'created the task',
+        more: [],
+      }
+    case 'TASK_MOVED':
+      return { text: `moved it from ${statusLabel(details.from)} to ${statusLabel(details.to)}`, more: [] }
+    case 'TASK_UPDATED': {
+      const lines = changeLines(details.changes)
+      return lines.length === 1 ? { text: lowerFirst(lines[0]), more: [] } : { text: 'edited the task', more: lines }
+    }
+    case 'TASK_DELETED':
+      return { text: 'deleted the task', more: [] }
+    default:
+      return { text: describeActivity(event).before, more: [] }
+  }
+}
+
+function lowerFirst(text) {
+  // "Flagged as blocked" reads as "flagged as blocked"; field names keep a colon form.
+  return text.charAt(0).toLowerCase() + text.slice(1)
+}
+
 const dayFormat = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
 export function dayLabel(date, now = new Date()) {
@@ -83,4 +110,15 @@ export function dayLabel(date, now = new Date()) {
   if (diff === 0) return 'Today'
   if (diff === 1) return 'Yesterday'
   return dayFormat.format(date)
+}
+
+const clockFormat = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' })
+const shortDayFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
+
+// "Today, 09:12", "Yesterday, 16:40" or "5 Oct" (Figma R46).
+export function activityTime(value, now = new Date()) {
+  const date = new Date(value)
+  const label = dayLabel(date, now)
+  if (label === 'Today' || label === 'Yesterday') return `${label}, ${clockFormat.format(date)}`
+  return shortDayFormat.format(date)
 }

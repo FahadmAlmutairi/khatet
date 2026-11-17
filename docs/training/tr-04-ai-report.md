@@ -37,3 +37,5 @@ Provider: OpenAI API, model `gpt-6-luna` (Sprint 0 report, Section 7.4 decision)
 
 - US-31 (Sprint 3) builds the report route and screen on top of `summarizeProject`, `loadProjectData` and `generateReport`.
 - Add `OPENAI_API_KEY` to Render's Environment settings with a separate production key, before US-31 is deployed.
+
+**Prompt version 2 (17 Nov 2026).** Each bullet now starts with a bold short title followed by a colon and one sentence of detail ("- **Title**: detail"). The report page shows the title and the detail on separate lines, as in the Figma AI report screen. The facts the AI receives and the three headings are unchanged.

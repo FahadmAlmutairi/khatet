@@ -201,7 +201,7 @@ function Composer({ projectId, tasks, inputRef, onSent, draftTask, onDraftUsed }
           rows={1}
           value={text}
           maxLength={MAX_MESSAGE_LENGTH}
-          placeholder="Write a message"
+          placeholder="Write a message, # to mention a task"
           aria-invalid={Boolean(error)}
           aria-describedby={error ? errorId : undefined}
           aria-controls={listOpen ? listId : undefined}
@@ -249,7 +249,6 @@ function Composer({ projectId, tasks, inputRef, onSent, draftTask, onDraftUsed }
           </FieldError>
         </div>
       )}
-      <p className="mt-1.5 hidden text-xs text-muted lg:block">Enter to send, Shift+Enter for a new line, # to mention a task.</p>
     </form>
   )
 }
@@ -346,7 +345,6 @@ export default function ChatPanel({ project, open, onClose, onOpenTask, draftTas
         {messages.data?.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center">
             <p className="text-base font-semibold text-heading">No messages yet</p>
-            <p className="text-sm text-muted">Send the first message to your team. Everyone in the project can read it.</p>
           </div>
         )}
         {messages.data?.length > 0 && (

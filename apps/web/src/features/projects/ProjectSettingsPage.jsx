@@ -51,10 +51,7 @@ export default function ProjectSettingsPage() {
 
   return (
     <section className="mx-auto flex w-full max-w-2xl flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-title font-bold text-body">Project settings</h1>
-        <p className="text-sm text-muted">Update the name and description shown across this workspace.</p>
-      </div>
+      <h1 className="text-title font-bold text-body">Project settings</h1>
       <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-5 rounded-xl border border-line bg-white p-5 sm:p-6">
         <TextField
           label="Project name"

@@ -1,0 +1,286 @@
+import { useState } from 'react'
+import { Link, useOutletContext } from 'react-router'
+import { reportAvailable } from '../../api/config.js'
+import { errorMessage } from '../../api/errors.js'
+import { useActivity, useLatestReport, useMe, useMembers, useTasks } from '../../api/hooks.js'
+import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
+import { AvatarStack } from '../../components/Avatar.jsx'
+import Breadcrumb from '../../components/Breadcrumb.jsx'
+import StatusPill from '../../components/StatusPill.jsx'
+import { ErrorState, LoadingState } from '../../components/ui/States.jsx'
+import { dueLine, formatDueDate, formatTimestamp, statusLabel } from '../../lib/domain.js'
+import { projectStats } from '../../lib/projectStats.js'
+import { activityTime, describeActivity } from '../activity/describeActivity.js'
+import { reportParts } from '../report/parseReport.js'
+
+const UPCOMING_LIMIT = 5
+const ATTENTION_LIMIT = 4
+const ACTIVITY_LIMIT = 5
+
+// US-28: the project at a glance (Figma: Overview / Desktop / Approved, 694:1201).
+// Everything is counted from the board, the project log and the latest AI report.
+export default function OverviewPage() {
+  const { project } = useOutletContext()
+  const crumbs = useBreadcrumb()
+  const tasks = useTasks(project.id)
+  const members = useMembers(project.id)
+  useDocumentTitle('Overview', project.name)
+
+  const usernames = new Map((members.data?.members ?? []).map((member) => [member.userId, member.username]))
+  const memberCount = members.data?.members.length
+
+  return (
+    <section className="flex flex-col gap-6">
+      <Breadcrumb items={crumbs} className="lg:hidden" />
+      <div className="flex flex-col gap-1">
+        <h1 className="text-title font-bold break-words text-body">{project.name}</h1>
+        {memberCount !== undefined && (
+          <p className="text-sm text-muted">
+            {memberCount} {memberCount === 1 ? 'member' : 'members'}
+          </p>
+        )}
+      </div>
+
+      {tasks.isPending && <LoadingState label="Loading the overview" />}
+      {tasks.isError && (
+        <ErrorState title="The overview could not be loaded" message={errorMessage(tasks.error)} onRetry={() => tasks.refetch()} />
+      )}
+      {tasks.data && (
+        <>
+          <Progress tasks={tasks.data} />
+          <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+            <UpcomingWork projectId={project.id} tasks={tasks.data} usernames={usernames} />
+            <NeedsAttention projectId={project.id} tasks={tasks.data} usernames={usernames} />
+            {reportAvailable && <LatestReport projectId={project.id} />}
+            <RecentActivity projectId={project.id} wide={!reportAvailable} />
+          </div>
+        </>
+      )}
+    </section>
+  )
+}
+
+function Card({ title, action, className = '', children }) {
+  return (
+    <section className={`flex min-w-0 flex-col gap-3 rounded-xl border border-line bg-white p-4 sm:p-5 ${className}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold text-heading">{title}</h2>
+        {action}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function CardLink({ to, children }) {
+  return (
+    <Link to={to} className="mt-auto inline-flex w-fit items-center gap-1 text-sm font-medium text-heading underline-offset-2 hover:underline">
+      {children} <span aria-hidden="true">→</span>
+    </Link>
+  )
+}
+
+function Progress({ tasks }) {
+  const stats = projectStats(tasks)
+  const parts = [
+    ['TODO', stats.byStatus.TODO],
+    ['IN_PROGRESS', stats.byStatus.IN_PROGRESS],
+    ['READY_FOR_REVIEW', stats.byStatus.READY_FOR_REVIEW],
+    ['DONE', stats.byStatus.DONE],
+  ]
+  return (
+    <section aria-labelledby="progress-title" className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="progress-title" className="text-base font-medium text-body">
+          {stats.percent}% complete · {stats.done} of {stats.total} tasks done
+        </h2>
+        <div className="flex gap-2">
+          {stats.blocked.length > 0 && <Chip>{stats.blocked.length} blocked</Chip>}
+          {stats.overdue.length > 0 && <Chip>{stats.overdue.length} overdue</Chip>}
+        </div>
+      </div>
+      <div
+        role="progressbar"
+        aria-label="Tasks done"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={stats.percent}
+        className="h-2 overflow-hidden rounded-full bg-[#e8ece6]"
+      >
+        <div className="h-full rounded-full bg-action" style={{ width: `${stats.percent}%` }} />
+      </div>
+      <p className="text-sm text-muted">
+        {parts.map(([status, count]) => `${count} ${statusLabel(status).toLowerCase()}`).join(' · ')}
+        {stats.byStatus.BACKLOG > 0 && ` · ${stats.byStatus.BACKLOG} in backlog`}
+      </p>
+    </section>
+  )
+}
+
+function Chip({ children }) {
+  return <span className="rounded-full bg-priority-high-bg px-2.5 py-1 text-xs font-medium text-priority-high-text">{children}</span>
+}
+
+function TaskRow({ projectId, task, usernames, line, alert = false, pill = true }) {
+  const assignees = task.assigneeIds.map((id) => ({ id, username: usernames.get(id) ?? 'unknown' }))
+  return (
+    <li>
+      <Link
+        to={`/projects/${projectId}/board?task=${task.id}`}
+        className="flex items-center gap-3 rounded-[10px] bg-surface px-3 py-2.5 hover:bg-nav-active"
+      >
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="truncate text-sm font-medium text-body">{task.title}</span>
+          <span className={`truncate text-xs ${alert ? 'text-blocked' : 'text-muted'}`}>{line}</span>
+        </span>
+        {pill && <StatusPill status={task.status} className="max-sm:hidden" />}
+        {assignees.length > 0 && <AvatarStack users={assignees} max={2} />}
+      </Link>
+    </li>
+  )
+}
+
+function names(task, usernames) {
+  return task.assigneeIds.map((id) => usernames.get(id) ?? 'unknown').join(', ')
+}
+
+// Open tasks by due date, for the team or for me (Figma: Upcoming work, Project / My work).
+function UpcomingWork({ projectId, tasks, usernames }) {
+  const me = useMe()
+  const [mine, setMine] = useState(false)
+  const open = tasks
+    .filter((task) => task.status !== 'DONE' && task.status !== 'BACKLOG')
+    // Blocked and overdue tasks are listed under Needs attention instead.
+    .filter((task) => !task.isBlocked && !dueLine(task.dueDate, task.status)?.overdue)
+    .filter((task) => !mine || task.assigneeIds.includes(me.data?.id))
+    .sort((a, b) => (a.dueDate ?? '9999').localeCompare(b.dueDate ?? '9999'))
+  const shown = open.slice(0, UPCOMING_LIMIT)
+
+  const toggle = (
+    <div role="group" aria-label="Show" className="flex rounded-full bg-surface p-0.5">
+      {[
+        [false, 'Project'],
+        [true, 'My work'],
+      ].map(([value, label]) => (
+        <button
+          key={label}
+          type="button"
+          aria-pressed={mine === value}
+          onClick={() => setMine(value)}
+          className={`min-h-9 rounded-full px-3 text-xs font-medium ${mine === value ? 'bg-nav-active text-heading' : 'text-muted'}`}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+
+  return (
+    <Card title="Upcoming work" action={toggle}>
+      {shown.length === 0 ? (
+        <p className="text-sm text-muted">{mine ? 'Nothing assigned to you is open.' : 'No open tasks.'}</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {shown.map((task) => {
+            const due = dueLine(task.dueDate, task.status)
+            return (
+              <TaskRow
+                key={task.id}
+                projectId={projectId}
+                task={task}
+                usernames={usernames}
+                alert={due?.overdue}
+                line={[due?.text ?? 'No due date', names(task, usernames)].join(' · ')}
+              />
+            )
+          })}
+        </ul>
+      )}
+      <CardLink to={`/projects/${projectId}/board`}>Open the board</CardLink>
+    </Card>
+  )
+}
+
+// Blocked and overdue tasks across the project (Figma: Needs attention).
+function NeedsAttention({ projectId, tasks, usernames }) {
+  const stats = projectStats(tasks)
+  const flagged = [...new Set([...stats.blocked, ...stats.overdue])]
+  const shown = flagged.slice(0, ATTENTION_LIMIT)
+  return (
+    <Card title={flagged.length ? `Needs attention · ${flagged.length}` : 'Needs attention'}>
+      {shown.length === 0 ? (
+        <p className="text-sm text-muted">Nothing is blocked or overdue.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {shown.map((task) => {
+            const reason = task.isBlocked
+              ? `Blocked${task.blockedReason ? `: ${task.blockedReason}` : ''}`
+              : `Overdue since ${formatDueDate(task.dueDate, { short: true })}`
+            return (
+              <TaskRow
+                key={task.id}
+                projectId={projectId}
+                task={task}
+                usernames={usernames}
+                alert
+                pill={false}
+                line={`${reason} · ${names(task, usernames)}`}
+              />
+            )
+          })}
+        </ul>
+      )}
+    </Card>
+  )
+}
+
+function LatestReport({ projectId }) {
+  const report = useLatestReport(projectId)
+  const summary = report.data ? reportParts(report.data.content).summary[0] : null
+  return (
+    <Card title="Latest AI report">
+      {report.isPending && <p className="text-sm text-muted">Loading…</p>}
+      {report.isError && <p className="text-sm text-blocked">{errorMessage(report.error)}</p>}
+      {report.isSuccess && !report.data && <p className="text-sm text-muted">No report yet.</p>}
+      {report.data && (
+        <>
+          <p className="text-xs text-muted">Generated {formatTimestamp(report.data.createdAt)}</p>
+          {summary && <p className="line-clamp-3 text-sm leading-relaxed text-body">{summary.replace(/\*\*/g, '')}</p>}
+        </>
+      )}
+      <CardLink to={`/projects/${projectId}/report`}>{report.data ? 'View report' : 'Open Reports'}</CardLink>
+    </Card>
+  )
+}
+
+function RecentActivity({ projectId, wide }) {
+  const activity = useActivity(projectId)
+  const events = (activity.data?.pages[0]?.events ?? []).slice(0, ACTIVITY_LIMIT)
+  return (
+    <Card title="Recent activity" className={wide ? 'lg:col-span-2' : ''}>
+      {activity.isPending && <p className="text-sm text-muted">Loading…</p>}
+      {activity.isError && <p className="text-sm text-blocked">{errorMessage(activity.error)}</p>}
+      {activity.isSuccess && events.length === 0 && <p className="text-sm text-muted">No changes yet.</p>}
+      {events.length > 0 && (
+        <ol className="flex flex-col divide-y divide-line">
+          {events.map((event) => {
+            const { before, after } = describeActivity(event)
+            return (
+              <li key={event.id} className="flex flex-col gap-0.5 py-2 sm:flex-row sm:gap-4">
+                <time dateTime={event.createdAt} className="shrink-0 text-xs text-muted sm:w-28 sm:pt-0.5">
+                  {activityTime(event.createdAt)}
+                </time>
+                <p className="text-sm text-body">
+                  <span className="font-semibold text-heading">{event.actorUsername}</span> {before}
+                  {event.taskTitle && ` “${event.taskTitle}”`}
+                  {after && ` ${after}`}
+                </p>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+      <CardLink to={`/projects/${projectId}/log`}>View the project log</CardLink>
+    </Card>
+  )
+}

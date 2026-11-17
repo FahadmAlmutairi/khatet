@@ -44,7 +44,6 @@ export default function InviteDialog({ open, onClose, projectId, backLabel = 'Me
           <h2 id={`${id}-title`} className="text-[26px] leading-8 font-bold text-body">
             Invite a team member
           </h2>
-          <p className="text-sm leading-5 text-muted">They join with Edit assigned tasks access.</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor={`${id}-username`} className="text-xs leading-4 font-semibold text-body">
@@ -67,16 +66,10 @@ export default function InviteDialog({ open, onClose, projectId, backLabel = 'Me
             autoFocus
             aria-required="true"
             aria-invalid={Boolean(usernameError)}
-            aria-describedby={usernameError ? `${id}-error` : `${id}-hint`}
+            aria-describedby={usernameError ? `${id}-error` : undefined}
             className="h-11 w-full rounded-[10px] border border-input bg-white px-[14px] text-base sm:text-sm text-body placeholder:text-muted aria-[invalid=true]:border-2 aria-[invalid=true]:border-blocked"
           />
-          {usernameError ? (
-            <FieldError id={`${id}-error`}>{usernameError}</FieldError>
-          ) : (
-            <p id={`${id}-hint`} className="text-sm text-muted">
-              They will see the invitation on Home and in Notifications.
-            </p>
-          )}
+          {usernameError && <FieldError id={`${id}-error`}>{usernameError}</FieldError>}
         </div>
         {otherError && (
           <FieldError role="alert">{otherError}</FieldError>

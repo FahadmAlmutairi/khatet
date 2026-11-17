@@ -75,8 +75,7 @@ export default function AccountSettingsPage() {
       <Breadcrumb items={crumbs} className="lg:hidden" />
       <h1 className="mt-2 text-title font-bold text-body lg:mt-0">Settings</h1>
       <div className="mt-6 rounded-card border border-line bg-white p-5 sm:p-6">
-        <h2 className="text-base font-semibold text-body">Profile &amp; security</h2>
-        <p className="mt-1 mb-6 text-sm text-muted">Teammates find and invite you by your username.</p>
+        <h2 className="mb-6 text-base font-semibold text-body">Profile &amp; security</h2>
         <ProfileForm key={me.data.username} me={me.data} />
       </div>
     </section>

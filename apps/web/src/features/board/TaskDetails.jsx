@@ -4,6 +4,7 @@ import { useDeleteTaskWithUndo, useTask, useUpdateTask } from '../../api/hooks.j
 import { AvatarStack } from '../../components/Avatar.jsx'
 import { ChatIcon, ChevronIcon, CloseIcon, ErrorIcon, MoreIcon, OverdueIcon, SmallCheckIcon } from '../../components/icons.jsx'
 import PriorityBadge from '../../components/PriorityBadge.jsx'
+import { STATUS_TONES } from '../../lib/statusTones.js'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import Button from '../../components/ui/Button.jsx'
 import Dialog from '../../components/ui/Dialog.jsx'
@@ -16,19 +17,12 @@ import { useToast } from '../../components/ui/toastContext.js'
 import { dueLine, formatDueDate, statusLabel, MAX_TEXT_LENGTH } from '../../lib/domain.js'
 import { fadeOutCard, rememberCardPositions } from '../../lib/motion.js'
 import { moveMenuItems } from './moveMenu.jsx'
+import TaskActivity from '../activity/TaskActivity.jsx'
 import TaskFields from './TaskFields.jsx'
 import { taskValues } from './taskValues.js'
 import { FieldError } from '../../components/ui/Field.jsx'
 
 // Colours of the Figma "Status Badge" component.
-const STATUS_TONES = {
-  BACKLOG: 'bg-[#ecefec] text-[#4e5650]',
-  TODO: 'bg-[#ecefec] text-[#4e5650]',
-  IN_PROGRESS: 'bg-[#d4faf4] text-[#17665b]',
-  READY_FOR_REVIEW: 'bg-[#fff1cc] text-[#7a5310]',
-  DONE: 'bg-[#d9f2df] text-[#246b3a]',
-}
-
 const outlineButton =
   'inline-flex h-11 items-center justify-center rounded-control border border-line bg-white text-label font-medium text-heading hover:bg-surface lg:h-10'
 
@@ -237,7 +231,6 @@ function DeleteTaskDialog({ open, task, onCancel, onDeleted, projectId }) {
       }
     >
       <p className="text-base">“{task.title}” will be removed from the board for everyone in the project.</p>
-      <p className="mt-2 text-sm text-muted">You can bring it back with Undo in the message that appears for a few seconds.</p>
     </Dialog>
   )
 }
@@ -322,6 +315,8 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
         <h3 className="text-sm font-medium text-body">Description</h3>
         <p className="text-sm leading-[21px] whitespace-pre-line text-muted">{task.description || 'No description yet.'}</p>
       </div>
+
+      <TaskActivity task={task} />
     </div>
   )
 }

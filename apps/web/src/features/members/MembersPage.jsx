@@ -384,7 +384,7 @@ export default function MembersPage() {
         <div className="flex flex-col gap-1">
           <h1 className="text-title font-bold text-body">Members</h1>
           {members.data && (
-            <p className={`text-sm text-muted ${isOwner ? '' : 'lg:hidden'}`}>
+            <p className="text-sm text-muted">
               {list.length} project {list.length === 1 ? 'member' : 'members'}
             </p>
           )}
@@ -396,15 +396,6 @@ export default function MembersPage() {
         )}
       </div>
 
-      {/* A Team Member sees why the page has no Invite or Manage access buttons (Figma: Members, Team Member). */}
-      {members.data && !isOwner && (
-        <div className="mt-4 hidden flex-col gap-1 lg:flex">
-          <p className="text-base font-semibold text-body">
-            {list.length} project {list.length === 1 ? 'member' : 'members'}
-          </p>
-          <p className="text-sm text-muted">Only the project owner can invite people or change access.</p>
-        </div>
-      )}
       {members.isPending && <MemberRowsSkeleton />}
       {members.isError && (
         <div className="mt-6">

@@ -3,12 +3,12 @@ import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSens
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router'
-import { apiReady } from '../api/config.js'
+import { apiReady, reportAvailable } from '../api/config.js'
 import { inertOthers } from '../lib/inertOthers.js'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
-import { BoardIcon, ChevronIcon, HistoryIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SettingsIcon, SignOutIcon } from '../components/icons.jsx'
+import { BoardIcon, ChevronIcon, HistoryIcon, OverviewIcon, ReportIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SettingsIcon, SignOutIcon } from '../components/icons.jsx'
 import Logo from '../components/Logo.jsx'
 import Button from '../components/ui/Button.jsx'
 import Dialog from '../components/ui/Dialog.jsx'
@@ -83,6 +83,12 @@ function SortableProject({ project, current, open, mobile, onNavigate, onToggle,
       {open && (
         <ul id={listId} className="motion-reveal mt-2 flex flex-col gap-1 pl-6">
           <li>
+            <NavLink to={`/projects/${project.id}/overview`} className={subNavClass(mobile)} onClick={onNavigate}>
+              <OverviewIcon />
+              Overview
+            </NavLink>
+          </li>
+          <li>
             <NavLink to={`/projects/${project.id}/board`} className={subNavClass(mobile)} onClick={onNavigate}>
               <BoardIcon />
               Board
@@ -94,6 +100,14 @@ function SortableProject({ project, current, open, mobile, onNavigate, onToggle,
               Members
             </NavLink>
           </li>
+          {reportAvailable && (
+            <li>
+              <NavLink to={`/projects/${project.id}/report`} className={subNavClass(mobile)} onClick={onNavigate}>
+                <ReportIcon />
+                Reports
+              </NavLink>
+            </li>
+          )}
           <li>
             <NavLink to={`/projects/${project.id}/log`} className={subNavClass(mobile)} onClick={onNavigate}>
               <HistoryIcon />

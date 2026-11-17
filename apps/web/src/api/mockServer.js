@@ -781,15 +781,15 @@ export function generateReport(projectId) {
     const overdue = tasks.filter((task) => task.dueDate && task.dueDate < today && task.status !== 'DONE')
     const blocked = tasks.filter((task) => task.isBlocked)
     const warnings = [
-      ...overdue.map((task) => `- "${task.title}" is overdue (due ${task.dueDate}).`),
-      ...blocked.map((task) => `- "${task.title}" is blocked: ${task.blockedReason || 'no reason given'}.`),
+      ...overdue.map((task) => `- **"${task.title}" is overdue**: it was due on ${task.dueDate}.`),
+      ...blocked.map((task) => `- **"${task.title}" is blocked**: ${task.blockedReason || 'no reason given'}.`),
     ]
     const report = {
       id: newId('r'),
       projectId,
       createdById: membership.userId,
       model: 'sample',
-      promptVersion: 1,
+      promptVersion: 2,
       createdAt: now(),
       content: [
         '## Progress summary',
@@ -799,7 +799,9 @@ export function generateReport(projectId) {
         ...(warnings.length ? warnings : ['No warnings.']),
         '',
         '## Suggestions',
-        overdue[0] ? `- Agree a new due date for "${overdue[0].title}".` : '- Keep the board up to date after each meeting.',
+        overdue[0]
+          ? `- **Agree a new due date for "${overdue[0].title}"**: it is the oldest overdue task.`
+          : '- **Keep the board up to date**: move cards after each meeting.',
       ].join('\n'),
     }
     db.reports.push(report)
@@ -811,13 +813,13 @@ export function generateReport(projectId) {
 
 const ACTIVITY_PAGE = 50
 
-export function getActivity(projectId, { actorId, before, limit = ACTIVITY_PAGE } = {}) {
+export function getActivity(projectId, { actorId, taskId, before, limit = ACTIVITY_PAGE } = {}) {
   return respond('getActivity', () => {
     requireMembership(projectId)
     const all = db.activity
       .filter((event) => event.projectId === projectId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
-    const matching = actorId ? all.filter((event) => event.actorId === actorId) : all
+    const matching = all.filter((event) => (!actorId || event.actorId === actorId) && (!taskId || event.taskId === taskId))
     const start = before ? matching.findIndex((event) => event.id === before) + 1 : 0
     const events = matching.slice(start, start + limit)
     const actors = new Map()

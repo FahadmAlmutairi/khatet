@@ -94,7 +94,7 @@ export default function ProjectsPage() {
         <div className="flex flex-col items-center gap-3 rounded-xl border border-line bg-white px-8 py-12 text-center">
           <h2 className="text-xl font-bold text-body">No projects yet</h2>
           <p className="max-w-[420px] text-base text-muted">
-            Create a project to get a board for your team. When someone invites you, the invitation shows here too.
+            Create one, or wait for an invitation.
           </p>
           {createButton}
         </div>

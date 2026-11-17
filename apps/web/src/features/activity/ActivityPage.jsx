@@ -16,7 +16,7 @@ export default function ActivityPage() {
   const { project } = useOutletContext()
   const crumbs = useBreadcrumb()
   const [actorId, setActorId] = useState('')
-  const activity = useActivity(project.id, actorId || undefined)
+  const activity = useActivity(project.id, { actorId: actorId || undefined })
   const members = useMembers(project.id)
   const tasks = useTasks(project.id)
   const filterId = useId()
@@ -34,13 +34,7 @@ export default function ActivityPage() {
     <section className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <Breadcrumb items={crumbs} className="lg:hidden" />
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-title font-bold text-body">Project log</h1>
-          <p className="text-sm text-muted">
-            Every change to tasks, members and settings, with who made it. Entries stay after a task is deleted or a
-            member leaves.
-          </p>
-        </div>
+        <h1 className="text-title font-bold text-body">Project log</h1>
         {actors.length > 0 && (
           <div className="flex flex-col gap-1.5 max-sm:w-full">
             <label htmlFor={filterId} className="text-sm font-medium text-body">

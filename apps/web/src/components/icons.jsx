@@ -8,6 +8,17 @@ export function HomeIcon() {
   )
 }
 
+export function OverviewIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="9" y="2" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="2" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" />
+      <rect x="9" y="9" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  )
+}
+
 export function BoardIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -27,11 +38,39 @@ export function MembersIcon() {
   )
 }
 
+export function ReportIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M4 1.9h5.2L12.4 5v8.6c0 .28-.22.5-.5.5H4.1a.5.5 0 0 1-.5-.5V2.4c0-.28.22-.5.5-.5Z" stroke="currentColor" strokeWidth="1.13" strokeLinejoin="round" />
+      <path d="M9 2v3.2h3.3M5.8 8h4.4M5.8 10.5h4.4" stroke="currentColor" strokeWidth="1.13" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export function HistoryIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <path d="M2.4 8a5.6 5.6 0 1 0 1.64-3.96L2.4 5.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M2.4 2.8v2.8h2.8M8 5v3.2l2.2 1.4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export function WarningIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M7.13 2.5a1 1 0 0 1 1.74 0l5.6 9.75a1 1 0 0 1-.87 1.5H2.4a1 1 0 0 1-.87-1.5l5.6-9.75Z" fill="currentColor" />
+      <path d="M8 6v3.2" stroke="white" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="8" cy="11.3" r=".8" fill="white" />
+    </svg>
+  )
+}
+
+export function SummaryIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="5.6" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M8 2.4V8h5.6A5.6 5.6 0 0 0 8 2.4Z" fill="currentColor" />
     </svg>
   )
 }
