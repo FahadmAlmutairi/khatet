@@ -54,6 +54,12 @@ const realMembersAndNotifications = {
   sendMessage: (projectId, text) => apiFetch(`/projects/${projectId}/messages`, { method: 'POST', body: { text } }),
 }
 
+// US-31: the AI report. Only used once apiReady.aiReport is on; until then the page is hidden.
+const realReports = {
+  getLatestReport: (projectId) => apiFetch(`/projects/${projectId}/reports/latest`),
+  generateReport: (projectId) => apiFetch(`/projects/${projectId}/reports`, { method: 'POST' }),
+}
+
 const auth = useRealAuth
   ? {
       requestCode: realAuth.requestCode,
@@ -67,5 +73,5 @@ const auth = useRealAuth
 export const api = {
   ...sample,
   ...auth,
-  ...(useRealAuth ? { ...realProjects, ...realMembersAndNotifications } : {}),
+  ...(useRealAuth ? { ...realProjects, ...realMembersAndNotifications, ...realReports } : {}),
 }

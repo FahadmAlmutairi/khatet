@@ -14,6 +14,7 @@ export const keys = {
   task: (taskId) => ['task', taskId],
   notifications: ['notifications'],
   messages: (projectId) => ['messages', projectId],
+  report: (projectId) => ['report', projectId],
 }
 
 // ---------- Session ----------
@@ -376,5 +377,32 @@ export function useSendMessage(projectId) {
   return useMutation({
     mutationFn: (text) => api.sendMessage(projectId, text),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: keys.messages(projectId) }),
+  })
+}
+
+// ---------- AI report (US-31) ----------
+
+// The latest report, or null when none has been generated yet (404 NO_REPORT).
+export function useLatestReport(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: keys.report(projectId),
+    enabled,
+    queryFn: async () => {
+      try {
+        return await api.getLatestReport(projectId)
+      } catch (error) {
+        if (error.code === 'NO_REPORT') return null
+        throw error
+      }
+    },
+  })
+}
+
+// Owner only. The new report replaces the one shown; the API refuses a second run within 10 minutes.
+export function useGenerateReport(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.generateReport(projectId),
+    onSuccess: (report) => queryClient.setQueryData(keys.report(projectId), report),
   })
 }

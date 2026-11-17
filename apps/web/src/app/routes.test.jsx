@@ -936,6 +936,70 @@ describe('notifications (US-08, US-30)', () => {
   })
 })
 
+describe('AI report (US-31)', () => {
+  it('lets the owner generate a report with the three sections, its date and author', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/report')
+    expect(await screen.findByRole('heading', { name: 'AI report', level: 1 })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'No report yet' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Generate report' }))
+    const report = await screen.findByRole('article')
+    for (const heading of ['Progress summary', 'Warnings', 'Suggestions']) {
+      expect(within(report).getByRole('heading', { name: heading, level: 2 })).toBeInTheDocument()
+    }
+    expect(within(report).getByText(/^Generated .+ by fahad$/)).toBeInTheDocument()
+    expect(within(report).getByText('This report never changes your project.')).toBeInTheDocument()
+    expect(within(report).getByText('"Fix CSV validation errors" is blocked: Waiting for sample file.')).toBeInTheDocument()
+    expect(document.title).toBe('AI report · Khatet · Khatet')
+  })
+
+  it('refuses a second report within 10 minutes and says when the next one is allowed', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/report')
+    await user.click(await screen.findByRole('button', { name: 'Generate report' }))
+    await screen.findByRole('article')
+    await user.click(screen.getByRole('button', { name: 'Generate a new report' }))
+    expect(await screen.findByText(/A report was generated less than 10 minutes ago\. You can generate the next one after/)).toBeInTheDocument()
+    expect(screen.getByRole('article')).toBeInTheDocument()
+  })
+
+  it('shows an AI error with Try again', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/report')
+    failNextCall('generateReport', new ApiError({ code: 'AI_TIMEOUT', status: 504, message: 'The AI report took too long. Try again.' }))
+    await user.click(await screen.findByRole('button', { name: 'Generate report' }))
+    const alert = await screen.findByRole('alert')
+    expect(within(alert).getByText('The AI report took too long. Try again.')).toBeInTheDocument()
+    await user.click(within(alert).getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByRole('article')).toBeInTheDocument()
+  })
+
+  it('shows a member the latest report without a Generate button', async () => {
+    signIn()
+    renderApp('/projects/p-study/report')
+    const report = await screen.findByRole('article')
+    expect(within(report).getByText(/^Generated .+ by saad$/)).toBeInTheDocument()
+    expect(within(report).getByRole('heading', { name: 'Warnings' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Generate/ })).not.toBeInTheDocument()
+  })
+
+  it('tells a member that the owner can generate the first report', async () => {
+    signIn()
+    renderApp('/projects/p-capstone/report')
+    expect(await screen.findByText('The project owner can generate one. It will show here for everyone in the project.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Generate/ })).not.toBeInTheDocument()
+  })
+
+  it('links to the report from the project sidebar', async () => {
+    signIn()
+    renderApp('/projects/p-khatet/board')
+    expect(await screen.findAllByRole('link', { name: 'AI report' })).not.toHaveLength(0)
+  })
+})
+
 describe('account settings (US-03)', () => {
   it('opens from the sidebar and changes the username everywhere', async () => {
     signIn()

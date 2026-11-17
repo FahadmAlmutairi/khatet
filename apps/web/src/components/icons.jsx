@@ -27,6 +27,14 @@ export function MembersIcon() {
   )
 }
 
+export function SparkleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M8 2.2 9.3 6.1a1 1 0 0 0 .6.6L13.8 8l-3.9 1.3a1 1 0 0 0-.6.6L8 13.8l-1.3-3.9a1 1 0 0 0-.6-.6L2.2 8l3.9-1.3a1 1 0 0 0 .6-.6L8 2.2Z" stroke="currentColor" strokeWidth="1.13" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 export function PanelLeftIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">

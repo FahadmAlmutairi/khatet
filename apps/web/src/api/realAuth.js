@@ -86,6 +86,7 @@ export async function apiFetch(path, { method = 'GET', body, keepalive = false }
       status: response.status,
       message: error.message ?? 'Something went wrong. Try again.',
       fieldErrors: error.fieldErrors ?? [],
+      nextAllowedAt: error.nextAllowedAt ?? null,
     })
   }
   return payload

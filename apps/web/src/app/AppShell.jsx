@@ -3,12 +3,12 @@ import { closestCenter, DndContext, MouseSensor, TouchSensor, useSensor, useSens
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router'
-import { apiReady } from '../api/config.js'
+import { apiReady, reportAvailable } from '../api/config.js'
 import { inertOthers } from '../lib/inertOthers.js'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
-import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SettingsIcon, SignOutIcon } from '../components/icons.jsx'
+import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SettingsIcon, SignOutIcon, SparkleIcon } from '../components/icons.jsx'
 import Logo from '../components/Logo.jsx'
 import Button from '../components/ui/Button.jsx'
 import Dialog from '../components/ui/Dialog.jsx'
@@ -94,6 +94,14 @@ function SortableProject({ project, current, open, mobile, onNavigate, onToggle,
               Members
             </NavLink>
           </li>
+          {reportAvailable && (
+            <li>
+              <NavLink to={`/projects/${project.id}/report`} className={subNavClass(mobile)} onClick={onNavigate}>
+                <SparkleIcon />
+                AI report
+              </NavLink>
+            </li>
+          )}
           {project.role === 'OWNER' && apiReady.projectSettings && (
             <li>
               <NavLink to={`/projects/${project.id}/settings`} className={subNavClass(mobile)} onClick={onNavigate}>
