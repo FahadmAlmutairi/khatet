@@ -283,7 +283,7 @@ function RecentActivity({ projectId, className }) {
             const { before, after } = describeActivity(event)
             return (
               <li key={event.id} className="flex flex-col gap-0.5 py-2 sm:flex-row sm:gap-4">
-                <time dateTime={event.createdAt} className="shrink-0 text-xs text-muted sm:w-28 sm:pt-0.5">
+                <time dateTime={event.createdAt} className="shrink-0 text-xs whitespace-nowrap text-muted sm:w-24 sm:pt-0.5">
                   {activityTime(event.createdAt)}
                 </time>
                 <p className="text-sm text-body">
