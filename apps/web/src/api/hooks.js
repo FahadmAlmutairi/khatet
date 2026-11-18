@@ -16,6 +16,7 @@ export const keys = {
   notifications: ['notifications'],
   messages: (projectId) => ['messages', projectId],
   report: (projectId) => ['report', projectId],
+  reports: (projectId) => ['reports', projectId],
   activity: (projectId, filter = {}) => ['activity', projectId, filter],
 }
 
@@ -474,12 +475,24 @@ export function useLatestReport(projectId, { enabled = true } = {}) {
   })
 }
 
-// Owner only. The new report replaces the one shown; the API refuses a second run within 10 minutes.
+// Every report of the project, newest first (up to 20), for the Reports page and its history.
+export function useReports(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: keys.reports(projectId),
+    enabled,
+    queryFn: async () => (await api.getReports(projectId)).reports,
+  })
+}
+
+// Owner only. The new report goes to the top of the list; the API refuses a second run within 10 minutes.
 export function useGenerateReport(projectId) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => api.generateReport(projectId),
-    onSuccess: (report) => queryClient.setQueryData(keys.report(projectId), report),
+    onSuccess: (report) => {
+      queryClient.setQueryData(keys.report(projectId), report)
+      queryClient.setQueryData(keys.reports(projectId), (old) => [report, ...(old ?? []).filter((item) => item.id !== report.id)])
+    },
   })
 }
 

@@ -759,6 +759,20 @@ export function getLatestReport(projectId) {
   })
 }
 
+export const REPORT_HISTORY_LIMIT = 20
+
+// Every report of the project, newest first (up to 20), each with its full text.
+export function getReports(projectId) {
+  return respond('getReports', () => {
+    requireMembership(projectId)
+    const reports = db.reports
+      .filter((item) => item.projectId === projectId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, REPORT_HISTORY_LIMIT)
+    return { reports: reports.map(serializeReport) }
+  })
+}
+
 // Writes the report from the board's numbers, in the same three sections as the real prompt.
 export function generateReport(projectId) {
   return respond('generateReport', () => {

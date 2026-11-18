@@ -948,6 +948,19 @@ describe('notifications (US-08, US-30)', () => {
 })
 
 describe('AI report (US-31)', () => {
+  it('opens an earlier report from the report list', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-study/report')
+    const history = await screen.findByRole('navigation', { name: 'Reports · 2' }, { timeout: 5000 })
+    expect(await screen.findByRole('heading', { name: 'On the board now', level: 2 })).toBeInTheDocument()
+
+    await user.selectOptions(within(history).getByLabelText('Choose a report'), 'r-0')
+    expect(await screen.findByText('Nothing is done yet. Three tasks are planned for the first two weeks.')).toBeInTheDocument()
+    // The board snapshot is today's, so it only sits beside the latest report.
+    expect(screen.queryByRole('heading', { name: 'On the board now', level: 2 })).not.toBeInTheDocument()
+  })
+
   it('lets the owner generate a report with the three sections, its date and author', async () => {
     signIn()
     const user = userEvent.setup()

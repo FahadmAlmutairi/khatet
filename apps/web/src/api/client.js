@@ -57,6 +57,7 @@ const realMembersAndNotifications = {
 // US-31: the AI report. Only used once apiReady.aiReport is on; until then the page is hidden.
 const realReports = {
   getLatestReport: (projectId) => apiFetch(`/projects/${projectId}/reports/latest`),
+  getReports: (projectId) => apiFetch(`/projects/${projectId}/reports`),
   generateReport: (projectId) => apiFetch(`/projects/${projectId}/reports`, { method: 'POST' }),
 }
 
