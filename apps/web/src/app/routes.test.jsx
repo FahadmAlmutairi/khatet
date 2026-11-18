@@ -1048,6 +1048,8 @@ describe('project overview (US-28)', () => {
     expect(within(attention).getByText('fahad · Waiting for sample file')).toBeInTheDocument()
 
     const upcoming = screen.getByRole('heading', { name: 'Upcoming work' }).closest('section')
+    const flaggedCount = attention.querySelector('h2').textContent.match(/\d+/)[0]
+    expect(within(upcoming).getByText(`${flaggedCount} more under Needs attention`)).toBeInTheDocument()
     await user.click(within(upcoming).getByRole('button', { name: 'My work' }))
     for (const row of within(upcoming).getAllByRole('link').filter((link) => link.href.includes('task='))) {
       expect(row).toHaveTextContent('fahad')

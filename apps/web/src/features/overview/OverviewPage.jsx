@@ -162,6 +162,10 @@ function UpcomingWork({ projectId, tasks, usernames }) {
     .filter((task) => !mine || task.assigneeIds.includes(me.data?.id))
     .sort((a, b) => (a.dueDate ?? '9999').localeCompare(b.dueDate ?? '9999'))
   const shown = open.slice(0, UPCOMING_LIMIT)
+  // The tasks left out above, counted the same way as the Needs attention card.
+  const stats = projectStats(tasks)
+  const flagged = [...new Set([...stats.blocked, ...stats.overdue])]
+  const elsewhere = flagged.filter((task) => !mine || task.assigneeIds.includes(me.data?.id)).length
 
   const toggle = (
     <div role="group" aria-label="Show" className="flex rounded-full bg-surface p-0.5">
@@ -184,7 +188,11 @@ function UpcomingWork({ projectId, tasks, usernames }) {
 
   return (
     <Card title="Upcoming work" action={toggle}>
-      {shown.length === 0 ? (
+      {shown.length === 0 && elsewhere > 0 ? (
+        <p className="text-sm text-muted">
+          {elsewhere} {mine ? 'of your tasks' : 'open tasks'} {elsewhere === 1 ? 'is' : 'are'} under Needs attention.
+        </p>
+      ) : shown.length === 0 ? (
         <p className="text-sm text-muted">{mine ? 'Nothing assigned to you is open.' : 'No open tasks.'}</p>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -203,6 +211,7 @@ function UpcomingWork({ projectId, tasks, usernames }) {
           })}
         </ul>
       )}
+      {shown.length > 0 && elsewhere > 0 && <p className="text-sm text-muted">{elsewhere} more under Needs attention</p>}
       <CardLink to={`/projects/${projectId}/board`}>Open the board</CardLink>
     </Card>
   )
