@@ -62,6 +62,8 @@ POST   /api/projects/:projectId/imports/confirm     (owner, Could have)
 
 Document each route's ownership and permission rules in OpenAPI before frontend use.
 
+Task activity returns the task's events newest first. Each event contains an ID, the changed field (`status`, `assignees`, `priority`, `dueDate`, or `blocked`), its previous (`from`) and new (`to`) values, the actor's username, and the UTC timestamp. Assignee values are username snapshots so past events remain readable if membership changes.
+
 ## Resource concepts
 
 Resource responses should expose stable identifiers and domain values rather than UI-specific display strings. At minimum, the frontend needs a stable ID, displayable labels or names, timestamps where relevant, explicit status, and permission information needed to render an action. Final field names are a ratification item.

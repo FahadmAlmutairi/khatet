@@ -19,6 +19,7 @@ import { moveMenuItems } from './moveMenu.jsx'
 import TaskFields from './TaskFields.jsx'
 import { taskValues } from './taskValues.js'
 import { FieldError } from '../../components/ui/Field.jsx'
+import TaskActivity from './TaskActivity.jsx'
 
 // Colours of the Figma "Status Badge" component.
 const STATUS_TONES = {
@@ -314,6 +315,7 @@ function TaskView({ task, titleId, eyebrow, usernames, onClose, onEdit, onDelete
         <h3 className="text-sm font-medium text-body">Description</h3>
         <p className="text-sm leading-[21px] whitespace-pre-line text-muted">{task.description || 'No description yet.'}</p>
       </div>
+      <TaskActivity taskId={task.id} />
     </div>
   )
 }

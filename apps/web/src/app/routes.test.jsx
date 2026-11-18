@@ -446,6 +446,24 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
     expect(within(done).getByText('Define board hierarchy')).toBeInTheDocument()
   })
 
+  it('shows task activity with each changed field, actor, and timestamp newest first', async () => {
+    signIn()
+    renderApp('/projects/p-khatet/board?task=t-6')
+    const details = await screen.findByRole('dialog', { name: 'Fix CSV validation errors' })
+    const activity = await within(details).findByRole('list', { name: 'Task activity' })
+    const rows = within(activity).getAllByRole('listitem')
+
+    expect(rows).toHaveLength(5)
+    expect(rows[0]).toHaveTextContent('Blocked flag')
+    expect(rows[0]).toHaveTextContent('Not blocked → Blocked')
+    expect(rows[0]).toHaveTextContent('fahad')
+    expect(rows[0].querySelector('time')).toHaveAttribute('datetime', '2026-09-20T14:00:00Z')
+    expect(rows[1]).toHaveTextContent('Status')
+    expect(rows[2]).toHaveTextContent('Assignees')
+    expect(rows[3]).toHaveTextContent('Due date')
+    expect(rows[4]).toHaveTextContent('Priority')
+  })
+
   it('flags an In Progress task as blocked', async () => {
     signIn()
     const user = userEvent.setup()

@@ -114,6 +114,13 @@ export function createSampleData() {
       }),
       task('t-15', 'p-capstone', 'List related papers', 'TODO', 1, ['u-omar'], { priority: 'LOW' }),
     ],
+    activityEvents: [
+      { id: 'a-1', taskId: 't-6', actorId: 'u-fahad', field: 'priority', from: 'LOW', to: 'HIGH', createdAt: '2026-09-16T10:00:00Z' },
+      { id: 'a-2', taskId: 't-6', actorId: 'u-fahad', field: 'dueDate', from: null, to: '2026-10-08', createdAt: '2026-09-17T11:30:00Z' },
+      { id: 'a-3', taskId: 't-6', actorId: 'u-saad', field: 'assignees', from: ['fahad', 'saad'], to: ['fahad'], createdAt: '2026-09-18T13:15:00Z' },
+      { id: 'a-4', taskId: 't-6', actorId: 'u-saad', field: 'status', from: 'TODO', to: 'IN_PROGRESS', createdAt: '2026-09-19T09:45:00Z' },
+      { id: 'a-5', taskId: 't-6', actorId: 'u-fahad', field: 'blocked', from: false, to: true, createdAt: '2026-09-20T14:00:00Z' },
+    ],
     notifications: [
       {
         id: 'n-1',

@@ -12,6 +12,7 @@ export const keys = {
   members: (projectId) => ['members', projectId],
   tasks: (projectId) => ['tasks', { projectId }],
   task: (taskId) => ['task', taskId],
+  taskActivity: (taskId) => ['taskActivity', taskId],
   notifications: ['notifications'],
 }
 
@@ -111,6 +112,14 @@ export function useTask(taskId) {
   return useQuery({ queryKey: keys.task(taskId), queryFn: () => api.getTask(taskId), enabled: Boolean(taskId) })
 }
 
+export function useTaskActivity(taskId) {
+  return useQuery({
+    queryKey: keys.taskActivity(taskId),
+    queryFn: () => api.getTaskActivity(taskId),
+    enabled: Boolean(taskId),
+  })
+}
+
 function replaceTask(queryClient, task) {
   queryClient.setQueryData(keys.task(task.id), task)
   queryClient.setQueryData(keys.tasks(task.projectId), (tasks) =>
@@ -132,7 +141,10 @@ export function useUpdateTask() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: ({ taskId, patch }) => api.updateTask(taskId, patch),
-    onSuccess: (task) => replaceTask(queryClient, task),
+    onSuccess: (task) => {
+      replaceTask(queryClient, task)
+      queryClient.invalidateQueries({ queryKey: keys.taskActivity(task.id) })
+    },
   })
 }
 
@@ -168,6 +180,7 @@ export function useMoveTask(projectId) {
     onSuccess: (tasks, { taskId }) => {
       const moved = tasks.find((task) => task.id === taskId)
       if (moved) queryClient.setQueryData(keys.task(taskId), moved)
+      queryClient.invalidateQueries({ queryKey: keys.taskActivity(taskId) })
       if (othersMoving()) {
         overlapped.current = true
         return

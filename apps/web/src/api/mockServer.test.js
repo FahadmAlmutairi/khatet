@@ -74,6 +74,29 @@ describe('sample API', () => {
     expect(task).toMatchObject({ status: 'IN_PROGRESS', isBlocked: true, blockedReason: 'Waiting for review' })
   })
 
+  it('records task field changes with the actor and newest-first ordering', async () => {
+    await api.updateTask('t-7', {
+      assigneeIds: ['u-fahad'],
+      priority: 'HIGH',
+      dueDate: '2026-10-12',
+      isBlocked: true,
+    })
+    await api.moveTask('t-7', { status: 'DONE' })
+
+    const activity = await api.getTaskActivity('t-7')
+    expect(new Set(activity.map((event) => event.field))).toEqual(new Set(['status', 'blocked', 'assignees', 'priority', 'dueDate']))
+    expect(activity.filter((event) => event.field === 'blocked')).toHaveLength(2)
+    expect(activity.find((event) => event.field === 'status')).toMatchObject({
+      actorUsername: 'fahad',
+      from: 'IN_PROGRESS',
+      to: 'DONE',
+    })
+    expect(activity.find((event) => event.field === 'blocked' && event.from)).toMatchObject({ from: true, to: false })
+    expect(activity.find((event) => event.field === 'blocked' && !event.from)).toMatchObject({ from: false, to: true })
+    expect(activity.find((event) => event.field === 'assignees')).toMatchObject({ from: ['fahad', 'omar'], to: ['fahad'] })
+    expect(activity.every((event, index) => index === 0 || event.createdAt <= activity[index - 1].createdAt)).toBe(true)
+  })
+
   it('hides projects the user does not belong to', async () => {
     await expect(api.getTasks('p-mobile')).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })

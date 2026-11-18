@@ -429,6 +429,37 @@ export function getTask(taskId) {
   })
 }
 
+export function getTaskActivity(taskId) {
+  return respond('getTaskActivity', () => {
+    findTask(taskId)
+    return db.activityEvents
+      .filter((event) => event.taskId === taskId)
+      .reverse()
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((event) => ({ ...event, actorUsername: usernameOf(event.actorId) }))
+  })
+}
+
+function activityValue(field, value) {
+  return field === 'assignees' ? value.map(usernameOf) : value
+}
+
+function recordTaskActivity(task, actorId, field, from, to) {
+  const unchanged = field === 'assignees'
+    ? from.length === to.length && from.every((userId) => to.includes(userId))
+    : JSON.stringify(from) === JSON.stringify(to)
+  if (unchanged) return
+  db.activityEvents.push({
+    id: newId('activity'),
+    taskId: task.id,
+    actorId,
+    field,
+    from: activityValue(field, from),
+    to: activityValue(field, to),
+    createdAt: now(),
+  })
+}
+
 export function createTask(projectId, input) {
   return respond('createTask', () => {
     const membership = requireMembership(projectId)
@@ -468,7 +499,16 @@ export function updateTask(taskId, patch) {
       fields.blockedReason = patch.isBlocked ? (patch.blockedReason ?? '').trim() || null : null
     }
     const added = (fields.assigneeIds ?? []).filter((id) => !task.assigneeIds.includes(id))
+    const before = {
+      assignees: task.assigneeIds,
+      priority: task.priority,
+      dueDate: task.dueDate,
+      blocked: task.isBlocked,
+    }
     Object.assign(task, fields, { updatedAt: now() })
+    for (const [field, property] of [['assignees', 'assigneeIds'], ['priority', 'priority'], ['dueDate', 'dueDate'], ['blocked', 'isBlocked']]) {
+      if (property in fields) recordTaskActivity(task, membership.userId, field, before[field], task[property])
+    }
     notifyAssignees(task, added)
     return withPermissions(task, membership)
   })
@@ -486,12 +526,16 @@ export function moveTask(taskId, { status, position }) {
     const index = Math.min(Math.max((position ?? target.length + 1) - 1, 0), target.length)
     target.splice(index, 0, task)
 
+    const previousStatus = task.status
+    const wasBlocked = task.isBlocked
     task.status = status
     if (status !== 'IN_PROGRESS') {
       task.isBlocked = false
       task.blockedReason = null
     }
     task.updatedAt = now()
+    recordTaskActivity(task, membership.userId, 'status', previousStatus, task.status)
+    if (wasBlocked && !task.isBlocked) recordTaskActivity(task, membership.userId, 'blocked', true, false)
     renumber(source)
     renumber(target)
     return projectTasks(task.projectId).map((item) => withPermissions(item, membership))
