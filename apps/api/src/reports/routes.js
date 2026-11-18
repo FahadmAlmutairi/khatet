@@ -1,4 +1,5 @@
 // US-31 AI project report (docs/api-contract.md, AI report contract, Sprint 3 shape).
+// GET  /api/projects/:projectId/reports          every member: { reports }, newest first, at most 20
 // GET  /api/projects/:projectId/reports/latest   every member: the newest report, or 404 NO_REPORT
 // POST /api/projects/:projectId/reports          owner only: generates a report and answers 201 with it
 // Sprint 3 answers in one request; the AI call times out after 30 seconds (src/ai/reportClient.js).
@@ -20,6 +21,9 @@ const signedIn = [requireAuth, requireUsername]
 // Cost guard: one report per project every 10 minutes. Failed attempts are not saved,
 // so they do not count and the owner can press Try again at once.
 export const REPORT_INTERVAL_MS = 10 * 60 * 1000
+
+// The Reports page lists earlier reports so members can open one (docs/api-contract.md).
+export const REPORT_HISTORY_LIMIT = 20
 
 // Projects with a report being written right now, so a double click does not pay for two.
 // In memory is enough: the API runs as one Render instance.
@@ -45,6 +49,17 @@ const latestFor = (projectId) =>
     include: withAuthor,
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
   })
+
+reportsRouter.get('/projects/:projectId/reports', signedIn, async (req, res) => {
+  const { projectId } = await findMembership(req.params.projectId, req.user.id)
+  const reports = await prisma.aiReport.findMany({
+    where: { projectId },
+    include: withAuthor,
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: REPORT_HISTORY_LIMIT,
+  })
+  res.json({ reports: reports.map(serializeReport) })
+})
 
 reportsRouter.get('/projects/:projectId/reports/latest', signedIn, async (req, res) => {
   const { projectId } = await findMembership(req.params.projectId, req.user.id)

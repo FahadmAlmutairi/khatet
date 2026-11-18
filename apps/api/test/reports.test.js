@@ -13,7 +13,7 @@ const { default: app } = await import('../src/app.js')
 const { prisma } = await import('../src/db.js')
 const { generateReport } = await import('../src/ai/reportClient.js')
 const { PROMPT_VERSION } = await import('../src/ai/reportPrompt.js')
-const { REPORT_INTERVAL_MS } = await import('../src/reports/routes.js')
+const { REPORT_INTERVAL_MS, REPORT_HISTORY_LIMIT } = await import('../src/reports/routes.js')
 const { authHeader, createProject, createUser, hasTestDatabase, resetDatabase } = await import('./helpers.js')
 
 const REPORT_TEXT = '## Progress summary\nHalf done.\n\n## Warnings\nNo warnings.\n\n## Suggestions\n- **Finish login**: Ali.'
@@ -38,6 +38,7 @@ describe.skipIf(!hasTestDatabase)('AI report: /api/projects/:projectId/reports',
   afterAll(() => prisma.$disconnect())
 
   const generate = (as) => request(app).post(`/api/projects/${project.id}/reports`).set(authHeader(as))
+  const list = (as) => request(app).get(`/api/projects/${project.id}/reports`).set(authHeader(as))
   const latest = (as) => request(app).get(`/api/projects/${project.id}/reports/latest`).set(authHeader(as))
 
   it('lets the owner generate a report from the project summary and saves it', async () => {
@@ -146,10 +147,36 @@ describe.skipIf(!hasTestDatabase)('AI report: /api/projects/:projectId/reports',
     expect(res.body).toEqual(created.body)
   })
 
+  it('lists the project’s reports for every member, newest first, at most 20', async () => {
+    const empty = await list(sara)
+    expect(empty.status).toBe(200)
+    expect(empty.body).toEqual({ reports: [] })
+
+    const hourAgo = Date.now() - 60 * 60 * 1000
+    await prisma.aiReport.createMany({
+      data: Array.from({ length: REPORT_HISTORY_LIMIT + 2 }, (_, i) => ({
+        projectId: project.id,
+        createdById: owner.id,
+        content: `Report ${i}`,
+        model: 'test-model',
+        promptVersion: PROMPT_VERSION,
+        createdAt: new Date(hourAgo + i * 1000),
+      })),
+    })
+    const newest = await generate(owner).expect(201)
+
+    const res = await list(sara)
+    expect(res.status).toBe(200)
+    expect(res.body.reports).toHaveLength(REPORT_HISTORY_LIMIT)
+    expect(res.body.reports[0]).toEqual(newest.body)
+    expect(res.body.reports[1]).toMatchObject({ content: `Report ${REPORT_HISTORY_LIMIT + 1}`, createdBy: { username: 'owner_user' } })
+  })
+
   it('hides reports from non-members', async () => {
     await generate(owner).expect(201)
-    const res = await latest(outsider)
-    expect(res.status).toBe(404)
-    expect(res.body.error.code).toBe('NOT_FOUND')
+    for (const res of [await latest(outsider), await list(outsider)]) {
+      expect(res.status).toBe(404)
+      expect(res.body.error.code).toBe('NOT_FOUND')
+    }
   })
 })
