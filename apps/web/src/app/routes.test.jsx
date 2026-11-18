@@ -761,6 +761,12 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
   })
 })
 
+// Removing a member starts in their Manage access window.
+async function startRemoving(user, username) {
+  await user.click(await screen.findByRole('button', { name: `Manage access for ${username}` }))
+  await user.click(await screen.findByRole('button', { name: 'Remove from project' }))
+}
+
 describe('members (US-07, US-09, US-10)', () => {
   it('lets the owner change access and invite by username', async () => {
     signIn()
@@ -820,13 +826,13 @@ describe('members (US-07, US-09, US-10)', () => {
     const user = userEvent.setup()
     renderApp('/projects/p-khatet/members')
 
-    await user.click(await screen.findByRole('button', { name: 'Remove omar from project' }))
+    await startRemoving(user, 'omar')
     const confirmation = screen.getByRole('dialog', { name: 'Remove omar from this project?' })
     expect(within(confirmation).getByText(/They lose access to this project and need a new invitation/)).toBeInTheDocument()
     await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
     expect(screen.getByText('omar')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Remove omar from project' }))
+    await startRemoving(user, 'omar')
     await user.click(within(screen.getByRole('dialog', { name: 'Remove omar from this project?' })).getByRole('button', { name: 'Remove member' }))
     expect(await screen.findByText('omar was removed from the project.', { selector: '[aria-live]' })).toBeInTheDocument()
     expect(screen.queryByText('omar')).not.toBeInTheDocument()
@@ -838,7 +844,7 @@ describe('members (US-07, US-09, US-10)', () => {
     failNextCall('removeMember', new ApiError({ code: 'INTERNAL_ERROR', message: 'Could not remove the member.' }))
     renderApp('/projects/p-khatet/members')
 
-    await user.click(await screen.findByRole('button', { name: 'Remove omar from project' }))
+    await startRemoving(user, 'omar')
     const confirmation = screen.getByRole('dialog', { name: 'Remove omar from this project?' })
     await user.click(within(confirmation).getByRole('button', { name: 'Remove member' }))
 
