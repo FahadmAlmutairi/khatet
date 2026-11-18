@@ -33,7 +33,7 @@ function Card({ tone = 'plain', icon, title, children }) {
 
 function Items({ items }) {
   return (
-    <ul className="flex flex-col gap-3">
+    <ul className="list-enter flex flex-col gap-3">
       {items.map((item, index) => (
         <li key={index} className="flex flex-col gap-0.5">
           <span className="text-base font-medium text-body">

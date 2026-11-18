@@ -159,7 +159,7 @@ function MemberRow({ member, isOwner, isYou, onManage, onLeave }) {
   const access = owner ? 'Full access' : taskAccessLabel(member.taskAccess)
   return (
     <li
-      className={`flex min-h-16 items-center gap-3 rounded-card border border-line bg-white px-[14px] py-3 lg:h-[78px] lg:gap-0 lg:rounded-none lg:border-0 lg:border-b lg:px-5 lg:py-0 ${columns}`}
+      className={`row-hover flex min-h-16 items-center gap-3 rounded-card border border-line bg-white px-[14px] py-3 lg:h-[78px] lg:gap-0 lg:rounded-none lg:border-0 lg:border-b lg:px-5 lg:py-0 ${columns}`}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Avatar username={member.username} size="lg" />
@@ -255,7 +255,7 @@ function PendingInvitations({ invitations, projectId }) {
       <h2 id="pending-invitations" className="text-base font-semibold text-body">
         Pending invitations · {invitations.length}
       </h2>
-      <ul className="flex flex-col gap-2.5">
+      <ul className="list-enter flex flex-col gap-2.5">
         {invitations.map((invitation) => (
           <li
             key={invitation.id}
@@ -409,7 +409,7 @@ export default function MembersPage() {
               <span>Access</span>
               <span />
             </div>
-            <ul aria-label="Project members" className="flex flex-col gap-2.5 lg:gap-0">
+            <ul aria-label="Project members" className="list-enter flex flex-col gap-2.5 lg:gap-0">
               {list.map((member) => (
                 <MemberRow
                   key={member.userId}

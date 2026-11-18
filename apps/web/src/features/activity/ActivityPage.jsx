@@ -103,9 +103,9 @@ export default function ActivityPage() {
           <h2 id={`day-${key}`} className="text-sm font-semibold text-muted">
             {label}
           </h2>
-          <ol className="flex flex-col divide-y divide-line rounded-xl border border-line bg-white">
+          <ol className="list-enter flex flex-col divide-y divide-line overflow-hidden rounded-xl border border-line bg-white">
             {items.map((event) => (
-              <li key={event.id} className="flex items-start gap-3 px-4 py-3">
+              <li key={event.id} className="row-hover flex items-start gap-3 px-4 py-3">
                 <span aria-hidden="true" className="-my-1 flex">
                   <Avatar username={event.actorUsername} size="sm" />
                 </span>

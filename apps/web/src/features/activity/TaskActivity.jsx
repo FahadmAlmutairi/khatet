@@ -24,7 +24,7 @@ export default function TaskActivity({ task }) {
       )}
       {activity.isSuccess && events.length === 0 && <p className="text-sm text-muted">No changes yet.</p>}
       {events.length > 0 && (
-        <ol className="flex flex-col divide-y divide-line">
+        <ol className="list-enter flex flex-col divide-y divide-line">
           {events.map((event) => {
             const { text, more } = describeTaskActivity(event)
             return (

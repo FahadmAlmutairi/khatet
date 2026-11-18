@@ -127,7 +127,7 @@ function ReportHistory({ id, reports, selected, onSelect }) {
           </option>
         ))}
       </select>
-      <ul className="hidden flex-col gap-1.5 lg:flex">
+      <ul className="list-enter hidden flex-col gap-1.5 lg:flex">
         {reports.map((report, index) => {
           const current = report.id === selected.id
           return (
@@ -136,7 +136,7 @@ function ReportHistory({ id, reports, selected, onSelect }) {
                 type="button"
                 aria-current={current ? 'true' : undefined}
                 onClick={() => onSelect(report.id)}
-                className={`flex w-full flex-col gap-0.5 rounded-[10px] border px-3 py-2.5 text-left ${
+                className={`card-lift flex w-full flex-col gap-0.5 rounded-[10px] border px-3 py-2.5 text-left transition-colors ${
                   current ? 'border-[#668a66] bg-nav-active' : 'border-line bg-white hover:bg-surface'
                 }`}
               >

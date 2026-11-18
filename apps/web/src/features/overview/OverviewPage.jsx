@@ -133,7 +133,7 @@ function TaskRow({ projectId, task, usernames, line, alert = false, pill = true,
     <li>
       <Link
         to={`/projects/${projectId}/board?task=${task.id}`}
-        className="flex items-center gap-3 rounded-[10px] bg-surface px-3 py-2.5 hover:bg-nav-active"
+        className="card-lift flex items-center gap-3 rounded-[10px] bg-surface px-3 py-2.5 transition-colors hover:bg-nav-active"
       >
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-sm font-medium break-words text-body max-sm:line-clamp-2 sm:truncate">{task.title}</span>
@@ -195,7 +195,7 @@ function UpcomingWork({ projectId, tasks, usernames }) {
       ) : shown.length === 0 ? (
         <p className="text-sm text-muted">{mine ? 'Nothing assigned to you is open.' : 'No open tasks.'}</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="list-enter flex flex-col gap-2">
           {shown.map((task) => {
             const due = dueLine(task.dueDate, task.status)
             return (
@@ -227,7 +227,7 @@ function NeedsAttention({ projectId, tasks, usernames }) {
       {shown.length === 0 ? (
         <p className="text-sm text-muted">Nothing is blocked or overdue.</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="list-enter flex flex-col gap-2">
           {shown.map((task) => {
             const detail = task.isBlocked
               ? task.blockedReason
@@ -287,7 +287,7 @@ function RecentActivity({ projectId, className }) {
       {activity.isError && <p className="text-sm text-blocked">{errorMessage(activity.error)}</p>}
       {activity.isSuccess && events.length === 0 && <p className="text-sm text-muted">No changes yet.</p>}
       {events.length > 0 && (
-        <ol className="flex flex-col divide-y divide-line">
+        <ol className="list-enter flex flex-col divide-y divide-line">
           {events.map((event) => {
             const { before, after } = describeActivity(event)
             return (
