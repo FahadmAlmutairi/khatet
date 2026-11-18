@@ -15,12 +15,14 @@ let currentUserId = readSession()
 let pendingEmail = null
 let delayMs = 250
 let idCounter = 0
+let deletedProjectIds = new Set()
 
 export function resetMockServer({ signedInAs = null, delay = 0 } = {}) {
   db = createSampleData()
   currentUserId = signedInAs
   pendingEmail = null
   delayMs = delay
+  deletedProjectIds = new Set()
   writeSession(signedInAs)
 }
 
@@ -97,6 +99,9 @@ function requireUser() {
 // A user can open only the projects they belong to (NFR-11).
 function requireMembership(projectId) {
   const user = requireUser()
+  if (deletedProjectIds.has(projectId)) {
+    throw new ApiError({ code: 'PROJECT_DELETED', status: 404, message: 'This project was deleted.' })
+  }
   const membership = db.members.find((item) => item.projectId === projectId && item.userId === user.id)
   if (!membership) throw notFound('This project does not exist or you are not a member of it.')
   return membership
@@ -312,6 +317,20 @@ export function getProject(projectId) {
       db.projects.find((p) => p.id === projectId),
       membership,
     )
+  })
+}
+
+export function deleteProject(projectId) {
+  return respond('deleteProject', () => {
+    const membership = requireMembership(projectId)
+    if (membership.role !== 'OWNER') throw forbidden('Only the project owner can delete this project.')
+    deletedProjectIds.add(projectId)
+    db.projects = db.projects.filter((project) => project.id !== projectId)
+    db.members = db.members.filter((item) => item.projectId !== projectId)
+    db.tasks = db.tasks.filter((task) => task.projectId !== projectId)
+    db.invitations = db.invitations.filter((invitation) => invitation.projectId !== projectId)
+    db.notifications = db.notifications.filter((notification) => notification.projectId !== projectId)
+    return null
   })
 }
 

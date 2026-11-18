@@ -78,6 +78,15 @@ describe('sample API', () => {
     await expect(api.getTasks('p-mobile')).rejects.toMatchObject({ code: 'NOT_FOUND' })
   })
 
+  it('lets only the owner delete a project and tells its members when it is gone', async () => {
+    await expect(api.deleteProject('p-khatet')).resolves.toBeNull()
+    await expect(api.getTasks('p-khatet')).rejects.toMatchObject({ code: 'PROJECT_DELETED', status: 404 })
+    await expect(api.getProjects()).resolves.not.toContainEqual(expect.objectContaining({ id: 'p-khatet' }))
+
+    api.resetMockServer({ signedInAs: 'u-saad' })
+    await expect(api.deleteProject('p-khatet')).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 })
+  })
+
   it('adds a user who accepts an invitation with Edit assigned tasks access', async () => {
     await api.acceptInvitation('inv-mobile-fahad')
     const projects = await api.getProjects()

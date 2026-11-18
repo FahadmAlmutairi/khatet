@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'reac
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
 import Breadcrumb from '../components/Breadcrumb.jsx'
-import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SignOutIcon } from '../components/icons.jsx'
+import { BoardIcon, ChevronIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, ProjectSettingsIcon, SignOutIcon } from '../components/icons.jsx'
 import Logo from '../components/Logo.jsx'
 import NotificationsButton from '../features/notifications/NotificationsButton.jsx'
 import { EASE } from '../lib/motion.js'
@@ -101,6 +101,14 @@ function Sidebar({ onNavigate, openProjects, onToggleProject, mobile = false }) 
                           Members
                         </NavLink>
                       </li>
+                      {project.role === 'OWNER' && (
+                        <li>
+                          <NavLink to={`/projects/${project.id}/settings`} className={subNavClass(mobile)} onClick={onNavigate}>
+                            <ProjectSettingsIcon />
+                            Project Settings
+                          </NavLink>
+                        </li>
+                      )}
                     </ul>
                   )}
                 </li>

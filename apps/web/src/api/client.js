@@ -17,6 +17,7 @@ const realProjects = {
   createProject: (input) =>
     apiFetch('/projects', { method: 'POST', body: input }),
   getProject: (projectId) => apiFetch(`/projects/${projectId}`),
+  deleteProject: (projectId) => apiFetch(`/projects/${projectId}`, { method: 'DELETE' }),
 }
 
 const auth = useRealAuth

@@ -27,6 +27,15 @@ export function MembersIcon() {
   )
 }
 
+export function ProjectSettingsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <circle cx="8" cy="8" r="2.25" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M8 1.75v1.1m0 10.3v1.1m6.25-6.25h-1.1M2.85 8h-1.1m10.67-4.42-.78.78M4.36 11.64l-.78.78m8.84 0-.78-.78M4.36 4.36l-.78-.78" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export function PanelLeftIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">

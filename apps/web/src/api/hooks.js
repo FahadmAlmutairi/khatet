@@ -70,6 +70,19 @@ export function useCreateProject() {
   })
 }
 
+export function useDeleteProject(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.deleteProject(projectId),
+    onSuccess: () => {
+      queryClient.setQueryData(keys.projects, (projects) => projects?.filter((project) => project.id !== projectId))
+      queryClient.removeQueries({ queryKey: keys.project(projectId), exact: true })
+      queryClient.removeQueries({ queryKey: keys.members(projectId), exact: true })
+      queryClient.removeQueries({ queryKey: keys.tasks(projectId) })
+    },
+  })
+}
+
 // ---------- Members ----------
 
 export function useMembers(projectId) {

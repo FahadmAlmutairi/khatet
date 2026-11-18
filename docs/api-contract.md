@@ -114,6 +114,8 @@ Use one typed error concept across the API so the UI can explain and recover fro
 
 `error.message` is safe for users, `error.code` drives behavior, `error.fieldErrors` maps form feedback, and `error.requestId` supports debugging. Final error codes and HTTP status mapping must be agreed and documented. A failed mutation should preserve input and provide retry or a clear recovery path. Internal diagnostics remain server-side.
 
+After a project is deleted, project-scoped requests from members who still have it open return HTTP 404 with code `PROJECT_DELETED`. The frontend sends them to Home and shows “This project was deleted”.
+
 ## Query and mutation conventions
 
 | Feature | Query/mutation expectation |

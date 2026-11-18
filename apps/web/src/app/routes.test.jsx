@@ -558,6 +558,52 @@ describe('members (US-07, US-09, US-10)', () => {
   })
 })
 
+describe('project settings (US-26)', () => {
+  it('requires the project name before deleting and returns the owner to Home', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/settings')
+
+    expect(await screen.findByRole('heading', { name: 'Project Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Project Settings' })).toHaveAttribute('href', '/projects/p-khatet/settings')
+    await user.click(screen.getByRole('button', { name: 'Delete project' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete project?' })
+    expect(within(dialog).getByText(/including all tasks and messages/)).toBeInTheDocument()
+    const confirmButton = within(dialog).getByRole('button', { name: 'Delete project' })
+    expect(confirmButton).toBeDisabled()
+
+    const projectName = within(dialog).getByRole('textbox', { name: /Type “Khatet” to confirm/ })
+    await user.type(projectName, 'Khatet ')
+    expect(confirmButton).toBeDisabled()
+    await user.clear(projectName)
+    await user.type(projectName, 'Khatet')
+    expect(confirmButton).toBeEnabled()
+    await user.click(confirmButton)
+
+    expect(await screen.findByRole('heading', { name: 'Your projects' })).toBeInTheDocument()
+    expect(await screen.findByText('Project deleted', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Khatet.*Owner/ })).not.toBeInTheDocument()
+  })
+
+  it('redirects a team member to Home when a project-scoped request reports deletion', async () => {
+    signIn()
+    failNextCall('getTasks', new ApiError({ code: 'PROJECT_DELETED', status: 404, message: 'This project was deleted.' }))
+    const router = renderApp('/projects/p-khatet/board')
+
+    expect(await screen.findByRole('heading', { name: 'Your projects' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/projects')
+    expect(await screen.findByText('This project was deleted', { selector: '[aria-live]' })).toBeInTheDocument()
+  })
+
+  it('does not expose project settings to a team member', async () => {
+    signIn()
+    const router = renderApp('/projects/p-capstone/settings')
+
+    expect(await screen.findByRole('heading', { name: 'Your projects' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/projects')
+  })
+})
+
 describe('notifications (US-08, US-30)', () => {
   it('shows the unread count and accepts an invitation', async () => {
     signIn()
