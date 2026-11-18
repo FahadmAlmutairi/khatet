@@ -63,10 +63,11 @@ const realReports = {
 
 // The project log (docs/api-contract.md, Project log).
 const realActivity = {
-  getActivity: (projectId, { actorId, taskId, before } = {}) => {
+  getActivity: (projectId, { actorId, taskId, kind, before } = {}) => {
     const query = new URLSearchParams()
     if (actorId) query.set('actorId', actorId)
     if (taskId) query.set('taskId', taskId)
+    if (kind) query.set('kind', kind)
     if (before) query.set('before', before)
     const suffix = query.size ? `?${query}` : ''
     return apiFetch(`/projects/${projectId}/activity${suffix}`)

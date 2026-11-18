@@ -1072,6 +1072,22 @@ describe('task activity', () => {
 })
 
 describe('project log', () => {
+  it('shows one kind of change at a time', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/log')
+    const kinds = await screen.findByRole('group', { name: 'Kind of change' }, { timeout: 5000 })
+    await screen.findByText(/changed ali’s access/)
+
+    await user.click(within(kinds).getByRole('button', { name: 'Members' }))
+    expect(await screen.findByText('left the project', { exact: false })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Define board hierarchy', { exact: false })).not.toBeInTheDocument())
+
+    await user.click(within(kinds).getByRole('button', { name: 'Project' }))
+    expect(await screen.findByText('created the project', { exact: false })).toBeInTheDocument()
+    expect(screen.queryByText(/changed ali’s access/)).not.toBeInTheDocument()
+  })
+
   it('opens from the sidebar and keeps the history of a member who left and a deleted task', async () => {
     signIn()
     const user = userEvent.setup()

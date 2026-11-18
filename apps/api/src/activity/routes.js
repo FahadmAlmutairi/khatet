@@ -2,6 +2,7 @@
 // GET /api/projects/:projectId/activity   every member can read it, newest first
 //   ?actorId=<userId>   only the changes this person made, also after they left the project
 //   ?taskId=<taskId>    only the changes to this task, also after it was deleted
+//   ?kind=task|member|project   only one kind of change (tasks; members and invitations; project settings)
 //   ?before=<eventId>   the next page, from the nextCursor of the previous answer
 //   ?limit=1..100       events per page, 50 by default
 // Answers { events, nextCursor, actors }. actors lists everyone who appears in the log,
@@ -14,6 +15,21 @@ import { invalid } from '../lib/errors.js'
 import { findMembership, isUuid } from '../projects/access.js'
 
 export const activityRouter = Router()
+
+// The kinds of change the log can be filtered by, and the event types in each.
+export const ACTIVITY_KINDS = {
+  task: ['TASK_CREATED', 'TASK_UPDATED', 'TASK_MOVED', 'TASK_DELETED'],
+  member: [
+    'MEMBER_INVITED',
+    'INVITATION_CANCELLED',
+    'INVITATION_DECLINED',
+    'MEMBER_JOINED',
+    'MEMBER_ACCESS_CHANGED',
+    'MEMBER_REMOVED',
+    'MEMBER_LEFT',
+  ],
+  project: ['PROJECT_CREATED', 'PROJECT_UPDATED'],
+}
 
 function serializeEvent(event) {
   return {
@@ -31,11 +47,14 @@ function serializeEvent(event) {
 
 activityRouter.get('/projects/:projectId/activity', requireAuth, requireUsername, async (req, res) => {
   const { projectId } = await findMembership(req.params.projectId, req.user.id)
-  const { actorId, taskId, before } = req.query
+  const { actorId, taskId, before, kind } = req.query
 
   const errors = []
   if (actorId !== undefined && !isUuid(actorId)) errors.push({ field: 'actorId', message: 'Choose a person.' })
   if (taskId !== undefined && !isUuid(taskId)) errors.push({ field: 'taskId', message: 'Choose a task.' })
+  if (kind !== undefined && !Object.hasOwn(ACTIVITY_KINDS, kind)) {
+    errors.push({ field: 'kind', message: 'Use task, member or project.' })
+  }
   if (before !== undefined && !isUuid(before)) errors.push({ field: 'before', message: 'Use the nextCursor value.' })
   const limit = req.query.limit === undefined ? 50 : Number(req.query.limit)
   if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
@@ -43,7 +62,12 @@ activityRouter.get('/projects/:projectId/activity', requireAuth, requireUsername
   }
   if (errors.length) throw invalid(errors)
 
-  const where = { projectId, ...(actorId ? { actorId } : {}), ...(taskId ? { taskId } : {}) }
+  const where = {
+    projectId,
+    ...(actorId ? { actorId } : {}),
+    ...(taskId ? { taskId } : {}),
+    ...(kind ? { type: { in: ACTIVITY_KINDS[kind] } } : {}),
+  }
   // A cursor from another project or filter is ignored, so it cannot reveal other rows.
   const cursorRow = before ? await prisma.activityEvent.findFirst({ where: { ...where, id: before } }) : null
 

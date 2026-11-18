@@ -45,7 +45,7 @@ PATCH  /api/tasks/:taskId
 POST   /api/tasks/:taskId/move
 DELETE /api/tasks/:taskId                           (owner, EDIT_ALL)
 GET    /api/tasks/:taskId/activity
-GET    /api/projects/:projectId/activity?actorId=&taskId=&before=&limit=   (any member: project log)
+GET    /api/projects/:projectId/activity?actorId=&taskId=&kind=&before=&limit=   (any member: project log)
 GET    /api/projects/:projectId/phases
 POST   /api/projects/:projectId/phases              (owner)
 PATCH  /api/phases/:phaseId                         (owner)
@@ -189,7 +189,7 @@ The API must not mutate project data during upload, mapping, or review.
 
 The professor asked at the Sprint 2 demo for a project history that survives deleted tasks and departed members, so a reviewer can see what each person did. Every change to tasks, members, invitations and project settings adds an ActivityEvent (docs/data-model.md) in the same transaction.
 
-`GET /api/projects/:projectId/activity`, any member (404 for others, NFR-11), newest first. Query: `actorId` (one person, including former members), `taskId` (one task, including deleted ones), `before` (the `nextCursor` of the previous page) and `limit` (1 to 100, default 50); a value of the wrong form gets 422 `VALIDATION_FAILED` on that field. Answers `{ events, nextCursor, actors }`: each event is `{ id, projectId, type, actorId, actorUsername, taskId, taskTitle, details, createdAt }`, `nextCursor` is null on the last page, and `actors` is `[{ id, username }]` for everyone in the log, for the person filter. The web app shows it on the Project log page in the project's sidebar. `GET /api/tasks/:taskId/activity` (US-19) can read the same table with `taskId`.
+`GET /api/projects/:projectId/activity`, any member (404 for others, NFR-11), newest first. Query: `actorId` (one person, including former members), `taskId` (one task, including deleted ones), `kind` (`task` for task changes, `member` for members and invitations, `project` for project settings), `before` (the `nextCursor` of the previous page) and `limit` (1 to 100, default 50); a value of the wrong form gets 422 `VALIDATION_FAILED` on that field. Answers `{ events, nextCursor, actors }`: each event is `{ id, projectId, type, actorId, actorUsername, taskId, taskTitle, details, createdAt }`, `nextCursor` is null on the last page, and `actors` is `[{ id, username }]` for everyone in the log, for the person filter. The web app shows it on the Project log page in the project's sidebar. `GET /api/tasks/:taskId/activity` (US-19) can read the same table with `taskId`.
 
 ## AI report contract
 

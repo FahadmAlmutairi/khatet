@@ -499,9 +499,10 @@ export function useGenerateReport(projectId) {
 // ---------- Project log ----------
 
 // Newest first, 50 at a time; fetchNextPage loads older entries. Refetched each time the page opens.
-// filter: { actorId } for one person, { taskId } for one task (task details).
-export function useActivity(projectId, { actorId, taskId, enabled = true } = {}) {
-  const filter = { ...(actorId ? { actorId } : {}), ...(taskId ? { taskId } : {}) }
+// filter: { actorId } for one person, { taskId } for one task (task details), { kind } for one
+// kind of change (task, member or project).
+export function useActivity(projectId, { actorId, taskId, kind, enabled = true } = {}) {
+  const filter = { ...(actorId ? { actorId } : {}), ...(taskId ? { taskId } : {}), ...(kind ? { kind } : {}) }
   return useInfiniteQuery({
     queryKey: keys.activity(projectId, filter),
     queryFn: ({ pageParam }) => api.getActivity(projectId, { ...filter, before: pageParam }),

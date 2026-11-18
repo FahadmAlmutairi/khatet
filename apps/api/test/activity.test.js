@@ -97,6 +97,21 @@ describe.skipIf(!hasTestDatabase)('Project log: GET /api/projects/:projectId/act
     ])
   })
 
+  it('filters by kind of change', async () => {
+    await createTask(owner, { title: 'Plan sprint', assigneeIds: [owner.id] })
+    await request(app)
+      .patch(`/api/projects/${project.id}/members/${sara.id}`)
+      .set(authHeader(owner))
+      .send({ taskAccess: 'VIEW_ONLY' })
+      .expect(200)
+
+    const tasks = await getLog(owner, '?kind=task')
+    expect(tasks.body.events.map((event) => event.type)).toEqual(['TASK_CREATED'])
+    const members = await getLog(owner, '?kind=member')
+    expect(members.body.events.map((event) => event.type)).toEqual(['MEMBER_ACCESS_CHANGED'])
+    expect((await getLog(owner, '?kind=chat')).status).toBe(422)
+  })
+
   it('pages with nextCursor', async () => {
     for (const title of ['One', 'Two', 'Three']) await createTask(owner, { title, assigneeIds: [owner.id] })
 
