@@ -29,7 +29,7 @@ export const routes = [
             path: 'projects/:projectId',
             element: <ProjectLayout />,
             children: [
-              { index: true, element: <Navigate to="board" replace /> },
+              { index: true, element: <Navigate to="overview" replace /> },
               { path: 'overview', element: <OverviewPage /> },
               { path: 'board', element: <BoardPage /> },
               { path: 'members', element: <MembersPage /> },

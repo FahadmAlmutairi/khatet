@@ -11,13 +11,22 @@ import { describeActivity, dayLabel } from './describeActivity.js'
 
 const timeFormat = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' })
 
+// The kinds of change the log can show (?kind= on the API), as tabs like Figma's Project Activity.
+const KINDS = [
+  ['', 'All'],
+  ['task', 'Tasks'],
+  ['member', 'Members'],
+  ['project', 'Project'],
+]
+
 // The project log: every change a member made, newest first. Entries stay after a task is
 // deleted or a member leaves, so the owner can see what each person did.
 export default function ActivityPage() {
   const { project } = useOutletContext()
   const crumbs = useBreadcrumb()
   const [actorId, setActorId] = useState('')
-  const activity = useActivity(project.id, { actorId: actorId || undefined })
+  const [kind, setKind] = useState('')
+  const activity = useActivity(project.id, { actorId: actorId || undefined, kind: kind || undefined })
   const members = useMembers(project.id)
   const tasks = useTasks(project.id)
   const filterId = useId()
@@ -59,6 +68,22 @@ export default function ActivityPage() {
         )}
       </div>
 
+      <div role="group" aria-label="Kind of change" className="-mt-2 flex w-fit flex-wrap gap-1 rounded-full bg-white p-1 ring-1 ring-line">
+        {KINDS.map(([value, label]) => (
+          <button
+            key={label}
+            type="button"
+            aria-pressed={kind === value}
+            onClick={() => setKind(value)}
+            className={`min-h-11 rounded-full px-4 text-sm font-medium sm:min-h-9 ${
+              kind === value ? 'bg-nav-active text-heading' : 'text-muted hover:text-heading'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {activity.isPending && <LoadingState label="Loading the project log" />}
       {activity.isError && (
         <ErrorState
@@ -68,8 +93,8 @@ export default function ActivityPage() {
         />
       )}
       {activity.isSuccess && events.length === 0 && (
-        <EmptyState title="Nothing in the log yet">
-          {chosen ? `${chosen.username} has not changed anything in this project.` : 'Changes to tasks and members will show here.'}
+        <EmptyState title={kind || chosen ? 'No matching changes' : 'Nothing in the log yet'}>
+          {kind || chosen ? null : 'Changes to tasks and members will show here.'}
         </EmptyState>
       )}
 
@@ -78,9 +103,9 @@ export default function ActivityPage() {
           <h2 id={`day-${key}`} className="text-sm font-semibold text-muted">
             {label}
           </h2>
-          <ol className="flex flex-col divide-y divide-line rounded-xl border border-line bg-white">
+          <ol className="list-enter flex flex-col divide-y divide-line overflow-hidden rounded-xl border border-line bg-white">
             {items.map((event) => (
-              <li key={event.id} className="flex items-start gap-3 px-4 py-3">
+              <li key={event.id} className="row-hover flex items-start gap-3 px-4 py-3">
                 <span aria-hidden="true" className="-my-1 flex">
                   <Avatar username={event.actorUsername} size="sm" />
                 </span>

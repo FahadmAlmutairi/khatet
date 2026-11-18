@@ -56,10 +56,13 @@ export function formatShortDate(value) {
   return `${date.getDate()} ${MONTHS[date.getMonth()]}`
 }
 
-const timeFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-
+// A moment with its time: "28 Sep, 07:30".
 export function formatTimestamp(value) {
-  return value ? timeFormat.format(new Date(value)) : ''
+  if (!value) return ''
+  const date = new Date(value)
+  const clock = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+  // Built by hand because en-GB writes September as "Sept".
+  return `${formatShortDate(value)}, ${clock}`
 }
 
 function dayStart(date) {

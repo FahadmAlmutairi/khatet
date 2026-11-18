@@ -127,7 +127,7 @@ describe('projects (US-04, US-05)', () => {
     signIn()
     renderApp('/projects')
     const khatet = await screen.findByRole('link', { name: /Khatet.*Owner/ })
-    expect(khatet).toHaveAttribute('href', '/projects/p-khatet/board')
+    expect(khatet).toHaveAttribute('href', '/projects/p-khatet/overview')
     expect(screen.getByRole('link', { name: /Capstone Research.*Member/ })).toBeInTheDocument()
   })
 
@@ -761,6 +761,12 @@ describe('tasks (US-13, US-14, US-15, US-17, US-18)', () => {
   })
 })
 
+// Removing a member starts in their Manage access window.
+async function startRemoving(user, username) {
+  await user.click(await screen.findByRole('button', { name: `Manage access for ${username}` }))
+  await user.click(await screen.findByRole('button', { name: 'Remove from project' }))
+}
+
 describe('members (US-07, US-09, US-10)', () => {
   it('lets the owner change access and invite by username', async () => {
     signIn()
@@ -820,13 +826,13 @@ describe('members (US-07, US-09, US-10)', () => {
     const user = userEvent.setup()
     renderApp('/projects/p-khatet/members')
 
-    await user.click(await screen.findByRole('button', { name: 'Remove omar from project' }))
+    await startRemoving(user, 'omar')
     const confirmation = screen.getByRole('dialog', { name: 'Remove omar from this project?' })
     expect(within(confirmation).getByText(/They lose access to this project and need a new invitation/)).toBeInTheDocument()
     await user.click(within(confirmation).getByRole('button', { name: 'Cancel' }))
     expect(screen.getByText('omar')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Remove omar from project' }))
+    await startRemoving(user, 'omar')
     await user.click(within(screen.getByRole('dialog', { name: 'Remove omar from this project?' })).getByRole('button', { name: 'Remove member' }))
     expect(await screen.findByText('omar was removed from the project.', { selector: '[aria-live]' })).toBeInTheDocument()
     expect(screen.queryByText('omar')).not.toBeInTheDocument()
@@ -838,7 +844,7 @@ describe('members (US-07, US-09, US-10)', () => {
     failNextCall('removeMember', new ApiError({ code: 'INTERNAL_ERROR', message: 'Could not remove the member.' }))
     renderApp('/projects/p-khatet/members')
 
-    await user.click(await screen.findByRole('button', { name: 'Remove omar from project' }))
+    await startRemoving(user, 'omar')
     const confirmation = screen.getByRole('dialog', { name: 'Remove omar from this project?' })
     await user.click(within(confirmation).getByRole('button', { name: 'Remove member' }))
 
@@ -942,6 +948,19 @@ describe('notifications (US-08, US-30)', () => {
 })
 
 describe('AI report (US-31)', () => {
+  it('opens an earlier report from the report list', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-study/report')
+    const history = await screen.findByRole('navigation', { name: 'Reports · 2' }, { timeout: 5000 })
+    expect(await screen.findByRole('heading', { name: 'On the board now', level: 2 })).toBeInTheDocument()
+
+    await user.selectOptions(within(history).getByLabelText('Choose a report'), 'r-0')
+    expect(await screen.findByText('Nothing is done yet. Three tasks are planned for the first two weeks.')).toBeInTheDocument()
+    // The board snapshot is today's, so it only sits beside the latest report.
+    expect(screen.queryByRole('heading', { name: 'On the board now', level: 2 })).not.toBeInTheDocument()
+  })
+
   it('lets the owner generate a report with the three sections, its date and author', async () => {
     signIn()
     const user = userEvent.setup()
@@ -1029,6 +1048,8 @@ describe('project overview (US-28)', () => {
     expect(within(attention).getByText('fahad · Waiting for sample file')).toBeInTheDocument()
 
     const upcoming = screen.getByRole('heading', { name: 'Upcoming work' }).closest('section')
+    const flaggedCount = attention.querySelector('h2').textContent.match(/\d+/)[0]
+    expect(within(upcoming).getByText(`${flaggedCount} more under Needs attention`)).toBeInTheDocument()
     await user.click(within(upcoming).getByRole('button', { name: 'My work' }))
     for (const row of within(upcoming).getAllByRole('link').filter((link) => link.href.includes('task='))) {
       expect(row).toHaveTextContent('fahad')
@@ -1053,6 +1074,22 @@ describe('task activity', () => {
 })
 
 describe('project log', () => {
+  it('shows one kind of change at a time', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/log')
+    const kinds = await screen.findByRole('group', { name: 'Kind of change' }, { timeout: 5000 })
+    await screen.findByText(/changed ali’s access/)
+
+    await user.click(within(kinds).getByRole('button', { name: 'Members' }))
+    expect(await screen.findByText('left the project', { exact: false })).toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Define board hierarchy', { exact: false })).not.toBeInTheDocument())
+
+    await user.click(within(kinds).getByRole('button', { name: 'Project' }))
+    expect(await screen.findByText('created the project', { exact: false })).toBeInTheDocument()
+    expect(screen.queryByText(/changed ali’s access/)).not.toBeInTheDocument()
+  })
+
   it('opens from the sidebar and keeps the history of a member who left and a deleted task', async () => {
     signIn()
     const user = userEvent.setup()

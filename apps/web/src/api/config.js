@@ -15,7 +15,7 @@ export const useRealAuth = Boolean(apiUrl && supabaseUrl && supabaseKey) && env.
 //   server side is on Render; chat keeps the 3-second refresh until then and whenever the socket drops.
 // memberRemoval: DELETE /api/projects/:projectId/members/:userId and POST /api/projects/:projectId/leave
 // projectSettings: PATCH /api/projects/:projectId
-// aiReport (US-31): GET /api/projects/:projectId/reports/latest and POST /api/projects/:projectId/reports.
+// aiReport (US-31): GET /api/projects/:projectId/reports/latest, GET and POST /api/projects/:projectId/reports.
 //   Hidden on the live site until Salman's routes are merged and OPENAI_API_KEY is on Render; the
 //   sample data always shows it.
 export const apiReady = {

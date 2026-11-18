@@ -759,6 +759,20 @@ export function getLatestReport(projectId) {
   })
 }
 
+export const REPORT_HISTORY_LIMIT = 20
+
+// Every report of the project, newest first (up to 20), each with its full text.
+export function getReports(projectId) {
+  return respond('getReports', () => {
+    requireMembership(projectId)
+    const reports = db.reports
+      .filter((item) => item.projectId === projectId)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, REPORT_HISTORY_LIMIT)
+    return { reports: reports.map(serializeReport) }
+  })
+}
+
 // Writes the report from the board's numbers, in the same three sections as the real prompt.
 export function generateReport(projectId) {
   return respond('generateReport', () => {
@@ -814,13 +828,25 @@ export function generateReport(projectId) {
 
 const ACTIVITY_PAGE = 50
 
-export function getActivity(projectId, { actorId, taskId, before, limit = ACTIVITY_PAGE } = {}) {
+// The same kinds as ?kind= on the API (apps/api/src/activity/routes.js).
+const ACTIVITY_KINDS = {
+  task: (type) => type.startsWith('TASK_'),
+  member: (type) => type.startsWith('MEMBER_') || type.startsWith('INVITATION_'),
+  project: (type) => type.startsWith('PROJECT_'),
+}
+
+export function getActivity(projectId, { actorId, taskId, kind, before, limit = ACTIVITY_PAGE } = {}) {
   return respond('getActivity', () => {
     requireMembership(projectId)
     const all = db.activity
       .filter((event) => event.projectId === projectId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
-    const matching = all.filter((event) => (!actorId || event.actorId === actorId) && (!taskId || event.taskId === taskId))
+    const matching = all.filter(
+      (event) =>
+        (!actorId || event.actorId === actorId) &&
+        (!taskId || event.taskId === taskId) &&
+        (!kind || ACTIVITY_KINDS[kind](event.type)),
+    )
     const start = before ? matching.findIndex((event) => event.id === before) + 1 : 0
     const events = matching.slice(start, start + limit)
     const actors = new Map()

@@ -46,7 +46,7 @@ const ACCESS_OPTIONS = [
 ]
 
 // US-10: the owner picks one of three access levels; saving applies it at once.
-function AccessDialog({ member, projectId, onClose }) {
+function AccessDialog({ member, projectId, onClose, onRemove }) {
   const update = useUpdateMemberAccess(projectId)
   const toast = useToast()
   const [picked, setPicked] = useState(null)
@@ -124,7 +124,20 @@ function AccessDialog({ member, projectId, onClose }) {
                 )
               })}
             </fieldset>
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+              {/* Removing sits here, away from the list, so it is never one stray tap away. */}
+              {onRemove && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    close()
+                    onRemove(member)
+                  }}
+                  className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-medium text-blocked hover:bg-priority-high-bg max-sm:order-last max-sm:w-full max-sm:justify-center sm:mr-auto sm:min-h-10"
+                >
+                  Remove from project
+                </button>
+              )}
               <Button variant="secondary" onClick={close} className="max-sm:hidden">
                 Cancel
               </Button>
@@ -139,14 +152,14 @@ function AccessDialog({ member, projectId, onClose }) {
   )
 }
 
-const columns = 'lg:grid lg:grid-cols-[minmax(0,400fr)_170px_minmax(0,370fr)_200px] lg:items-center'
+const columns = 'lg:grid lg:grid-cols-[minmax(0,400fr)_170px_minmax(0,370fr)_150px] lg:items-center'
 
-function MemberRow({ member, isOwner, isYou, onManage, onRemove, onLeave }) {
+function MemberRow({ member, isOwner, isYou, onManage, onLeave }) {
   const owner = member.role === 'OWNER'
   const access = owner ? 'Full access' : taskAccessLabel(member.taskAccess)
   return (
     <li
-      className={`flex min-h-16 items-center gap-3 rounded-card border border-line bg-white px-[14px] py-3 lg:h-[78px] lg:gap-0 lg:rounded-none lg:border-0 lg:border-b lg:px-5 lg:py-0 ${columns}`}
+      className={`row-hover flex min-h-16 items-center gap-3 rounded-card border border-line bg-white px-[14px] py-3 lg:h-[78px] lg:gap-0 lg:rounded-none lg:border-0 lg:border-b lg:px-5 lg:py-0 ${columns}`}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Avatar username={member.username} size="lg" />
@@ -170,7 +183,6 @@ function MemberRow({ member, isOwner, isYou, onManage, onRemove, onLeave }) {
       <p className="hidden text-sm text-muted lg:block">{access}</p>
       <div className="flex justify-end gap-1">
         {isOwner && !owner && (
-          <>
             <button
               type="button"
               onClick={() => onManage(member)}
@@ -184,17 +196,6 @@ function MemberRow({ member, isOwner, isYou, onManage, onRemove, onLeave }) {
                 Manage access
               </span>
             </button>
-            {onRemove && (
-              <button
-                type="button"
-                onClick={() => onRemove(member)}
-                aria-label={`Remove ${member.username} from project`}
-                className="inline-flex min-h-11 items-center justify-center rounded-full px-2 text-xs font-medium text-blocked hover:bg-priority-high-bg lg:px-2.5"
-              >
-                Remove
-              </button>
-            )}
-          </>
         )}
         {!isOwner && isYou && onLeave && (
           <button
@@ -254,7 +255,7 @@ function PendingInvitations({ invitations, projectId }) {
       <h2 id="pending-invitations" className="text-base font-semibold text-body">
         Pending invitations · {invitations.length}
       </h2>
-      <ul className="flex flex-col gap-2.5">
+      <ul className="list-enter flex flex-col gap-2.5">
         {invitations.map((invitation) => (
           <li
             key={invitation.id}
@@ -408,7 +409,7 @@ export default function MembersPage() {
               <span>Access</span>
               <span />
             </div>
-            <ul aria-label="Project members" className="flex flex-col gap-2.5 lg:gap-0">
+            <ul aria-label="Project members" className="list-enter flex flex-col gap-2.5 lg:gap-0">
               {list.map((member) => (
                 <MemberRow
                   key={member.userId}
@@ -416,7 +417,6 @@ export default function MembersPage() {
                   isOwner={isOwner}
                   isYou={!isOwner && member.userId === me.data?.id}
                   onManage={setManaging}
-                  onRemove={apiReady.memberRemoval ? setRemoving : undefined}
                   onLeave={apiReady.memberRemoval ? () => setLeaving(true) : undefined}
                 />
               ))}
@@ -427,7 +427,12 @@ export default function MembersPage() {
       )}
 
       {isOwner && <InviteDialog open={inviting} onClose={() => setInviting(false)} projectId={project.id} />}
-      {isOwner && <AccessDialog member={managing} projectId={project.id} onClose={() => setManaging(null)} />}
+      {isOwner && <AccessDialog
+          member={managing}
+          projectId={project.id}
+          onClose={() => setManaging(null)}
+          onRemove={apiReady.memberRemoval ? setRemoving : undefined}
+        />}
       {isOwner && <RemoveMemberDialog member={removing} projectId={project.id} onClose={() => setRemoving(null)} />}
       {!isOwner && <LeaveProjectDialog project={project} open={leaving} onClose={() => setLeaving(false)} />}
     </section>

@@ -45,7 +45,7 @@ PATCH  /api/tasks/:taskId
 POST   /api/tasks/:taskId/move
 DELETE /api/tasks/:taskId                           (owner, EDIT_ALL)
 GET    /api/tasks/:taskId/activity
-GET    /api/projects/:projectId/activity?actorId=&taskId=&before=&limit=   (any member: project log)
+GET    /api/projects/:projectId/activity?actorId=&taskId=&kind=&before=&limit=   (any member: project log)
 GET    /api/projects/:projectId/phases
 POST   /api/projects/:projectId/phases              (owner)
 PATCH  /api/phases/:phaseId                         (owner)
@@ -189,7 +189,7 @@ The API must not mutate project data during upload, mapping, or review.
 
 The professor asked at the Sprint 2 demo for a project history that survives deleted tasks and departed members, so a reviewer can see what each person did. Every change to tasks, members, invitations and project settings adds an ActivityEvent (docs/data-model.md) in the same transaction.
 
-`GET /api/projects/:projectId/activity`, any member (404 for others, NFR-11), newest first. Query: `actorId` (one person, including former members), `taskId` (one task, including deleted ones), `before` (the `nextCursor` of the previous page) and `limit` (1 to 100, default 50); a value of the wrong form gets 422 `VALIDATION_FAILED` on that field. Answers `{ events, nextCursor, actors }`: each event is `{ id, projectId, type, actorId, actorUsername, taskId, taskTitle, details, createdAt }`, `nextCursor` is null on the last page, and `actors` is `[{ id, username }]` for everyone in the log, for the person filter. The web app shows it on the Project log page in the project's sidebar. `GET /api/tasks/:taskId/activity` (US-19) can read the same table with `taskId`.
+`GET /api/projects/:projectId/activity`, any member (404 for others, NFR-11), newest first. Query: `actorId` (one person, including former members), `taskId` (one task, including deleted ones), `kind` (`task` for task changes, `member` for members and invitations, `project` for project settings), `before` (the `nextCursor` of the previous page) and `limit` (1 to 100, default 50); a value of the wrong form gets 422 `VALIDATION_FAILED` on that field. Answers `{ events, nextCursor, actors }`: each event is `{ id, projectId, type, actorId, actorUsername, taskId, taskTitle, details, createdAt }`, `nextCursor` is null on the last page, and `actors` is `[{ id, username }]` for everyone in the log, for the person filter. The web app shows it on the Project log page in the project's sidebar. `GET /api/tasks/:taskId/activity` (US-19) can read the same table with `taskId`.
 
 ## AI report contract
 
@@ -198,6 +198,7 @@ Only the Project Owner can generate a report; every participant can list and rea
 **Sprint 3 shape (US-31, planned 15 Nov 2026).** To fit the sprint, the first version answers in one request instead of the `RUNNING` lifecycle above; the AI call already times out at 30 seconds (`apps/api/src/ai/reportClient.js`). The web app (`apps/web/src/api/client.js`) expects:
 
 - `GET /api/projects/:projectId/reports/latest`, any member: 200 with the report, or 404 `NO_REPORT` when none exists yet.
+- `GET /api/projects/:projectId/reports`, any member (404 for others, NFR-11): 200 with `{ reports }`, the project's reports newest first, at most 20, each in the full report shape below. An empty list when none exists yet. The Reports page lists them so members can open an earlier report.
 - `POST /api/projects/:projectId/reports`, owner only (403 `FORBIDDEN` for members): 201 with the new report. A second run within 10 minutes gets 429 `REPORT_TOO_SOON` with `nextAllowedAt` (ISO date and time) next to `code` and `message` in the error. AI failures use the codes from `reportClient.js` (`AI_TIMEOUT`, `AI_BUSY`, `AI_QUOTA`, `AI_NOT_CONFIGURED`, `AI_EMPTY_REPORT`, `AI_FAILED`) with a message that is safe to show.
 - A report is `{ id, projectId, content, model, promptVersion, createdAt, createdBy: { id, username } }`. `content` is the AI text with the three `## ` headings from `reportPrompt.js`.
 

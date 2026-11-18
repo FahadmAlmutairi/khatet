@@ -136,6 +136,24 @@ export function createSampleData() {
     // US-31: one earlier AI report, so a member of Study Planner sees a report.
     reports: [
       {
+        id: 'r-0',
+        projectId: 'p-study',
+        createdById: 'u-saad',
+        model: 'gpt-6-luna',
+        promptVersion: 1,
+        createdAt: '2026-09-28T07:30:00Z',
+        content: [
+          '## Progress summary',
+          'Nothing is done yet. Three tasks are planned for the first two weeks.',
+          '',
+          '## Warnings',
+          'No warnings.',
+          '',
+          '## Suggestions',
+          '- **Give "Solve past exam questions" one owner**: Both saad and omar hold it.',
+        ].join('\n'),
+      },
+      {
         id: 'r-1',
         projectId: 'p-study',
         createdById: 'u-saad',

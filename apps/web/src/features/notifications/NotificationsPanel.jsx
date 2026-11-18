@@ -105,7 +105,7 @@ function NotificationItem({ notification, onOpenTask }) {
 
   return (
     <li
-      className={`flex items-start gap-3 rounded-card border border-line p-[14px] lg:gap-[11px] lg:rounded-none lg:border-0 lg:border-b lg:px-[15px] lg:py-[14px] ${
+      className={`row-hover flex items-start gap-3 rounded-card border border-line p-[14px] lg:gap-[11px] lg:rounded-none lg:border-0 lg:border-b lg:px-[15px] lg:py-[14px] ${
         notification.read ? 'lg:bg-white' : 'bg-white lg:bg-[#f9fbf8]'
       }`}
     >
@@ -285,7 +285,7 @@ export default function NotificationsPanel({ open, onClose, query }) {
               >
                 {group.label}
               </h3>
-              <ul className="flex flex-col gap-3 lg:gap-0">
+              <ul className="list-enter flex flex-col gap-3 lg:gap-0">
                 {group.items.map((notification) => (
                   <NotificationItem key={notification.id} notification={notification} onOpenTask={openTask} />
                 ))}

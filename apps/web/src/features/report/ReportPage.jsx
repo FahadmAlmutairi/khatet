@@ -1,7 +1,8 @@
+import { useId, useState } from 'react'
 import { useOutletContext } from 'react-router'
 import { reportAvailable } from '../../api/config.js'
 import { errorMessage } from '../../api/errors.js'
-import { useGenerateReport, useLatestReport, useTasks } from '../../api/hooks.js'
+import { useGenerateReport, useReports, useTasks } from '../../api/hooks.js'
 import { InfoIcon, SparkleIcon } from '../../components/icons.jsx'
 import { projectStats } from '../../lib/projectStats.js'
 import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
@@ -12,14 +13,17 @@ import { useTakingLong } from '../../components/ui/useTakingLong.js'
 import { formatTimestamp } from '../../lib/domain.js'
 import ReportContent from './ReportContent.jsx'
 
-// US-31: the owner generates an AI report and every member reads the latest one.
+// US-31: the owner generates an AI report and every member reads it, newest first, with the
+// earlier reports one click away (Figma: AI Reports / Saved reports, 268:436).
 // The report only reads the project; nothing on this page changes tasks, dates or people.
 export default function ReportPage() {
   const { project } = useOutletContext()
   const crumbs = useBreadcrumb()
   const isOwner = project.role === 'OWNER'
-  const report = useLatestReport(project.id, { enabled: reportAvailable })
+  const reports = useReports(project.id, { enabled: reportAvailable })
   const generate = useGenerateReport(project.id)
+  const [selectedId, setSelectedId] = useState(null)
+  const historyId = useId()
   useDocumentTitle('Reports', project.name)
 
   if (!reportAvailable) {
@@ -31,27 +35,33 @@ export default function ReportPage() {
     )
   }
 
-  const hasReport = Boolean(report.data)
+  const list = reports.data ?? []
+  const shown = list.find((item) => item.id === selectedId) ?? list[0]
+  const hasHistory = list.length > 1
   const generateButton = (
-    <Button onClick={() => generate.mutate()} loading={generate.isPending} fullOnPhone>
+    <Button
+      onClick={() => generate.mutate(undefined, { onSuccess: () => setSelectedId(null) })}
+      loading={generate.isPending}
+      fullOnPhone
+    >
       <SparkleIcon />
-      {hasReport ? 'Generate new report' : 'Generate report'}
+      {shown ? 'Generate new report' : 'Generate report'}
     </Button>
   )
 
   return (
-    <section className="flex w-full max-w-3xl flex-col gap-6">
+    <section className={`flex w-full flex-col gap-6 ${hasHistory ? 'max-w-6xl' : 'max-w-3xl'}`}>
       <Breadcrumb items={crumbs} className="lg:hidden" />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="text-title font-bold text-body">Reports</h1>
-          {hasReport && (
+          {shown && (
             <p id="report-meta" className="text-sm text-muted">
-              Generated {formatTimestamp(report.data.createdAt)} by {report.data.createdBy?.username ?? 'unknown'}
+              Generated {formatTimestamp(shown.createdAt)} by {shown.createdBy?.username ?? 'unknown'}
             </p>
           )}
         </div>
-        {isOwner && hasReport && !generate.isPending && generateButton}
+        {isOwner && shown && !generate.isPending && generateButton}
       </div>
 
       {generate.isPending && <Generating />}
@@ -59,27 +69,88 @@ export default function ReportPage() {
 
       {!generate.isPending && (
         <>
-          {report.isPending && <LoadingState label="Loading the report" />}
-          {report.isError && (
-            <ErrorState title="The report could not be loaded" message={errorMessage(report.error)} onRetry={() => report.refetch()} />
+          {reports.isPending && <LoadingState label="Loading the report" />}
+          {reports.isError && (
+            <ErrorState title="The report could not be loaded" message={errorMessage(reports.error)} onRetry={() => reports.refetch()} />
           )}
-          {report.isSuccess && !hasReport && (
+          {reports.isSuccess && !shown && (
             <EmptyState title="No report yet" action={isOwner ? generateButton : undefined}>
               {isOwner ? null : 'The project owner can generate one.'}
             </EmptyState>
           )}
-          {hasReport && (
-            <article aria-labelledby="report-meta" className="flex flex-col gap-4">
-              <ReportContent content={report.data.content} snapshot={<Snapshot projectId={project.id} />} />
-              <p className="flex items-center gap-2 text-xs text-muted">
-                <InfoIcon />
-                The AI can be wrong. It never changes your project.
-              </p>
-            </article>
+          {shown && (
+            <div className={hasHistory ? 'grid gap-6 lg:grid-cols-[15rem_minmax(0,48rem)] lg:items-start' : ''}>
+              {hasHistory && (
+                <ReportHistory id={historyId} reports={list} selected={shown} onSelect={setSelectedId} />
+              )}
+              <article aria-labelledby="report-meta" className="flex min-w-0 flex-col gap-4">
+                <ReportContent
+                  content={shown.content}
+                  snapshot={shown.id === list[0].id ? <Snapshot projectId={project.id} /> : null}
+                />
+                <p className="flex items-center gap-2 text-xs text-muted">
+                  <InfoIcon />
+                  The AI can be wrong. It never changes your project.
+                </p>
+              </article>
+            </div>
           )}
         </>
       )}
     </section>
+  )
+}
+
+function reportLabel(report, index) {
+  return `${formatTimestamp(report.createdAt)}${index === 0 ? ' · Latest' : ''}`
+}
+
+// Earlier reports: a list beside the report on wide screens, a select above it on phones.
+function ReportHistory({ id, reports, selected, onSelect }) {
+  return (
+    <nav aria-labelledby={`${id}-title`} className="flex flex-col gap-2">
+      <h2 id={`${id}-title`} className="text-sm font-semibold text-heading">
+        Reports · {reports.length}
+      </h2>
+      <label htmlFor={`${id}-select`} className="sr-only">
+        Choose a report
+      </label>
+      <select
+        id={`${id}-select`}
+        value={selected.id}
+        onChange={(event) => onSelect(event.target.value)}
+        className="min-h-11 rounded-control border border-input bg-white px-3 text-base text-body lg:hidden"
+      >
+        {reports.map((report, index) => (
+          <option key={report.id} value={report.id}>
+            {reportLabel(report, index)}
+          </option>
+        ))}
+      </select>
+      <ul className="list-enter hidden flex-col gap-1.5 lg:flex">
+        {reports.map((report, index) => {
+          const current = report.id === selected.id
+          return (
+            <li key={report.id}>
+              <button
+                type="button"
+                aria-current={current ? 'true' : undefined}
+                onClick={() => onSelect(report.id)}
+                className={`card-lift flex w-full flex-col gap-0.5 rounded-[10px] border px-3 py-2.5 text-left transition-colors ${
+                  current ? 'border-[#668a66] bg-nav-active' : 'border-line bg-white hover:bg-surface'
+                }`}
+              >
+                <span className="text-sm font-medium text-body">
+                  {formatTimestamp(report.createdAt)}
+                  {index === 0 && <span className="font-normal text-muted"> · Latest</span>}
+                </span>
+                <span className="text-xs text-muted">by {report.createdBy?.username ?? 'unknown'}</span>
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </nav>
   )
 }
 

@@ -16,6 +16,7 @@ export const keys = {
   notifications: ['notifications'],
   messages: (projectId) => ['messages', projectId],
   report: (projectId) => ['report', projectId],
+  reports: (projectId) => ['reports', projectId],
   activity: (projectId, filter = {}) => ['activity', projectId, filter],
 }
 
@@ -474,21 +475,34 @@ export function useLatestReport(projectId, { enabled = true } = {}) {
   })
 }
 
-// Owner only. The new report replaces the one shown; the API refuses a second run within 10 minutes.
+// Every report of the project, newest first (up to 20), for the Reports page and its history.
+export function useReports(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: keys.reports(projectId),
+    enabled,
+    queryFn: async () => (await api.getReports(projectId)).reports,
+  })
+}
+
+// Owner only. The new report goes to the top of the list; the API refuses a second run within 10 minutes.
 export function useGenerateReport(projectId) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => api.generateReport(projectId),
-    onSuccess: (report) => queryClient.setQueryData(keys.report(projectId), report),
+    onSuccess: (report) => {
+      queryClient.setQueryData(keys.report(projectId), report)
+      queryClient.setQueryData(keys.reports(projectId), (old) => [report, ...(old ?? []).filter((item) => item.id !== report.id)])
+    },
   })
 }
 
 // ---------- Project log ----------
 
 // Newest first, 50 at a time; fetchNextPage loads older entries. Refetched each time the page opens.
-// filter: { actorId } for one person, { taskId } for one task (task details).
-export function useActivity(projectId, { actorId, taskId, enabled = true } = {}) {
-  const filter = { ...(actorId ? { actorId } : {}), ...(taskId ? { taskId } : {}) }
+// filter: { actorId } for one person, { taskId } for one task (task details), { kind } for one
+// kind of change (task, member or project).
+export function useActivity(projectId, { actorId, taskId, kind, enabled = true } = {}) {
+  const filter = { ...(actorId ? { actorId } : {}), ...(taskId ? { taskId } : {}), ...(kind ? { kind } : {}) }
   return useInfiniteQuery({
     queryKey: keys.activity(projectId, filter),
     queryFn: ({ pageParam }) => api.getActivity(projectId, { ...filter, before: pageParam }),

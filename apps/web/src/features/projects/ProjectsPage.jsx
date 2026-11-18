@@ -33,7 +33,7 @@ function PendingInvitations() {
   if (pending.length === 0) return null
   return (
     <section aria-label="Invitations">
-      <ul className="flex flex-col gap-3">
+      <ul className="list-enter flex flex-col gap-3">
         {pending.map((item) => (
           <li
             key={item.id}
@@ -100,11 +100,11 @@ export default function ProjectsPage() {
         </div>
       )}
       {projects.data?.length > 0 && (
-        <ul className="grid gap-4 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
+        <ul className="list-enter grid gap-4 sm:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
           {ordered.map((project) => (
             <li key={project.id}>
               <Link
-                to={`/projects/${project.id}/board`}
+                to={`/projects/${project.id}/overview`}
                 className="card-lift flex h-full flex-col gap-2.5 rounded-card border border-line bg-white p-4 shadow-card hover:border-surface-supporting"
               >
                 <span className="flex items-start gap-3">
