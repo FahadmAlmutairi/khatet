@@ -3,6 +3,7 @@
 // and tasks with their assignees (US-13 to US-18, US-21).
 // Sprint 2: project chat messages (US-24).
 // Sprint 3: the project log (activity events), so the team's history stays after tasks are deleted or members leave.
+// Sprint 3: AI project reports (US-31).
 // Change it only through a migration: npm run db:migrate -- --name what_changed
 
 generator client {
@@ -88,6 +89,7 @@ model User {
   taskAssignments     TaskAssignee[]
   chatMessages        ChatMessage[]
   activityEvents      ActivityEvent[]
+  aiReports           AiReport[]
 
   @@map("users")
 }
@@ -107,6 +109,7 @@ model Project {
   tasks          Task[]
   chatMessages   ChatMessage[]
   activityEvents ActivityEvent[]
+  aiReports      AiReport[]
 
   @@map("projects")
 }
@@ -255,4 +258,28 @@ model ActivityEvent {
   @@index([projectId, actorId, createdAt])
   @@index([taskId, createdAt])
   @@map("activity_events")
+}
+
+// One AI project report (US-31). Only the owner generates one; every member can read it.
+// Rows are only added, never edited. A report never changes tasks, members or settings.
+// Only finished reports are stored: a failed AI call saves nothing, so the owner can try
+// again at once. The API allows one report per project every 10 minutes (cost guard).
+// Sprint 3 answers in one request; the RUNNING / READY / FAILED status in
+// docs/data-model.md is added if reports move to the background later.
+model AiReport {
+  id            String   @id @default(uuid()) @db.Uuid
+  projectId     String   @map("project_id") @db.Uuid
+  // Null if the account is deleted later; the report stays with the project.
+  createdById   String?  @map("created_by_id") @db.Uuid
+  // The AI text with the three "## " headings from src/ai/reportPrompt.js.
+  content       String
+  promptVersion Int      @map("prompt_version")
+  model         String
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@map("ai_reports")
 }

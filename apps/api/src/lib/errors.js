@@ -4,11 +4,14 @@
 import { randomUUID } from 'node:crypto'
 
 export class ApiError extends Error {
-  constructor(status, code, message, fieldErrors = []) {
+  // `extra` adds fields next to `code` and `message`, for example `nextAllowedAt` on
+  // 429 REPORT_TOO_SOON (US-31).
+  constructor(status, code, message, fieldErrors = [], extra = {}) {
     super(message)
     this.status = status
     this.code = code
     this.fieldErrors = fieldErrors
+    this.extra = extra
   }
 }
 
@@ -40,7 +43,7 @@ export function routeNotFound(req, res, next) {
 export function errorHandler(error, req, res, _next) {
   if (error instanceof ApiError) {
     return res.status(error.status).json({
-      error: { code: error.code, message: error.message, fieldErrors: error.fieldErrors, requestId: req.id },
+      error: { ...error.extra, code: error.code, message: error.message, fieldErrors: error.fieldErrors, requestId: req.id },
     })
   }
   if (error.type === 'entity.too.large') {

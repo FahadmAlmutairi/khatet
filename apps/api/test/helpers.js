@@ -5,6 +5,7 @@ export const hasTestDatabase = Boolean(process.env.TEST_DATABASE_URL)
 
 export async function resetDatabase() {
   await prisma.$transaction([
+    prisma.aiReport.deleteMany(),
     prisma.activityEvent.deleteMany(),
     prisma.chatMessage.deleteMany(),
     prisma.notification.deleteMany(),
