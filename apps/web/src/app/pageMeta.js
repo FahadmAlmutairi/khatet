@@ -25,5 +25,5 @@ export function useBreadcrumb() {
 
   const project = projects.data?.find((item) => item.id === projectId)
   const page = PAGES[pathname.split('/').at(-1)]
-  return [home, project && { label: project.name, to: `/projects/${projectId}/board` }, page && { label: page }].filter(Boolean)
+  return [home, project && { label: project.name, to: `/projects/${projectId}/overview` }, page && { label: page }].filter(Boolean)
 }

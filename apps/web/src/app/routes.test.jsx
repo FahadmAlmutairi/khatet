@@ -127,7 +127,7 @@ describe('projects (US-04, US-05)', () => {
     signIn()
     renderApp('/projects')
     const khatet = await screen.findByRole('link', { name: /Khatet.*Owner/ })
-    expect(khatet).toHaveAttribute('href', '/projects/p-khatet/board')
+    expect(khatet).toHaveAttribute('href', '/projects/p-khatet/overview')
     expect(screen.getByRole('link', { name: /Capstone Research.*Member/ })).toBeInTheDocument()
   })
 

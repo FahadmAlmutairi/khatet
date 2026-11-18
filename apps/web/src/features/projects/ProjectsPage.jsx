@@ -104,7 +104,7 @@ export default function ProjectsPage() {
           {ordered.map((project) => (
             <li key={project.id}>
               <Link
-                to={`/projects/${project.id}/board`}
+                to={`/projects/${project.id}/overview`}
                 className="card-lift flex h-full flex-col gap-2.5 rounded-card border border-line bg-white p-4 shadow-card hover:border-surface-supporting"
               >
                 <span className="flex items-start gap-3">
