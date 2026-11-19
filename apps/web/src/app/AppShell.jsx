@@ -168,14 +168,14 @@ function Sidebar({ onNavigate, onSignOut, openProjects, onToggleProject, mobile 
           end
           onClick={onNavigate}
           className={({ isActive }) =>
-            `flex h-11 items-center gap-2 rounded-md px-2 text-sm lg:h-10 ${isActive ? activeClass(mobile) : 'text-nav hover:bg-surface'}`
+            `flex h-11 shrink-0 items-center gap-2 rounded-lg px-2 text-sm lg:h-10 ${isActive ? activeClass(mobile) : 'text-nav hover:bg-surface'}`
           }
         >
           <HomeIcon />
           Home
         </NavLink>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex shrink-0 flex-col gap-2">
           <div className="flex h-6 items-center justify-between">
             <h2 className="text-xs font-medium tracking-[1px] text-muted uppercase">Projects</h2>
             <Link
