@@ -7,7 +7,6 @@ import { apiReady, reportAvailable } from '../api/config.js'
 import { inertOthers } from '../lib/inertOthers.js'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
-import Breadcrumb from '../components/Breadcrumb.jsx'
 import { BoardIcon, ChevronIcon, HistoryIcon, OverviewIcon, ReportIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SettingsIcon, SignOutIcon } from '../components/icons.jsx'
 import Logo from '../components/Logo.jsx'
 import Button from '../components/ui/Button.jsx'
@@ -15,7 +14,6 @@ import Dialog from '../components/ui/Dialog.jsx'
 import NotificationsButton from '../features/notifications/NotificationsButton.jsx'
 import { useProjectOrder } from '../features/projects/projectOrder.js'
 import { EASE } from '../lib/motion.js'
-import { useBreadcrumb } from './pageMeta.js'
 
 // Sizes and colours from the Figma "Project Sidebar" (page 08, Board 324:778).
 // In the phone sidebar the current page also gets a Semi Bold label and a 3px green bar on
@@ -471,8 +469,6 @@ export default function AppShell() {
     setOpenProjects((current) => new Set(current).add(id))
     toggleSidebar()
   }
-
-  const crumbs = useBreadcrumb()
   const pageKey = useLocation().pathname
   // The phone sidebar is a modal dialog: the page behind is inert, Escape closes it, focus goes back
   // to the menu button, and it closes if the window grows to the desktop layout (review M10).
@@ -589,7 +585,7 @@ export default function AppShell() {
               <Logo label="Khatet home" />
             </Link>
           </span>
-          <Breadcrumb items={crumbs} className="hidden flex-1 lg:block" />
+          <span className="hidden flex-1 lg:block" />
           <NotificationsButton />
         </header>
         <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 lg:p-8">

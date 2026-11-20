@@ -302,14 +302,12 @@ describe('sidebar', () => {
 })
 
 describe('page names (G7, G12)', () => {
-  it('heads the board with the project name, names the tab and links back through the breadcrumb', async () => {
+  it('heads the board with the project name, names the tab and shows no breadcrumb', async () => {
     signIn()
     renderApp('/projects/p-khatet/board')
     expect(await screen.findByRole('heading', { level: 1, name: 'Khatet' })).toBeInTheDocument()
     await waitFor(() => expect(document.title).toBe('Board · Khatet · Khatet'))
-    const crumbs = screen.getAllByRole('navigation', { name: 'Breadcrumb' })[0]
-    expect(within(crumbs).getByRole('link', { name: 'Home' })).toHaveAttribute('href', '/projects')
-    expect(within(crumbs).getByText('Board')).toHaveAttribute('aria-current', 'page')
+    expect(screen.queryByRole('navigation', { name: 'Breadcrumb' })).not.toBeInTheDocument()
   })
 
   it('names the members page in the tab', async () => {

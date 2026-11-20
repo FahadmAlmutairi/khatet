@@ -2,9 +2,8 @@ import { useId, useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useActivity, useMembers, useTasks } from '../../api/hooks.js'
-import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
+import { useDocumentTitle } from '../../app/pageMeta.js'
 import Avatar from '../../components/Avatar.jsx'
-import Breadcrumb from '../../components/Breadcrumb.jsx'
 import Button from '../../components/ui/Button.jsx'
 import SegmentedControl from '../../components/ui/SegmentedControl.jsx'
 import { EmptyState, ErrorState, LoadingState } from '../../components/ui/States.jsx'
@@ -24,14 +23,12 @@ const KINDS = [
 // deleted or a member leaves, so the owner can see what each person did.
 export default function ActivityPage() {
   const { project } = useOutletContext()
-  const crumbs = useBreadcrumb()
   const members = useMembers(project.id)
   const tasks = useTasks(project.id)
   useDocumentTitle('Project log', project.name)
 
   return (
     <section className="flex w-full max-w-3xl flex-col gap-6">
-      <Breadcrumb items={crumbs} className="lg:hidden" />
       <ProjectLog
         projectId={project.id}
         heading={<h1 className="text-title font-bold text-body">Project log</h1>}

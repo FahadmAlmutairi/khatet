@@ -2,8 +2,7 @@ import { useId, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router'
 import { apiReady } from '../../api/config.js'
 import { errorMessage } from '../../api/errors.js'
-import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
-import Breadcrumb from '../../components/Breadcrumb.jsx'
+import { useDocumentTitle } from '../../app/pageMeta.js'
 import {
   useCancelInvitation,
   useLeaveProject,
@@ -368,14 +367,12 @@ export default function MembersPage() {
   const isOwner = project.permissions.canManageMembers
   const me = useMe()
   const list = members.data?.members ?? []
-  const crumbs = useBreadcrumb()
   useDocumentTitle('Members', project.name)
 
   return (
     <section>
-      <Breadcrumb items={crumbs} className="lg:hidden" />
       {/* The main action sits beside the page title, as on Home and the board. */}
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-4 lg:mt-0">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="text-title font-bold text-body">Members</h1>
           {members.data && (

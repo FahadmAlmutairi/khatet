@@ -5,8 +5,7 @@ import { errorMessage } from '../../api/errors.js'
 import { useGenerateReport, useReports, useTasks } from '../../api/hooks.js'
 import { InfoIcon, SparkleIcon } from '../../components/icons.jsx'
 import { projectStats } from '../../lib/projectStats.js'
-import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
-import Breadcrumb from '../../components/Breadcrumb.jsx'
+import { useDocumentTitle } from '../../app/pageMeta.js'
 import Button, { Spinner } from '../../components/ui/Button.jsx'
 import { EmptyState, ErrorState, LoadingState, Notice } from '../../components/ui/States.jsx'
 import { useTakingLong } from '../../components/ui/useTakingLong.js'
@@ -18,7 +17,6 @@ import ReportContent from './ReportContent.jsx'
 // The report only reads the project; nothing on this page changes tasks, dates or people.
 export default function ReportPage() {
   const { project } = useOutletContext()
-  const crumbs = useBreadcrumb()
   const isOwner = project.role === 'OWNER'
   const reports = useReports(project.id, { enabled: reportAvailable })
   const generate = useGenerateReport(project.id)
@@ -51,7 +49,6 @@ export default function ReportPage() {
 
   return (
     <section className={`flex w-full flex-col gap-6 ${hasHistory ? 'max-w-6xl' : 'max-w-3xl'}`}>
-      <Breadcrumb items={crumbs} className="lg:hidden" />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex flex-col gap-1">
           <h1 className="text-title font-bold text-body">Reports</h1>

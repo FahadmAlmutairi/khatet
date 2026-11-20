@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { errorMessage, fieldError } from '../../api/errors.js'
 import { useMe, useSetUsername } from '../../api/hooks.js'
-import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
-import Breadcrumb from '../../components/Breadcrumb.jsx'
+import { useDocumentTitle } from '../../app/pageMeta.js'
 import Button from '../../components/ui/Button.jsx'
 import { FieldError, TextField } from '../../components/ui/Field.jsx'
 import { useFocusFirstInvalid } from '../../components/ui/useFocusFirstInvalid.js'
@@ -66,15 +65,13 @@ function ProfileForm({ me }) {
 // (docs/ui-ux-guidelines.md) and Archived projects; "Notifications & preferences" comes later.
 export default function AccountSettingsPage() {
   const me = useMe()
-  const crumbs = useBreadcrumb()
   useDocumentTitle('Settings')
 
   if (!me.data) return <LoadingState />
 
   return (
     <section>
-      <Breadcrumb items={crumbs} className="lg:hidden" />
-      <h1 className="mt-2 text-title font-bold text-body lg:mt-0">Settings</h1>
+      <h1 className="text-title font-bold text-body">Settings</h1>
       <div className="mt-6 rounded-card border border-line bg-white p-5 sm:p-6">
         <h2 className="mb-6 text-base font-semibold text-body">Profile &amp; security</h2>
         <ProfileForm key={me.data.username} me={me.data} />

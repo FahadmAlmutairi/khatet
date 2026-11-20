@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
-import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
-import Breadcrumb from '../../components/Breadcrumb.jsx'
+import { useDocumentTitle } from '../../app/pageMeta.js'
 import { useMe, useMembers, useMoveTask, useTasks, useUpdateTask } from '../../api/hooks.js'
 import { ChatIcon, PlusIcon } from '../../components/icons.jsx'
 import Button from '../../components/ui/Button.jsx'
@@ -44,7 +43,6 @@ export default function BoardPage() {
   // A card moved from its menu lands in another lane as a new element, so focus goes back to it there (NFR-04).
   const focusAfterMove = useRef(null)
   const openTaskId = searchParams.get('task')
-  const crumbs = useBreadcrumb()
   useDocumentTitle('Board', project.name)
 
   const usernames = useMemo(
@@ -202,7 +200,6 @@ export default function BoardPage() {
     <section className={`flex flex-col gap-6 ${chatOpen ? 'lg:mr-[356px]' : ''}`}>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="flex min-w-0 flex-col gap-2">
-          <Breadcrumb items={crumbs} className="lg:hidden" />
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-title font-bold break-words text-body">{project.name}</h1>
             {note && <StateBadge label={note.label}>{note.text}</StateBadge>}

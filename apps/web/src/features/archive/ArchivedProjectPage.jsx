@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { errorMessage } from '../../api/errors.js'
 import { useArchivedProject } from '../../api/hooks.js'
-import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
-import Breadcrumb from '../../components/Breadcrumb.jsx'
+import { useDocumentTitle } from '../../app/pageMeta.js'
 import Button from '../../components/ui/Button.jsx'
 import { ErrorState, LoadingState } from '../../components/ui/States.jsx'
 import { formatShortDate, statusLabel } from '../../lib/domain.js'
@@ -16,7 +15,6 @@ const STATUSES = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'DONE']
 export default function ArchivedProjectPage() {
   const { archivedId } = useParams()
   const archived = useArchivedProject(archivedId)
-  const crumbs = useBreadcrumb()
   const navigate = useNavigate()
   const [deleting, setDeleting] = useState(false)
   useDocumentTitle('Archived project', archived.data?.name)
@@ -39,7 +37,6 @@ export default function ArchivedProjectPage() {
 
   return (
     <section className="flex w-full max-w-3xl flex-col gap-6">
-      <Breadcrumb items={crumbs} className="lg:hidden" />
       <div className="flex flex-col gap-1">
         <h1 className="text-title font-bold text-body">{project.name}</h1>
         <p className="text-sm text-muted">

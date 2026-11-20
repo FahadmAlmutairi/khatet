@@ -3,9 +3,8 @@ import { Link, useOutletContext } from 'react-router'
 import { reportAvailable } from '../../api/config.js'
 import { errorMessage } from '../../api/errors.js'
 import { useActivity, useLatestReport, useMe, useMembers, useTasks } from '../../api/hooks.js'
-import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
+import { useDocumentTitle } from '../../app/pageMeta.js'
 import { AvatarStack } from '../../components/Avatar.jsx'
-import Breadcrumb from '../../components/Breadcrumb.jsx'
 import StatusPill from '../../components/StatusPill.jsx'
 import { ErrorState, LoadingState } from '../../components/ui/States.jsx'
 import { dueLine, formatDueDate, formatTimestamp, statusLabel } from '../../lib/domain.js'
@@ -21,7 +20,6 @@ const ACTIVITY_LIMIT = 5
 // Everything is counted from the board, the project log and the latest AI report.
 export default function OverviewPage() {
   const { project } = useOutletContext()
-  const crumbs = useBreadcrumb()
   const tasks = useTasks(project.id)
   const members = useMembers(project.id)
   useDocumentTitle('Overview', project.name)
@@ -31,7 +29,6 @@ export default function OverviewPage() {
 
   return (
     <section className="flex flex-col gap-6">
-      <Breadcrumb items={crumbs} className="lg:hidden" />
       <div className="flex flex-col gap-1">
         <h1 className="text-title font-bold break-words text-body">{project.name}</h1>
         {memberCount !== undefined && (
