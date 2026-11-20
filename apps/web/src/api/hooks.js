@@ -2,7 +2,7 @@
 // The screens only use these hooks, so swapping the sample API for the real
 // Express client later changes this file and ./client.js, not the screens.
 import { useEffect, useRef, useState } from 'react'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chatSocketEnabled, getChatSocket, joinProjectRoom } from './chatSocket.js'
 import { api } from './client.js'
 
@@ -501,7 +501,9 @@ export function useGenerateReport(projectId) {
 // Newest first, 50 at a time; fetchNextPage loads older entries. Refetched each time the page opens.
 // filter: { actorId } for one person, { taskId } for one task (task details), { kind } for one
 // kind of change (task, member or project).
-export function useActivity(projectId, { actorId, taskId, kind, enabled = true } = {}) {
+// keepPrevious keeps the last list on screen while a new filter loads, so the page can fade
+// between lists instead of flashing a loading message.
+export function useActivity(projectId, { actorId, taskId, kind, enabled = true, keepPrevious = false } = {}) {
   const filter = { ...(actorId ? { actorId } : {}), ...(taskId ? { taskId } : {}), ...(kind ? { kind } : {}) }
   return useInfiniteQuery({
     queryKey: keys.activity(projectId, filter),
@@ -510,5 +512,6 @@ export function useActivity(projectId, { actorId, taskId, kind, enabled = true }
     initialPageParam: undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
     staleTime: 0,
+    placeholderData: keepPrevious ? keepPreviousData : undefined,
   })
 }

@@ -251,3 +251,32 @@
     background-color: color-mix(in oklab, var(--color-nav-active) 60%, white);
   }
 }
+
+/* The chosen pill in a segmented control glides to the button you press, landing softly. */
+.segment-pill-glide {
+  transition:
+    transform 320ms var(--ease-apple),
+    width 320ms var(--ease-apple),
+    height 320ms var(--ease-apple);
+}
+
+/* Labels change colour gently and give a little under a press (transform only). */
+.segment-button {
+  transition:
+    color 200ms ease-out,
+    transform 160ms var(--ease-apple);
+}
+
+.segment-button:active {
+  transform: scale(0.97);
+}
+
+/* A filtered list dims while the next one loads, then the new list fades in. */
+.log-entries {
+  animation: fade-in 220ms ease-out;
+  transition: opacity 200ms ease-out;
+}
+
+.log-entries-switching {
+  opacity: 0.5;
+}
