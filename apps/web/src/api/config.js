@@ -16,13 +16,13 @@ export const useRealAuth = Boolean(apiUrl && supabaseUrl && supabaseKey) && env.
 // memberRemoval: DELETE /api/projects/:projectId/members/:userId and POST /api/projects/:projectId/leave
 // projectSettings: PATCH /api/projects/:projectId
 // aiReport (US-31): GET /api/projects/:projectId/reports/latest, GET and POST /api/projects/:projectId/reports.
-//   Hidden on the live site until Salman's routes are merged and OPENAI_API_KEY is on Render; the
-//   sample data always shows it.
+//   The routes are on main (PR #28). Until OPENAI_API_KEY is on Render, Generate report shows
+//   'The AI report is not set up on this server yet.'
 export const apiReady = {
   chatSocket: false,
   memberRemoval: true,
   projectSettings: true,
-  aiReport: false,
+  aiReport: true,
 }
 
 // US-31: the AI report page shows on sample data, and on the live site once its routes are ready.
