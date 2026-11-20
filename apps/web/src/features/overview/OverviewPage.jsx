@@ -1,13 +1,16 @@
 import { useState } from 'react'
-import { Link, useOutletContext } from 'react-router'
+import { Link, useNavigate, useOutletContext } from 'react-router'
 import { reportAvailable } from '../../api/config.js'
 import { errorMessage } from '../../api/errors.js'
 import { useActivity, useLatestReport, useMe, useMembers, useTasks } from '../../api/hooks.js'
 import { useDocumentTitle } from '../../app/pageMeta.js'
 import { AvatarStack } from '../../components/Avatar.jsx'
 import StatusPill from '../../components/StatusPill.jsx'
+import { CalendarIcon, ChevronIcon, HistoryIcon, ReportIcon, WarningIcon } from '../../components/icons.jsx'
+import Menu from '../../components/ui/Menu.jsx'
+import SegmentedControl from '../../components/ui/SegmentedControl.jsx'
 import { ErrorState, LoadingState } from '../../components/ui/States.jsx'
-import { dueLine, formatDueDate, formatTimestamp, statusLabel } from '../../lib/domain.js'
+import { dateFromToday, dueLine, formatDueDate, formatTimestamp, statusLabel } from '../../lib/domain.js'
 import { projectStats } from '../../lib/projectStats.js'
 import { activityTime, describeActivity } from '../activity/describeActivity.js'
 import { reportParts } from '../report/parseReport.js'
@@ -17,7 +20,7 @@ const ATTENTION_LIMIT = 4
 const ACTIVITY_LIMIT = 5
 
 // US-28: the project at a glance (Figma: Overview / Desktop / Approved, 694:1201).
-// Everything is counted from the board, the project log and the latest AI report.
+// Everything is counted from the board, the project log and the latest report.
 export default function OverviewPage() {
   const { project } = useOutletContext()
   const tasks = useTasks(project.id)
@@ -45,6 +48,7 @@ export default function OverviewPage() {
       {tasks.data && (
         <>
           <Progress tasks={tasks.data} />
+          <StatusTiles projectId={project.id} tasks={tasks.data} usernames={usernames} />
           {/* Two independent columns on desktop, so a short card never leaves a gap under it.
               On phones the columns dissolve and Needs attention comes right after Upcoming work. */}
           <div className="grid gap-4 lg:grid-cols-5 lg:items-start">
@@ -63,11 +67,27 @@ export default function OverviewPage() {
   )
 }
 
-function Card({ title, action, className = '', children }) {
+// Each card header starts with a small tinted icon, so the cards are told apart at a glance.
+const CARD_ICONS = {
+  upcoming: { icon: <CalendarIcon />, tone: 'bg-priority-low-bg text-priority-low-text' },
+  attention: { icon: <WarningIcon />, tone: 'bg-priority-high-bg text-blocked' },
+  activity: { icon: <HistoryIcon />, tone: 'bg-nav-active text-action' },
+  report: { icon: <ReportIcon />, tone: 'bg-surface-subtle/60 text-heading' },
+}
+
+function Card({ title, icon, action, className = '', children }) {
+  const badge = CARD_ICONS[icon]
   return (
     <section className={`flex min-w-0 flex-col gap-3 rounded-xl border border-line bg-white p-4 sm:p-5 ${className}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-heading">{title}</h2>
+        <div className="flex min-w-0 items-center gap-2.5">
+          {badge && (
+            <span aria-hidden="true" className={`grid size-8 shrink-0 place-items-center rounded-[9px] ${badge.tone}`}>
+              {badge.icon}
+            </span>
+          )}
+          <h2 className="text-lg font-semibold text-heading">{title}</h2>
+        </div>
         {action}
       </div>
       {children}
@@ -83,14 +103,18 @@ function CardLink({ to, children }) {
   )
 }
 
+// The board's four working columns from least to most finished, coloured from red to green.
+// Each colour also has its own shape (the board's status icons) and a text label, so colour is never the only signal.
+const STAGES = [
+  { status: 'TODO', hint: 'Not started yet', bar: 'bg-[#e0765a]', tone: 'bg-[#fbe2d9] text-[#9c3d24]' },
+  { status: 'IN_PROGRESS', hint: 'Being worked on', bar: 'bg-[#efae45]', tone: 'bg-[#fdefd2] text-[#7a5310]' },
+  { status: 'READY_FOR_REVIEW', hint: 'Waiting on a check', bar: 'bg-[#a9c45f]', tone: 'bg-[#eef4dc] text-[#4c6216]' },
+  { status: 'DONE', hint: null, bar: 'bg-[#4f9a5b]', tone: 'bg-[#d9f2df] text-[#246b3a]' },
+]
+
 function Progress({ tasks }) {
   const stats = projectStats(tasks)
-  const parts = [
-    ['TODO', stats.byStatus.TODO],
-    ['IN_PROGRESS', stats.byStatus.IN_PROGRESS],
-    ['READY_FOR_REVIEW', stats.byStatus.READY_FOR_REVIEW],
-    ['DONE', stats.byStatus.DONE],
-  ]
+  const legend = STAGES.map(({ status }) => `${stats.byStatus[status]} ${statusLabel(status).toLowerCase()}`).join(', ')
   return (
     <section aria-labelledby="progress-title" className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -102,21 +126,146 @@ function Progress({ tasks }) {
           {stats.overdue.length > 0 && <Chip>{stats.overdue.length} overdue</Chip>}
         </div>
       </div>
+      {/* One segment per column, red (not started) to green (done), so the bar shows how far along the work is. */}
       <div
         role="progressbar"
         aria-label="Tasks done"
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={stats.percent}
-        className="h-2 overflow-hidden rounded-full bg-[#e8ece6]"
+        aria-valuetext={`${stats.percent}% done: ${legend}`}
+        className="progress-reveal flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-[#e8ece6]"
       >
-        <div className="h-full rounded-full bg-action" style={{ width: `${stats.percent}%` }} />
+        {STAGES.map(({ status, bar }) =>
+          stats.byStatus[status] > 0 ? (
+            <span key={status} className={`h-full ${bar}`} style={{ width: `${(stats.byStatus[status] / stats.total) * 100}%` }} />
+          ) : null,
+        )}
       </div>
-      <p className="text-sm text-muted">
-        {parts.map(([status, count]) => `${count} ${statusLabel(status).toLowerCase()}`).join(' · ')}
-        {stats.byStatus.BACKLOG > 0 && ` · ${stats.byStatus.BACKLOG} in backlog`}
-      </p>
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
+        {STAGES.map(({ status, bar }) => (
+          <li key={status} className="inline-flex items-center gap-1.5">
+            <span aria-hidden="true" className={`size-2.5 rounded-[3px] ${bar}`} />
+            {stats.byStatus[status]} {statusLabel(status).toLowerCase()}
+          </li>
+        ))}
+        {stats.byStatus.BACKLOG > 0 && <li>{stats.byStatus.BACKLOG} in backlog</li>}
+      </ul>
     </section>
+  )
+}
+
+// Shape-coded status marks drawn in the tile's colour (same shapes as the board's status icons).
+function StageIcon({ status }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+      {status === 'TODO' && <circle cx="6" cy="6" r="5.25" stroke="currentColor" strokeWidth="1.5" />}
+      {status === 'IN_PROGRESS' && (
+        <>
+          <circle cx="6" cy="6" r="5.25" stroke="currentColor" strokeWidth="1.5" />
+          <path d="M6 0a6 6 0 0 1 0 12V0Z" fill="currentColor" />
+        </>
+      )}
+      {status === 'READY_FOR_REVIEW' && (
+        <>
+          <circle cx="6" cy="6" r="5.25" stroke="currentColor" strokeWidth="1.5" />
+          <circle cx="6" cy="6" r="2.5" fill="currentColor" />
+        </>
+      )}
+      {status === 'DONE' && (
+        <>
+          <circle cx="6" cy="6" r="6" fill="currentColor" />
+          <path d="M3.2 6.3 5.2 8.2l3.6-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      )}
+    </svg>
+  )
+}
+
+// A tile per column plus Needs attention. Pressing a tile lists its tasks; choosing one opens its details.
+function StatusTiles({ projectId, tasks, usernames }) {
+  const navigate = useNavigate()
+  const stats = projectStats(tasks)
+  const flagged = [...new Set([...stats.blocked, ...stats.overdue])]
+  const tiles = [
+    ...STAGES.map(({ status, hint, tone }) => ({
+      key: status,
+      label: statusLabel(status),
+      icon: <StageIcon status={status} />,
+      tone,
+      list: tasks.filter((task) => task.status === status),
+      hint: hint ?? `${stats.percent}% of the work`,
+    })),
+    {
+      key: 'ATTENTION',
+      label: 'Needs attention',
+      icon: <WarningIcon />,
+      tone: 'bg-priority-high-bg text-blocked',
+      list: flagged,
+      hint: flagged.length
+        ? [stats.blocked.length && `${stats.blocked.length} blocked`, stats.overdue.length && `${stats.overdue.length} overdue`].filter(Boolean).join(' · ')
+        : 'Nothing blocked or overdue',
+    },
+  ]
+  // Menus open from the tile's own edge, so they stay on screen in both the 5-up and the 2-up layout.
+  const placement = [
+    'left',
+    'left max-sm:left-auto max-sm:right-0',
+    'left sm:max-lg:left-auto sm:max-lg:right-0',
+    'right sm:max-lg:right-auto sm:max-lg:left-0',
+    'right',
+  ]
+
+  return (
+    <ul aria-label="Tasks by status" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {tiles.map((tile, index) => {
+        const [align, ...extra] = placement[index].split(' ')
+        return (
+          <li key={tile.key} className={tile.key === 'ATTENTION' ? 'max-sm:col-span-2' : ''}>
+            <Menu
+              label={`${tile.label}: ${tile.list.length} ${tile.list.length === 1 ? 'task' : 'tasks'}`}
+              align={align}
+              listClassName={`w-[min(20rem,calc(100vw-2rem))] max-h-80 overflow-y-auto ${extra.join(' ')}`}
+              buttonClassName="status-tile group flex w-full cursor-pointer flex-col gap-2.5 rounded-xl border border-line bg-white p-4 text-left hover:border-input/40 aria-expanded:border-input/60"
+              buttonContent={
+                <>
+                  <span className="flex w-full items-center gap-2">
+                    <span aria-hidden="true" className={`grid size-7 shrink-0 place-items-center rounded-lg ${tile.tone}`}>
+                      {tile.icon}
+                    </span>
+                    <span className="min-w-0 flex-1 text-sm leading-tight font-semibold text-heading">{tile.label}</span>
+                    <span aria-hidden="true" className="text-muted transition-transform duration-200 group-hover:translate-y-0.5 group-aria-expanded:rotate-180">
+                      <ChevronIcon direction="down" size={14} />
+                    </span>
+                  </span>
+                  <span className="text-[28px] leading-8 font-bold text-body">{tile.list.length}</span>
+                  <span className="truncate text-xs text-muted">{tile.hint}</span>
+                </>
+              }
+              items={
+                tile.list.length
+                  ? [
+                      { key: 'heading', heading: tile.label },
+                      ...tile.list.map((task) => ({
+                        key: task.id,
+                        label: (
+                          <span className="flex min-w-0 flex-col py-1">
+                            <span className="truncate font-medium">{task.title}</span>
+                            <span className="truncate text-xs text-muted">
+                              {[names(task, usernames) || 'Unassigned', dueLine(task.dueDate, task.status)?.text].filter(Boolean).join(' · ')}
+                            </span>
+                          </span>
+                        ),
+                        onSelect: () => navigate(`/projects/${projectId}/board?task=${task.id}`),
+                      })),
+                    ]
+                  : [{ key: 'empty', note: 'No tasks here right now.' }]
+              }
+            />
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -124,7 +273,7 @@ function Chip({ children }) {
   return <span className="shrink-0 whitespace-nowrap rounded-full bg-priority-high-bg px-2.5 py-1 text-xs font-medium text-priority-high-text">{children}</span>
 }
 
-function TaskRow({ projectId, task, usernames, line, alert = false, pill = true, badge = null }) {
+function TaskRow({ projectId, task, usernames, line, alert = false, pill = true, badge = null, lead = null }) {
   const assignees = task.assigneeIds.map((id) => ({ id, username: usernames.get(id) ?? 'unknown' }))
   return (
     <li>
@@ -132,6 +281,7 @@ function TaskRow({ projectId, task, usernames, line, alert = false, pill = true,
         to={`/projects/${projectId}/board?task=${task.id}`}
         className="card-lift flex items-center gap-3 rounded-[10px] bg-surface px-3 py-2.5 transition-colors hover:bg-nav-active"
       >
+        {lead}
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-sm font-medium break-words text-body max-sm:line-clamp-2 sm:truncate">{task.title}</span>
           <span className={`truncate text-xs ${alert ? 'text-blocked' : 'text-muted'}`}>{line}</span>
@@ -146,6 +296,42 @@ function TaskRow({ projectId, task, usernames, line, alert = false, pill = true,
 
 function names(task, usernames) {
   return task.assigneeIds.map((id) => usernames.get(id) ?? 'unknown').join(', ')
+}
+
+const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+
+// A small calendar page: month in red, day in dark text, on white. Tasks without a date get an empty page.
+function DateTile({ date }) {
+  const [, month, day] = date ? date.split('-').map(Number) : []
+  return (
+    <span aria-hidden="true" className="flex w-11 shrink-0 flex-col items-center rounded-lg border border-line bg-white py-1 leading-none">
+      {date ? (
+        <>
+          <span className="text-[10px] font-bold tracking-wide text-blocked">{MONTHS[month - 1]}</span>
+          <span className="mt-0.5 text-base font-semibold text-heading">{day}</span>
+        </>
+      ) : (
+        <span className="grid h-[26px] place-items-center text-muted">
+          <CalendarIcon />
+        </span>
+      )}
+    </span>
+  )
+}
+
+// Upcoming tasks under "Today", "This week", "Later" and "No due date", nearest first.
+function dueGroups(tasks, now = new Date()) {
+  const today = dateFromToday(0, now)
+  const weekEnd = dateFromToday(7, now)
+  const groups = [
+    { label: 'Today', test: (date) => date === today },
+    { label: 'This week', test: (date) => date > today && date <= weekEnd },
+    { label: 'Later', test: (date) => date > weekEnd },
+    { label: 'No due date', test: (date) => !date },
+  ]
+  return groups
+    .map(({ label, test }) => ({ label, tasks: tasks.filter((task) => test(task.dueDate)) }))
+    .filter((group) => group.tasks.length > 0)
 }
 
 // Open tasks by due date, for the team or for me (Figma: Upcoming work, Project / My work).
@@ -165,26 +351,19 @@ function UpcomingWork({ projectId, tasks, usernames }) {
   const elsewhere = flagged.filter((task) => !mine || task.assigneeIds.includes(me.data?.id)).length
 
   const toggle = (
-    <div role="group" aria-label="Show" className="flex rounded-full bg-surface p-0.5">
-      {[
+    <SegmentedControl
+      label="Show"
+      options={[
         [false, 'Project'],
         [true, 'My work'],
-      ].map(([value, label]) => (
-        <button
-          key={label}
-          type="button"
-          aria-pressed={mine === value}
-          onClick={() => setMine(value)}
-          className={`min-h-11 rounded-full px-3.5 text-xs font-medium sm:min-h-9 sm:px-3 ${mine === value ? 'bg-nav-active text-heading' : 'text-muted'}`}
-        >
-          {label}
-        </button>
-      ))}
-    </div>
+      ]}
+      value={mine}
+      onChange={setMine}
+    />
   )
 
   return (
-    <Card title="Upcoming work" action={toggle}>
+    <Card title="Upcoming work" icon="upcoming" action={toggle}>
       {shown.length === 0 && elsewhere > 0 ? (
         <p className="text-sm text-muted">
           {elsewhere} {mine ? 'of your tasks' : 'open tasks'} {elsewhere === 1 ? 'is' : 'are'} under Needs attention.
@@ -192,21 +371,28 @@ function UpcomingWork({ projectId, tasks, usernames }) {
       ) : shown.length === 0 ? (
         <p className="text-sm text-muted">{mine ? 'Nothing assigned to you is open.' : 'No open tasks.'}</p>
       ) : (
-        <ul className="list-enter flex flex-col gap-2">
-          {shown.map((task) => {
-            const due = dueLine(task.dueDate, task.status)
-            return (
-              <TaskRow
-                key={task.id}
-                projectId={projectId}
-                task={task}
-                usernames={usernames}
-                alert={due?.overdue}
-                line={[due?.text ?? 'No due date', names(task, usernames)].join(' · ')}
-              />
-            )
-          })}
-        </ul>
+        <div className="flex flex-col gap-3">
+          {dueGroups(shown).map((group) => (
+            <div key={group.label} className="flex flex-col gap-2">
+              <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">{group.label}</h3>
+              <ul className="list-enter flex flex-col gap-2">
+                {group.tasks.map((task) => {
+                  const due = dueLine(task.dueDate, task.status)
+                  return (
+                    <TaskRow
+                      key={task.id}
+                      projectId={projectId}
+                      task={task}
+                      usernames={usernames}
+                      lead={<DateTile date={task.dueDate} />}
+                      line={[due?.text ?? 'No due date', names(task, usernames)].filter(Boolean).join(' · ')}
+                    />
+                  )
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       )}
       {shown.length > 0 && elsewhere > 0 && <p className="text-sm text-muted">{elsewhere} more under Needs attention</p>}
       <CardLink to={`/projects/${projectId}/board`}>Open the board</CardLink>
@@ -220,7 +406,7 @@ function NeedsAttention({ projectId, tasks, usernames }) {
   const flagged = [...new Set([...stats.blocked, ...stats.overdue])]
   const shown = flagged.slice(0, ATTENTION_LIMIT)
   return (
-    <Card title={flagged.length ? `Needs attention · ${flagged.length}` : 'Needs attention'}>
+    <Card title={flagged.length ? `Needs attention · ${flagged.length}` : 'Needs attention'} icon="attention">
       {shown.length === 0 ? (
         <p className="text-sm text-muted">Nothing is blocked or overdue.</p>
       ) : (
@@ -257,7 +443,8 @@ function LatestReport({ projectId, className }) {
   const warnings = parts?.warnings.length ?? 0
   return (
     <Card
-      title="Latest AI report"
+      title="Latest report"
+      icon="report"
       className={className}
       action={warnings > 0 && <Chip>{warnings} {warnings === 1 ? 'warning' : 'warnings'}</Chip>}
     >
@@ -279,7 +466,7 @@ function RecentActivity({ projectId, className }) {
   const activity = useActivity(projectId)
   const events = (activity.data?.pages[0]?.events ?? []).slice(0, ACTIVITY_LIMIT)
   return (
-    <Card title="Recent activity" className={className}>
+    <Card title="Recent activity" icon="activity" className={className}>
       {activity.isPending && <p className="text-sm text-muted">Loading…</p>}
       {activity.isError && <p className="text-sm text-blocked">{errorMessage(activity.error)}</p>}
       {activity.isSuccess && events.length === 0 && <p className="text-sm text-muted">No changes yet.</p>}

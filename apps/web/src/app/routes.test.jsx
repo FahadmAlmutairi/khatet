@@ -1111,6 +1111,18 @@ describe('project overview (US-28)', () => {
     await user.click(within(activity).getByRole('link', { name: /View the project log/ }))
     expect(router.state.location.pathname).toBe('/projects/p-khatet/log')
   })
+
+  it('lists the tasks of a status tile and opens the chosen one', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/overview')
+    const tiles = await screen.findByRole('list', { name: 'Tasks by status' }, { timeout: 5000 })
+    await user.click(within(tiles).getByRole('button', { name: /^In Progress: 2 tasks$/ }))
+    const menu = screen.getByRole('menu', { name: /^In Progress/ })
+    await user.click(within(menu).getByRole('menuitem', { name: /Fix CSV validation errors/ }))
+    expect(router.state.location.pathname).toBe('/projects/p-khatet/board')
+    expect(await screen.findByRole('dialog', { name: 'Fix CSV validation errors' }, { timeout: 5000 })).toBeInTheDocument()
+  })
 })
 
 describe('task activity', () => {
