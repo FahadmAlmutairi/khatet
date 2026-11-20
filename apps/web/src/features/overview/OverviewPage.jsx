@@ -1,16 +1,15 @@
 import { useState } from 'react'
-import { Link, useNavigate, useOutletContext } from 'react-router'
+import { Link, useOutletContext } from 'react-router'
 import { reportAvailable } from '../../api/config.js'
 import { errorMessage } from '../../api/errors.js'
 import { useActivity, useLatestReport, useMe, useMembers, useTasks } from '../../api/hooks.js'
 import { useDocumentTitle } from '../../app/pageMeta.js'
 import { AvatarStack } from '../../components/Avatar.jsx'
 import StatusPill from '../../components/StatusPill.jsx'
-import { CalendarIcon, ChevronIcon, HistoryIcon, ReportIcon, WarningIcon } from '../../components/icons.jsx'
-import Menu from '../../components/ui/Menu.jsx'
+import { CalendarIcon, HistoryIcon, ReportIcon, WarningIcon } from '../../components/icons.jsx'
 import SegmentedControl from '../../components/ui/SegmentedControl.jsx'
 import { ErrorState, LoadingState } from '../../components/ui/States.jsx'
-import { dateFromToday, dueLine, formatDueDate, formatTimestamp, statusLabel } from '../../lib/domain.js'
+import { dateFromToday, dueLine, formatDueDate, formatTimestamp } from '../../lib/domain.js'
 import { projectStats } from '../../lib/projectStats.js'
 import { activityTime, describeActivity } from '../activity/describeActivity.js'
 import { reportParts } from '../report/parseReport.js'
@@ -47,8 +46,6 @@ export default function OverviewPage() {
       )}
       {tasks.data && (
         <>
-          <Progress tasks={tasks.data} />
-          <StatusTiles projectId={project.id} tasks={tasks.data} usernames={usernames} />
           {/* Two independent columns on desktop, so a short card never leaves a gap under it.
               On phones the columns dissolve and Needs attention comes right after Upcoming work. */}
           <div className="grid gap-4 lg:grid-cols-5 lg:items-start">
@@ -100,172 +97,6 @@ function CardLink({ to, children }) {
     <Link to={to} className="mt-auto inline-flex w-fit items-center gap-1 text-sm font-medium text-heading underline-offset-2 hover:underline">
       {children} <span aria-hidden="true">→</span>
     </Link>
-  )
-}
-
-// The board's four working columns from least to most finished, coloured from red to green.
-// Each colour also has its own shape (the board's status icons) and a text label, so colour is never the only signal.
-const STAGES = [
-  { status: 'TODO', hint: 'Not started yet', bar: 'bg-[#e0765a]', tone: 'bg-[#fbe2d9] text-[#9c3d24]' },
-  { status: 'IN_PROGRESS', hint: 'Being worked on', bar: 'bg-[#efae45]', tone: 'bg-[#fdefd2] text-[#7a5310]' },
-  { status: 'READY_FOR_REVIEW', hint: 'Waiting on a check', bar: 'bg-[#a9c45f]', tone: 'bg-[#eef4dc] text-[#4c6216]' },
-  { status: 'DONE', hint: null, bar: 'bg-[#4f9a5b]', tone: 'bg-[#d9f2df] text-[#246b3a]' },
-]
-
-function Progress({ tasks }) {
-  const stats = projectStats(tasks)
-  const legend = STAGES.map(({ status }) => `${stats.byStatus[status]} ${statusLabel(status).toLowerCase()}`).join(', ')
-  return (
-    <section aria-labelledby="progress-title" className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4 sm:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="progress-title" className="text-base font-medium text-body">
-          {stats.percent}% complete · {stats.done} of {stats.total} tasks done
-        </h2>
-        <div className="flex gap-2">
-          {stats.blocked.length > 0 && <Chip>{stats.blocked.length} blocked</Chip>}
-          {stats.overdue.length > 0 && <Chip>{stats.overdue.length} overdue</Chip>}
-        </div>
-      </div>
-      {/* One segment per column, red (not started) to green (done), so the bar shows how far along the work is. */}
-      <div
-        role="progressbar"
-        aria-label="Tasks done"
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={stats.percent}
-        aria-valuetext={`${stats.percent}% done: ${legend}`}
-        className="progress-reveal flex h-2.5 gap-0.5 overflow-hidden rounded-full bg-[#e8ece6]"
-      >
-        {STAGES.map(({ status, bar }) =>
-          stats.byStatus[status] > 0 ? (
-            <span key={status} className={`h-full ${bar}`} style={{ width: `${(stats.byStatus[status] / stats.total) * 100}%` }} />
-          ) : null,
-        )}
-      </div>
-      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted">
-        {STAGES.map(({ status, bar }) => (
-          <li key={status} className="inline-flex items-center gap-1.5">
-            <span aria-hidden="true" className={`size-2.5 rounded-[3px] ${bar}`} />
-            {stats.byStatus[status]} {statusLabel(status).toLowerCase()}
-          </li>
-        ))}
-        {stats.byStatus.BACKLOG > 0 && <li>{stats.byStatus.BACKLOG} in backlog</li>}
-      </ul>
-    </section>
-  )
-}
-
-// Shape-coded status marks drawn in the tile's colour (same shapes as the board's status icons).
-function StageIcon({ status }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      {status === 'TODO' && <circle cx="6" cy="6" r="5.25" stroke="currentColor" strokeWidth="1.5" />}
-      {status === 'IN_PROGRESS' && (
-        <>
-          <circle cx="6" cy="6" r="5.25" stroke="currentColor" strokeWidth="1.5" />
-          <path d="M6 0a6 6 0 0 1 0 12V0Z" fill="currentColor" />
-        </>
-      )}
-      {status === 'READY_FOR_REVIEW' && (
-        <>
-          <circle cx="6" cy="6" r="5.25" stroke="currentColor" strokeWidth="1.5" />
-          <circle cx="6" cy="6" r="2.5" fill="currentColor" />
-        </>
-      )}
-      {status === 'DONE' && (
-        <>
-          <circle cx="6" cy="6" r="6" fill="currentColor" />
-          <path d="M3.2 6.3 5.2 8.2l3.6-4" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-        </>
-      )}
-    </svg>
-  )
-}
-
-// A tile per column plus Needs attention. Pressing a tile lists its tasks; choosing one opens its details.
-function StatusTiles({ projectId, tasks, usernames }) {
-  const navigate = useNavigate()
-  const stats = projectStats(tasks)
-  const flagged = [...new Set([...stats.blocked, ...stats.overdue])]
-  const tiles = [
-    ...STAGES.map(({ status, hint, tone }) => ({
-      key: status,
-      label: statusLabel(status),
-      icon: <StageIcon status={status} />,
-      tone,
-      list: tasks.filter((task) => task.status === status),
-      hint: hint ?? `${stats.percent}% of the work`,
-    })),
-    {
-      key: 'ATTENTION',
-      label: 'Needs attention',
-      icon: <WarningIcon />,
-      tone: 'bg-priority-high-bg text-blocked',
-      list: flagged,
-      hint: flagged.length
-        ? [stats.blocked.length && `${stats.blocked.length} blocked`, stats.overdue.length && `${stats.overdue.length} overdue`].filter(Boolean).join(' · ')
-        : 'Nothing blocked or overdue',
-    },
-  ]
-  // Menus open from the tile's own edge, so they stay on screen in both the 5-up and the 2-up layout.
-  const placement = [
-    'left',
-    'left max-sm:left-auto max-sm:right-0',
-    'left sm:max-lg:left-auto sm:max-lg:right-0',
-    'right sm:max-lg:right-auto sm:max-lg:left-0',
-    'right',
-  ]
-
-  return (
-    <ul aria-label="Tasks by status" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      {tiles.map((tile, index) => {
-        const [align, ...extra] = placement[index].split(' ')
-        return (
-          <li key={tile.key} className={tile.key === 'ATTENTION' ? 'max-sm:col-span-2' : ''}>
-            <Menu
-              label={`${tile.label}: ${tile.list.length} ${tile.list.length === 1 ? 'task' : 'tasks'}`}
-              align={align}
-              listClassName={`w-[min(20rem,calc(100vw-2rem))] max-h-80 overflow-y-auto ${extra.join(' ')}`}
-              buttonClassName="status-tile group flex w-full cursor-pointer flex-col gap-2.5 rounded-xl border border-line bg-white p-4 text-left hover:border-input/40 aria-expanded:border-input/60"
-              buttonContent={
-                <>
-                  <span className="flex w-full items-center gap-2">
-                    <span aria-hidden="true" className={`grid size-7 shrink-0 place-items-center rounded-lg ${tile.tone}`}>
-                      {tile.icon}
-                    </span>
-                    <span className="min-w-0 flex-1 text-sm leading-tight font-semibold text-heading">{tile.label}</span>
-                    <span aria-hidden="true" className="text-muted transition-transform duration-200 group-hover:translate-y-0.5 group-aria-expanded:rotate-180">
-                      <ChevronIcon direction="down" size={14} />
-                    </span>
-                  </span>
-                  <span className="text-[28px] leading-8 font-bold text-body">{tile.list.length}</span>
-                  <span className="truncate text-xs text-muted">{tile.hint}</span>
-                </>
-              }
-              items={
-                tile.list.length
-                  ? [
-                      { key: 'heading', heading: tile.label },
-                      ...tile.list.map((task) => ({
-                        key: task.id,
-                        label: (
-                          <span className="flex min-w-0 flex-col py-1">
-                            <span className="truncate font-medium">{task.title}</span>
-                            <span className="truncate text-xs text-muted">
-                              {[names(task, usernames) || 'Unassigned', dueLine(task.dueDate, task.status)?.text].filter(Boolean).join(' · ')}
-                            </span>
-                          </span>
-                        ),
-                        onSelect: () => navigate(`/projects/${projectId}/board?task=${task.id}`),
-                      })),
-                    ]
-                  : [{ key: 'empty', note: 'No tasks here right now.' }]
-              }
-            />
-          </li>
-        )
-      })}
-    </ul>
   )
 }
 
