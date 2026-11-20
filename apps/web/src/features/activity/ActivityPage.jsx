@@ -6,6 +6,7 @@ import { useBreadcrumb, useDocumentTitle } from '../../app/pageMeta.js'
 import Avatar from '../../components/Avatar.jsx'
 import Breadcrumb from '../../components/Breadcrumb.jsx'
 import Button from '../../components/ui/Button.jsx'
+import SegmentedControl from '../../components/ui/SegmentedControl.jsx'
 import { EmptyState, ErrorState, LoadingState } from '../../components/ui/States.jsx'
 import { describeActivity, dayLabel } from './describeActivity.js'
 
@@ -26,7 +27,7 @@ export default function ActivityPage() {
   const crumbs = useBreadcrumb()
   const [actorId, setActorId] = useState('')
   const [kind, setKind] = useState('')
-  const activity = useActivity(project.id, { actorId: actorId || undefined, kind: kind || undefined })
+  const activity = useActivity(project.id, { actorId: actorId || undefined, kind: kind || undefined, keepPrevious: true })
   const members = useMembers(project.id)
   const tasks = useTasks(project.id)
   const filterId = useId()
@@ -39,6 +40,13 @@ export default function ActivityPage() {
   const liveTaskIds = new Set((tasks.data ?? []).map((task) => task.id))
   const days = groupByDay(events)
   const chosen = actors.find((actor) => actor.id === actorId)
+
+  // While a new filter loads, the old list stays and dims. When the new list arrives, the key
+  // below changes and it fades in, row after row.
+  const filterKey = `${kind}|${actorId}`
+  const [shownKey, setShownKey] = useState(filterKey)
+  if (!activity.isPlaceholderData && shownKey !== filterKey) setShownKey(filterKey)
+  const switching = activity.isPlaceholderData
 
   return (
     <section className="flex w-full max-w-3xl flex-col gap-6">
@@ -68,21 +76,7 @@ export default function ActivityPage() {
         )}
       </div>
 
-      <div role="group" aria-label="Kind of change" className="-mt-2 flex w-fit flex-wrap gap-1 rounded-full bg-white p-1 ring-1 ring-line">
-        {KINDS.map(([value, label]) => (
-          <button
-            key={label}
-            type="button"
-            aria-pressed={kind === value}
-            onClick={() => setKind(value)}
-            className={`min-h-11 rounded-full px-4 text-sm font-medium sm:min-h-9 ${
-              kind === value ? 'bg-nav-active text-heading' : 'text-muted hover:text-heading'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl label="Kind of change" options={KINDS} value={kind} onChange={setKind} className="-mt-2" />
 
       {activity.isPending && <LoadingState label="Loading the project log" />}
       {activity.isError && (
@@ -92,41 +86,49 @@ export default function ActivityPage() {
           onRetry={() => activity.refetch()}
         />
       )}
-      {activity.isSuccess && events.length === 0 && (
-        <EmptyState title={kind || chosen ? 'No matching changes' : 'Nothing in the log yet'}>
-          {kind || chosen ? null : 'Changes to tasks and members will show here.'}
-        </EmptyState>
-      )}
+      {activity.isSuccess && (
+        <div
+          key={shownKey}
+          aria-busy={switching}
+          className={`log-entries flex flex-col gap-6 ${switching ? 'log-entries-switching' : ''}`}
+        >
+          {events.length === 0 && (
+            <EmptyState title={kind || chosen ? 'No matching changes' : 'Nothing in the log yet'}>
+              {kind || chosen ? null : 'Changes to tasks and members will show here.'}
+            </EmptyState>
+          )}
 
-      {days.map(({ key, label, items }) => (
-        <section key={key} aria-labelledby={`day-${key}`} className="flex flex-col gap-2">
-          <h2 id={`day-${key}`} className="text-sm font-semibold text-muted">
-            {label}
-          </h2>
-          <ol className="list-enter flex flex-col divide-y divide-line overflow-hidden rounded-xl border border-line bg-white">
-            {items.map((event) => (
-              <li key={event.id} className="row-hover flex items-start gap-3 px-4 py-3">
-                <span aria-hidden="true" className="-my-1 flex">
-                  <Avatar username={event.actorUsername} size="sm" />
-                </span>
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <p className="text-sm text-body">
-                    <EventText event={event} projectId={project.id} taskExists={liveTaskIds.has(event.taskId)} />
-                  </p>
-                  {describeActivity(event).more.map((line) => (
-                    <p key={line} className="text-sm text-muted">
-                      {line}
-                    </p>
-                  ))}
-                </div>
-                <time dateTime={event.createdAt} className="shrink-0 text-xs leading-5 text-muted tabular-nums">
-                  {timeFormat.format(new Date(event.createdAt))}
-                </time>
-              </li>
-            ))}
-          </ol>
-        </section>
-      ))}
+          {days.map(({ key, label, items }) => (
+            <section key={key} aria-labelledby={`day-${key}`} className="flex flex-col gap-2">
+              <h2 id={`day-${key}`} className="text-sm font-semibold text-muted">
+                {label}
+              </h2>
+              <ol className="list-enter flex flex-col divide-y divide-line overflow-hidden rounded-xl border border-line bg-white">
+                {items.map((event) => (
+                  <li key={event.id} className="row-hover flex items-start gap-3 px-4 py-3">
+                    <span aria-hidden="true" className="-my-1 flex">
+                      <Avatar username={event.actorUsername} size="sm" />
+                    </span>
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <p className="text-sm text-body">
+                        <EventText event={event} projectId={project.id} taskExists={liveTaskIds.has(event.taskId)} />
+                      </p>
+                      {describeActivity(event).more.map((line) => (
+                        <p key={line} className="text-sm text-muted">
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                    <time dateTime={event.createdAt} className="shrink-0 text-xs leading-5 text-muted tabular-nums">
+                      {timeFormat.format(new Date(event.createdAt))}
+                    </time>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ))}
+        </div>
+      )}
 
       {activity.hasNextPage && (
         <div className="flex justify-center">
