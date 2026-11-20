@@ -53,7 +53,7 @@ export default function SegmentedControl({ options, value, onChange, label, clas
             type="button"
             aria-pressed={chosen}
             onClick={() => onChange(optionValue)}
-            className={`segment-button min-h-11 rounded-full px-4 text-sm font-medium sm:min-h-9 ${
+            className={`segment-button min-h-11 cursor-pointer rounded-full px-4 text-sm font-medium sm:min-h-9 ${
               chosen ? 'text-heading' : 'text-muted hover:text-heading'
             }`}
           >
