@@ -51,7 +51,7 @@ export default function ArchivedProjectsList() {
                     Restore
                   </Button>
                 )}
-                <Button variant="secondary" onClick={() => setDeleting(project)}>
+                <Button variant="danger" onClick={() => setDeleting(project)}>
                   Delete
                 </Button>
               </div>
