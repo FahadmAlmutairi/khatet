@@ -118,7 +118,7 @@ function ArchiveSection({ project }) {
       <h2 className="text-base font-semibold text-body">Archive project</h2>
       <p className="text-sm text-muted">
         The board, chat and reports close for everyone. The project log stays, so you and every member can still see
-        who did what. Each person finds it in Settings, under Archived projects, and can delete it for themselves.
+        who did what. Each person finds it in Settings, under Archived projects, and can delete it for themselves. You can restore the project from there.
       </p>
       <div>
         <Button variant="danger" onClick={() => setConfirming(true)} fullOnPhone>
@@ -129,7 +129,7 @@ function ArchiveSection({ project }) {
         open={confirming}
         onClose={close}
         title={`Archive ${project.name}?`}
-        description="This cannot be undone. Tasks, chat and reports can no longer be opened. Pending invitations are cancelled. Every member keeps the project log in Settings."
+        description="Tasks, chat and reports can no longer be opened, and pending invitations are cancelled. Every member keeps the project log in Settings. You can restore the project from there, as long as you have not deleted it."
         footer={
           <>
             <Button variant="secondary" onClick={close}>

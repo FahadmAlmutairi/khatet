@@ -28,7 +28,7 @@ export const ACTIVITY_KINDS = {
     'MEMBER_REMOVED',
     'MEMBER_LEFT',
   ],
-  project: ['PROJECT_CREATED', 'PROJECT_UPDATED', 'PROJECT_ARCHIVED'],
+  project: ['PROJECT_CREATED', 'PROJECT_UPDATED', 'PROJECT_ARCHIVED', 'PROJECT_RESTORED'],
 }
 
 function serializeEvent(event) {

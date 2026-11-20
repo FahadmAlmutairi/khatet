@@ -128,6 +128,20 @@ export function useDeleteArchivedProject() {
   })
 }
 
+// Owner only: the project opens again for every member.
+export function useRestoreProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (projectId) => api.restoreProject(projectId),
+    onSuccess: (_, projectId) => {
+      queryClient.setQueryData(keys.archivedProjects, (items) => items?.filter((item) => item.id !== projectId))
+      queryClient.removeQueries({ queryKey: keys.project(projectId), exact: true })
+      queryClient.removeQueries({ queryKey: ['activity', projectId] })
+      queryClient.invalidateQueries({ queryKey: keys.projects })
+    },
+  })
+}
+
 // ---------- Members ----------
 
 export function useMembers(projectId) {

@@ -130,4 +130,44 @@ describe.skipIf(!hasTestDatabase)('Archived projects', () => {
     // Sara left before the archive, so she does not get it.
     expect((await listArchived(sara)).body).toEqual([])
   })
+
+  describe('restore', () => {
+    const restore = (as) => request(app).post(`/api/archived-projects/${project.id}/restore`).set(authHeader(as))
+
+    it('lets only the owner restore, and reopens the project for every member', async () => {
+      await archive(owner)
+      expect((await restore(sara)).status).toBe(403)
+      expect((await restore(omar)).status).toBe(404)
+
+      const res = await restore(owner)
+      expect(res.status).toBe(200)
+      expect(res.body).toEqual({ id: project.id, name: 'Graduation project' })
+
+      for (const member of [owner, sara]) {
+        expect((await listArchived(member)).body).toEqual([])
+        expect((await request(app).get('/api/projects').set(authHeader(member))).body.map((item) => item.id)).toEqual([project.id])
+      }
+      const task = await request(app).get(`/api/tasks/${taskId}`).set(authHeader(sara))
+      expect(task.status).toBe(200)
+      expect(task.body.status).toBe('DONE')
+
+      const log = await getLog(owner)
+      expect(log.body.events.slice(0, 2).map((event) => event.type)).toEqual(['PROJECT_RESTORED', 'PROJECT_ARCHIVED'])
+      expect((await restore(owner)).status).toBe(404)
+    })
+
+    it('brings back a member who had deleted their copy', async () => {
+      await archive(owner)
+      await deleteArchived(sara)
+      expect((await restore(owner)).status).toBe(200)
+      expect((await request(app).get(`/api/projects/${project.id}`).set(authHeader(sara))).status).toBe(200)
+    })
+
+    it('cannot restore once the owner has deleted their copy', async () => {
+      await archive(owner)
+      await deleteArchived(owner)
+      expect((await restore(owner)).status).toBe(404)
+      expect((await listArchived(sara)).body).toHaveLength(1)
+    })
+  })
 })

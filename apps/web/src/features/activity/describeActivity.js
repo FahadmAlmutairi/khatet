@@ -40,6 +40,8 @@ export function describeActivity(event) {
       return { before: 'created the project', after: '', more: [] }
     case 'PROJECT_ARCHIVED':
       return { before: 'archived the project', after: '', more: [] }
+    case 'PROJECT_RESTORED':
+      return { before: 'restored the project', after: '', more: [] }
     case 'PROJECT_UPDATED':
       return { before: 'changed the project settings', after: '', more: changeLines(details.changes) }
     case 'TASK_CREATED':

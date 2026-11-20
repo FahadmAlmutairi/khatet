@@ -32,6 +32,7 @@ POST   /api/projects/:projectId/archive             (owner: archive instead of d
 GET    /api/archived-projects                       (the signed-in user's archived projects)
 GET    /api/archived-projects/:projectId
 DELETE /api/archived-projects/:projectId            (delete it for the signed-in user only, 204)
+POST   /api/archived-projects/:projectId/restore    (owner: reopen the project)
 GET    /api/projects/:projectId/overview
 GET    /api/projects/:projectId/members
 PATCH  /api/projects/:projectId/members/:userId     (owner: task access)
@@ -198,12 +199,13 @@ The professor asked at the Sprint 2 demo for a project history that survives del
 
 Projects are archived instead of deleted, so the project log (who did what) is never lost by one person's action, for example for an assessment after the project ends.
 
-- `POST /api/projects/:projectId/archive`, owner only (403 for a member, 404 for others). Answers the archived project below. In one transaction it copies the summary, removes pending invitations and the project's notifications, adds a `PROJECT_ARCHIVED` log entry and sets `archivedAt`. Archiving cannot be undone.
+- `POST /api/projects/:projectId/archive`, owner only (403 for a member, 404 for others). Answers the archived project below. In one transaction it copies the summary, removes pending invitations and the project's notifications, adds a `PROJECT_ARCHIVED` log entry and sets `archivedAt`. The owner can restore it (below).
 - After that, every project route answers 410 `PROJECT_ARCHIVED` ("This project is archived. Its project log is in Settings, under Archived projects."), except `GET /api/projects/:projectId/activity`, which keeps working for the members the project had when archived. `GET /api/projects` leaves archived projects out.
 - `GET /api/archived-projects` lists the signed-in user's archived projects, newest first, and `GET /api/archived-projects/:projectId` answers one (404 if they are not a member or deleted it). Each is `{ id, name, description, createdAt, archivedAt, archivedByUsername, role, summary }`, where `summary` is `{ name, description, createdAt, members: [{ userId, username, role }], tasks: { total, byStatus } }` as copied at archive time.
 - `DELETE /api/archived-projects/:projectId` deletes it for the signed-in user only (204); they lose access to its log. When the last member deletes it, the project and everything in it are removed for good.
+- `POST /api/archived-projects/:projectId/restore`, owner only, while the owner still has it (403 for a member, 404 if the owner deleted it). Answers `{ id, name }`. The project opens again with its tasks, chat and reports, and a `PROJECT_RESTORED` log entry is added. Members who had deleted their copy come back with the same access, so tasks assigned to them stay valid; the owner can remove them afterwards. Invitations and notifications removed at archive time do not come back.
 
-The web app shows Archive project on the owner's Project settings page, with a confirmation. Each member finds the archived project under Settings > Archived projects, which opens a read-only page with the summary and the full project log, and a Delete permanently action. Opening an archived project's old address shows that it is archived, with a link to its log.
+The web app shows Archive project on the owner's Project settings page, with a confirmation. Each member finds the archived project under Settings > Archived projects, which opens a read-only page with the summary and the full project log, a Delete permanently action, and for the owner a Restore project action (both with a confirmation). Opening an archived project's old address shows that it is archived, with a link to its log.
 
 ## AI report contract
 

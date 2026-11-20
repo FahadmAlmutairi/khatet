@@ -81,7 +81,7 @@ Only the Project Owner sees Project Settings in the project navigation. The page
 
 ### Archived projects
 
-Account settings has an Archived projects section listing each archived project the user was in, with who archived it and when, a link to open it, and Delete. The archived project page is read-only: the summary copied when it was archived (description, members, task counts) and the full project log with its person filter and kind tabs. Delete permanently asks for confirmation and says the other members keep their copy.
+Account settings has an Archived projects section listing each archived project the user was in, with who archived it and when, a link to open it, Delete, and Restore for the owner. The archived project page is read-only: the summary copied when it was archived (description, members, task counts) and the full project log with its person filter and kind tabs. Delete permanently asks for confirmation and says the other members keep their copy. Restore project (owner only) asks for confirmation, then opens the project's overview.
 
 ### Project chat
 

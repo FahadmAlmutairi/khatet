@@ -474,6 +474,17 @@ export function deleteArchivedProject(projectId) {
   })
 }
 
+export function restoreProject(projectId) {
+  return respond('restoreProject', () => {
+    const { project, membership } = requireArchived(projectId)
+    if (membership.role !== 'OWNER') throw forbidden('Only the project owner can restore the project.')
+    for (const item of db.members) if (item.projectId === projectId) delete item.archiveRemovedAt
+    logActivity(projectId, 'PROJECT_RESTORED', { details: { name: project.name } })
+    Object.assign(project, { archivedAt: null, archivedById: null, archiveSummary: null })
+    return { id: project.id, name: project.name }
+  })
+}
+
 // ---------- Members and invitations (US-07, US-08, US-09, US-10) ----------
 
 export function getMembers(projectId) {

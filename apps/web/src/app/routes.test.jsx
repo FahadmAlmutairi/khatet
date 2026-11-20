@@ -218,6 +218,27 @@ describe('archived projects', () => {
   })
 })
 
+describe('restoring archived projects', () => {
+  it('lets the owner restore an archived project from Settings', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/settings')
+    await user.click(await screen.findByRole('button', { name: 'Archive project' }))
+    await user.click(within(screen.getByRole('dialog', { name: 'Archive Khatet?' })).getByRole('button', { name: 'Archive project' }))
+    await screen.findByText('Khatet is archived. Its project log is in Settings.', { selector: '[aria-live]' })
+
+    await router.navigate('/account')
+    await user.click(await screen.findByRole('button', { name: 'Restore' }))
+    const confirmation = screen.getByRole('dialog', { name: 'Restore Khatet?' })
+    await user.click(within(confirmation).getByRole('button', { name: 'Restore project' }))
+
+    expect(await screen.findByText('Khatet is restored.', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/projects/p-khatet/overview')
+    await router.navigate('/projects/p-khatet/log')
+    expect(await screen.findByText('restored the project')).toBeInTheDocument()
+  })
+})
+
 describe('loading and messages (G8, G10)', () => {
   it('shows the board shape while it loads and lets a message be closed', async () => {
     signIn()

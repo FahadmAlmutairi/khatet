@@ -8,6 +8,7 @@ import { ErrorState, LoadingState } from '../../components/ui/States.jsx'
 import { formatShortDate, statusLabel } from '../../lib/domain.js'
 import { ProjectLog } from '../activity/ActivityPage.jsx'
 import DeleteArchivedDialog from './DeleteArchivedDialog.jsx'
+import RestoreProjectDialog from './RestoreProjectDialog.jsx'
 
 const STATUSES = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'DONE']
 
@@ -17,6 +18,7 @@ export default function ArchivedProjectPage() {
   const archived = useArchivedProject(archivedId)
   const navigate = useNavigate()
   const [deleting, setDeleting] = useState(false)
+  const [restoring, setRestoring] = useState(false)
   useDocumentTitle('Archived project', archived.data?.name)
 
   if (archived.isPending) return <LoadingState label="Opening the archived project" />
@@ -72,7 +74,12 @@ export default function ArchivedProjectPage() {
             </div>
           )}
         </dl>
-        <div>
+        <div className="flex flex-wrap gap-2">
+          {project.role === 'OWNER' && (
+            <Button variant="secondary" onClick={() => setRestoring(true)} fullOnPhone>
+              Restore project
+            </Button>
+          )}
           <Button variant="danger" onClick={() => setDeleting(true)} fullOnPhone>
             Delete permanently
           </Button>
@@ -86,6 +93,7 @@ export default function ArchivedProjectPage() {
         onClose={() => setDeleting(false)}
         onDeleted={() => navigate('/account')}
       />
+      <RestoreProjectDialog project={restoring ? project : null} onClose={() => setRestoring(false)} />
     </section>
   )
 }

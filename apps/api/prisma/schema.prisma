@@ -5,7 +5,8 @@
 // Sprint 3: the project log (activity events), so the team's history stays after tasks are deleted or members leave.
 // Sprint 3: AI project reports (US-31).
 // Sprint 3: archived projects. Archiving keeps the project log for every member, each of
-// whom can delete it for themselves; the project is removed once all of them have.
+// whom can delete it for themselves; the project is removed once all of them have. The
+// owner can restore it until then.
 // Change it only through a migration: npm run db:migrate -- --name what_changed
 
 generator client {
@@ -58,6 +59,7 @@ enum ActivityType {
   PROJECT_CREATED
   PROJECT_UPDATED
   PROJECT_ARCHIVED
+  PROJECT_RESTORED
   TASK_CREATED
   TASK_UPDATED
   TASK_MOVED
@@ -98,9 +100,9 @@ model User {
   @@map("users")
 }
 
-// A project. Archiving (owner only) closes the board, chat and reports for good; only the
-// project log and the summary copied at that moment stay readable, under each member's
-// Settings > Archived projects.
+// A project. Archiving (owner only) closes the board, chat and reports; only the project log
+// and the summary copied at that moment stay readable, under each member's Settings >
+// Archived projects. The owner can restore it while they still have it.
 model Project {
   id             String    @id @default(uuid()) @db.Uuid
   name           String
