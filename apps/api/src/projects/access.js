@@ -13,7 +13,9 @@ export function isUuid(value) {
 
 // A user can open only the projects they belong to (NFR-11). A project that does not
 // exist and one the user is not in get the same answer, so IDs cannot be probed.
-export async function findMembership(projectId, userId) {
+// An archived project answers 410 PROJECT_ARCHIVED everywhere except the project log, which
+// passes { allowArchived: true }. A member who deleted the archived log is no longer a member.
+export async function findMembership(projectId, userId, { allowArchived = false } = {}) {
   const membership = isUuid(projectId)
     ? await prisma.projectMember.findUnique({
         where: { projectId_userId: { projectId, userId } },
@@ -21,10 +23,19 @@ export async function findMembership(projectId, userId) {
       })
     : null
 
-  if (!membership) {
+  if (!membership || membership.archiveRemovedAt) {
     throw new ApiError(404, 'NOT_FOUND', 'This project does not exist or you are not a member of it.')
   }
+  if (membership.project.archivedAt && !allowArchived) throw archived()
   return membership
+}
+
+export function archived() {
+  return new ApiError(
+    410,
+    'PROJECT_ARCHIVED',
+    'This project is archived. Its project log is in Settings, under Archived projects.',
+  )
 }
 
 // Only the owner manages membership, invitations, task access, phases and settings.

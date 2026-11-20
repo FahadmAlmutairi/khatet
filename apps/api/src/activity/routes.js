@@ -28,7 +28,7 @@ export const ACTIVITY_KINDS = {
     'MEMBER_REMOVED',
     'MEMBER_LEFT',
   ],
-  project: ['PROJECT_CREATED', 'PROJECT_UPDATED'],
+  project: ['PROJECT_CREATED', 'PROJECT_UPDATED', 'PROJECT_ARCHIVED'],
 }
 
 function serializeEvent(event) {
@@ -46,7 +46,8 @@ function serializeEvent(event) {
 }
 
 activityRouter.get('/projects/:projectId/activity', requireAuth, requireUsername, async (req, res) => {
-  const { projectId } = await findMembership(req.params.projectId, req.user.id)
+  // The log stays readable after the project is archived.
+  const { projectId } = await findMembership(req.params.projectId, req.user.id, { allowArchived: true })
   const { actorId, taskId, before, kind } = req.query
 
   const errors = []

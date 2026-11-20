@@ -77,7 +77,11 @@ The Members page lists the Project Owner and every Team Member with their task a
 
 ### Project settings
 
-Only the Project Owner sees Project Settings in the project navigation. The page lets them edit the required project name and optional description with an explicit Save changes action. Keep the entered values visible and explain the error if saving fails.
+Only the Project Owner sees Project Settings in the project navigation. The page lets them edit the required project name and optional description with an explicit Save changes action. Keep the entered values visible and explain the error if saving fails. Below the form, an Archive project section explains that the board, chat and reports close for everyone while the project log stays, and asks for confirmation before archiving.
+
+### Archived projects
+
+Account settings has an Archived projects section listing each archived project the user was in, with who archived it and when, a link to open it, and Delete. The archived project page is read-only: the summary copied when it was archived (description, members, task counts) and the full project log with its person filter and kind tabs. Delete permanently asks for confirmation and says the other members keep their copy.
 
 ### Project chat
 

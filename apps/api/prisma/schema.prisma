@@ -4,6 +4,8 @@
 // Sprint 2: project chat messages (US-24).
 // Sprint 3: the project log (activity events), so the team's history stays after tasks are deleted or members leave.
 // Sprint 3: AI project reports (US-31).
+// Sprint 3: archived projects. Archiving keeps the project log for every member, each of
+// whom can delete it for themselves; the project is removed once all of them have.
 // Change it only through a migration: npm run db:migrate -- --name what_changed
 
 generator client {
@@ -55,6 +57,7 @@ enum TaskPriority {
 enum ActivityType {
   PROJECT_CREATED
   PROJECT_UPDATED
+  PROJECT_ARCHIVED
   TASK_CREATED
   TASK_UPDATED
   TASK_MOVED
@@ -90,19 +93,28 @@ model User {
   chatMessages        ChatMessage[]
   activityEvents      ActivityEvent[]
   aiReports           AiReport[]
+  archivedProjects    Project[]       @relation("ProjectArchiver")
 
   @@map("users")
 }
 
+// A project. Archiving (owner only) closes the board, chat and reports for good; only the
+// project log and the summary copied at that moment stay readable, under each member's
+// Settings > Archived projects.
 model Project {
-  id          String   @id @default(uuid()) @db.Uuid
-  name        String
-  description String   @default("")
-  createdById String   @map("created_by_id") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id             String    @id @default(uuid()) @db.Uuid
+  name           String
+  description    String    @default("")
+  createdById    String    @map("created_by_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  archivedAt     DateTime? @map("archived_at")
+  archivedById   String?   @map("archived_by_id") @db.Uuid
+  // Name, description, owner, members and task counts at the moment of archiving.
+  archiveSummary Json?     @map("archive_summary")
 
   createdBy      User            @relation("ProjectCreator", fields: [createdById], references: [id])
+  archivedBy     User?           @relation("ProjectArchiver", fields: [archivedById], references: [id], onDelete: SetNull)
   members        ProjectMember[]
   invitations    Invitation[]
   notifications  Notification[]
@@ -116,11 +128,13 @@ model Project {
 
 // A user's membership in one project. The owner has role OWNER and full access.
 model ProjectMember {
-  projectId  String      @map("project_id") @db.Uuid
-  userId     String      @map("user_id") @db.Uuid
-  role       ProjectRole @default(MEMBER)
-  taskAccess TaskAccess  @default(EDIT_ASSIGNED) @map("task_access")
-  joinedAt   DateTime    @default(now()) @map("joined_at")
+  projectId        String      @map("project_id") @db.Uuid
+  userId           String      @map("user_id") @db.Uuid
+  role             ProjectRole @default(MEMBER)
+  taskAccess       TaskAccess  @default(EDIT_ASSIGNED) @map("task_access")
+  joinedAt         DateTime    @default(now()) @map("joined_at")
+  // Set when this member deletes the archived project's log for themselves.
+  archiveRemovedAt DateTime?   @map("archive_removed_at")
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id])

@@ -8,6 +8,7 @@ import { FieldError, TextField } from '../../components/ui/Field.jsx'
 import { useFocusFirstInvalid } from '../../components/ui/useFocusFirstInvalid.js'
 import { LoadingState } from '../../components/ui/States.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
+import ArchivedProjectsList from '../archive/ArchivedProjectsList.jsx'
 
 const dateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -61,8 +62,8 @@ function ProfileForm({ me }) {
   )
 }
 
-// US-03: Account settings, opened from the bottom of the sidebar. Sprint 2 has only the
-// "Profile & security" tab (docs/ui-ux-guidelines.md); "Notifications & preferences" comes later.
+// US-03: Account settings, opened from the bottom of the sidebar: "Profile & security"
+// (docs/ui-ux-guidelines.md) and Archived projects; "Notifications & preferences" comes later.
 export default function AccountSettingsPage() {
   const me = useMe()
   const crumbs = useBreadcrumb()
@@ -78,6 +79,7 @@ export default function AccountSettingsPage() {
         <h2 className="mb-6 text-base font-semibold text-body">Profile &amp; security</h2>
         <ProfileForm key={me.data.username} me={me.data} />
       </div>
+      <ArchivedProjectsList />
     </section>
   )
 }

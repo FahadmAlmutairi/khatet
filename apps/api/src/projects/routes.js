@@ -5,7 +5,10 @@ import { requireAuth, requireUsername } from '../auth/requireAuth.js'
 import { invalid, MAX_TEXT_LENGTH } from '../lib/errors.js'
 import { TRANSACTION_OPTIONS } from '../lib/transactions.js'
 import { recordActivity } from '../activity/record.js'
-import { findMembership, findOwnerMembership } from './access.js'
+import { archived, findMembership, findOwnerMembership } from './access.js'
+import { serializeArchivedProject } from './archived.js'
+
+const TASK_STATUSES = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'DONE']
 
 export const projectsRouter = Router()
 
@@ -32,7 +35,7 @@ function serializeProject(project, membership) {
 // US-04: List projects belonging to the signed-in user.
 projectsRouter.get('/', async (req, res) => {
   const memberships = await prisma.projectMember.findMany({
-    where: { userId: req.user.id },
+    where: { userId: req.user.id, project: { archivedAt: null } },
     include: { project: true },
     orderBy: { project: { createdAt: 'asc' } },
   })
@@ -178,4 +181,48 @@ projectsRouter.patch('/:projectId', async (req, res) => {
   }, TRANSACTION_OPTIONS)
 
   res.json(serializeProject(project, membership))
+})
+// Owner only: archive the project. The board, chat, members and reports close for good, and
+// pending invitations and the project's notifications are removed. The project log stays
+// readable for every member under Settings > Archived projects, with a summary copied now.
+projectsRouter.post('/:projectId/archive', async (req, res) => {
+  const { projectId } = await findOwnerMembership(
+    req.params.projectId,
+    req.user.id,
+    'Only the project owner can archive the project.',
+  )
+
+  const project = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT 1 FROM "projects" WHERE "id" = ${projectId}::uuid FOR UPDATE`
+    const current = await tx.project.findUnique({ where: { id: projectId } })
+    if (current.archivedAt) throw archived()
+
+    const [members, counts] = await Promise.all([
+      tx.projectMember.findMany({
+        where: { projectId },
+        include: { user: { select: { username: true } } },
+        orderBy: { joinedAt: 'asc' },
+      }),
+      tx.task.groupBy({ by: ['status'], where: { projectId }, _count: { _all: true } }),
+    ])
+    const tasksByStatus = Object.fromEntries(TASK_STATUSES.map((status) => [status, 0]))
+    for (const row of counts) tasksByStatus[row.status] = row._count._all
+    const summary = {
+      name: current.name,
+      description: current.description,
+      createdAt: current.createdAt,
+      members: members.map((member) => ({ userId: member.userId, username: member.user.username, role: member.role })),
+      tasks: { total: Object.values(tasksByStatus).reduce((sum, count) => sum + count, 0), byStatus: tasksByStatus },
+    }
+
+    await tx.invitation.deleteMany({ where: { projectId, status: 'PENDING' } })
+    await tx.notification.deleteMany({ where: { projectId } })
+    await recordActivity(tx, { projectId, actor: req.user, type: 'PROJECT_ARCHIVED', details: { name: current.name } })
+    return tx.project.update({
+      where: { id: projectId },
+      data: { archivedAt: new Date(), archivedById: req.user.id, archiveSummary: summary },
+    })
+  }, TRANSACTION_OPTIONS)
+
+  res.json(serializeArchivedProject(project, req.user.username))
 })

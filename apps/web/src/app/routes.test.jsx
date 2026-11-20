@@ -186,6 +186,38 @@ describe('projects (US-04, US-05)', () => {
   })
 })
 
+describe('archived projects', () => {
+  it('archives a project and keeps its log in Settings until the user deletes it', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/settings')
+
+    await user.click(await screen.findByRole('button', { name: 'Archive project' }))
+    const confirmation = screen.getByRole('dialog', { name: 'Archive Khatet?' })
+    await user.click(within(confirmation).getByRole('button', { name: 'Archive project' }))
+
+    expect(await screen.findByText('Khatet is archived. Its project log is in Settings.', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/projects')
+
+    await router.navigate('/projects/p-khatet/board')
+    expect(await screen.findByRole('heading', { name: 'This project is archived' })).toBeInTheDocument()
+
+    await router.navigate('/account')
+    await user.click(await screen.findByRole('link', { name: 'Khatet' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Khatet' })).toBeInTheDocument()
+    expect(screen.getByText(/Archived by fahad/)).toBeInTheDocument()
+    expect(await screen.findByText('archived the project')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Delete permanently' }))
+    const deleting = screen.getByRole('dialog', { name: 'Delete the log of Khatet?' })
+    expect(within(deleting).getByText(/Other members keep their copy/)).toBeInTheDocument()
+    await user.click(within(deleting).getByRole('button', { name: 'Delete permanently' }))
+
+    expect(await screen.findByText('You have no archived projects.')).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/account')
+  })
+})
+
 describe('loading and messages (G8, G10)', () => {
   it('shows the board shape while it loads and lets a message be closed', async () => {
     signIn()

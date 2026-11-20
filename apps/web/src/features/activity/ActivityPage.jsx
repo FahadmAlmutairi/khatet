@@ -25,19 +25,34 @@ const KINDS = [
 export default function ActivityPage() {
   const { project } = useOutletContext()
   const crumbs = useBreadcrumb()
-  const [actorId, setActorId] = useState('')
-  const [kind, setKind] = useState('')
-  const activity = useActivity(project.id, { actorId: actorId || undefined, kind: kind || undefined, keepPrevious: true })
   const members = useMembers(project.id)
   const tasks = useTasks(project.id)
-  const filterId = useId()
   useDocumentTitle('Project log', project.name)
+
+  return (
+    <section className="flex w-full max-w-3xl flex-col gap-6">
+      <Breadcrumb items={crumbs} className="lg:hidden" />
+      <ProjectLog
+        projectId={project.id}
+        heading={<h1 className="text-title font-bold text-body">Project log</h1>}
+        memberIds={members.isSuccess ? new Set(members.data.members.map((member) => member.userId)) : null}
+        liveTaskIds={new Set((tasks.data ?? []).map((task) => task.id))}
+      />
+    </section>
+  )
+}
+
+// The log with its person filter and kind tabs. Also used for an archived project, where
+// memberIds is null and nothing links to the board (liveTaskIds is empty).
+export function ProjectLog({ projectId, heading, memberIds = null, liveTaskIds = new Set() }) {
+  const [actorId, setActorId] = useState('')
+  const [kind, setKind] = useState('')
+  const activity = useActivity(projectId, { actorId: actorId || undefined, kind: kind || undefined, keepPrevious: true })
+  const filterId = useId()
 
   const pages = activity.data?.pages ?? []
   const events = pages.flatMap((page) => page.events)
   const actors = pages[0]?.actors ?? []
-  const memberIds = new Set((members.data?.members ?? []).map((member) => member.userId))
-  const liveTaskIds = new Set((tasks.data ?? []).map((task) => task.id))
   const days = groupByDay(events)
   const chosen = actors.find((actor) => actor.id === actorId)
 
@@ -49,10 +64,9 @@ export default function ActivityPage() {
   const switching = activity.isPlaceholderData
 
   return (
-    <section className="flex w-full max-w-3xl flex-col gap-6">
-      <Breadcrumb items={crumbs} className="lg:hidden" />
+    <>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        <h1 className="text-title font-bold text-body">Project log</h1>
+        {heading}
         {actors.length > 0 && (
           <div className="flex items-center gap-2 max-sm:w-full">
             <label htmlFor={filterId} className="shrink-0 text-sm font-medium text-body">
@@ -68,7 +82,7 @@ export default function ActivityPage() {
               {actors.map((actor) => (
                 <option key={actor.id} value={actor.id}>
                   {actor.username}
-                  {members.isSuccess && !memberIds.has(actor.id) ? ' (former member)' : ''}
+                  {memberIds && !memberIds.has(actor.id) ? ' (former member)' : ''}
                 </option>
               ))}
             </select>
@@ -111,7 +125,7 @@ export default function ActivityPage() {
                     </span>
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <p className="text-sm text-body">
-                        <EventText event={event} projectId={project.id} taskExists={liveTaskIds.has(event.taskId)} />
+                        <EventText event={event} projectId={projectId} taskExists={liveTaskIds.has(event.taskId)} />
                       </p>
                       {describeActivity(event).more.map((line) => (
                         <p key={line} className="text-sm text-muted">
@@ -137,7 +151,7 @@ export default function ActivityPage() {
           </Button>
         </div>
       )}
-    </section>
+    </>
   )
 }
 

@@ -12,6 +12,7 @@ import { tasksRouter } from './tasks/routes.js'
 import { chatRouter } from './chat/routes.js'
 import { activityRouter } from './activity/routes.js'
 import { reportsRouter } from './reports/routes.js'
+import { archivedRouter } from './projects/archived.js'
 
 const app = express()
 
@@ -53,6 +54,7 @@ app.use('/api', tasksRouter)
 app.use('/api', chatRouter)
 app.use('/api', activityRouter)
 app.use('/api', reportsRouter)
+app.use('/api', archivedRouter)
 app.use('/api/projects', projectsRouter)
 
 app.use(routeNotFound)

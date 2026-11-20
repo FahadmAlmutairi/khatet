@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useOutletContext } from 'react-router'
+import { useNavigate, useOutletContext } from 'react-router'
 import { apiReady } from '../../api/config.js'
 import { errorMessage, fieldError } from '../../api/errors.js'
-import { useUpdateProject } from '../../api/hooks.js'
+import { useArchiveProject, useUpdateProject } from '../../api/hooks.js'
 import { useDocumentTitle } from '../../app/pageMeta.js'
 import Button from '../../components/ui/Button.jsx'
+import Dialog from '../../components/ui/Dialog.jsx'
 import { FieldError, TextArea, TextField } from '../../components/ui/Field.jsx'
 import { useFocusFirstInvalid } from '../../components/ui/useFocusFirstInvalid.js'
 import { useToast } from '../../components/ui/toastContext.js'
@@ -85,6 +86,63 @@ export default function ProjectSettingsPage() {
           </Button>
         </div>
       </form>
+      <ArchiveSection project={project} />
     </section>
+  )
+}
+
+// Archiving closes the board, chat and reports for everyone. The project log stays, so each
+// member can still see who did what under Settings > Archived projects.
+function ArchiveSection({ project }) {
+  const [confirming, setConfirming] = useState(false)
+  const archive = useArchiveProject(project.id)
+  const navigate = useNavigate()
+  const toast = useToast()
+
+  function close() {
+    setConfirming(false)
+    archive.reset()
+  }
+
+  function confirm() {
+    archive.mutate(undefined, {
+      onSuccess: () => {
+        navigate('/projects')
+        toast(`${project.name} is archived. Its project log is in Settings.`)
+      },
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-line bg-white p-5 sm:p-6">
+      <h2 className="text-base font-semibold text-body">Archive project</h2>
+      <p className="text-sm text-muted">
+        The board, chat and reports close for everyone. The project log stays, so you and every member can still see
+        who did what. Each person finds it in Settings, under Archived projects, and can delete it for themselves.
+      </p>
+      <div>
+        <Button variant="danger" onClick={() => setConfirming(true)} fullOnPhone>
+          Archive project
+        </Button>
+      </div>
+      <Dialog
+        open={confirming}
+        onClose={close}
+        title={`Archive ${project.name}?`}
+        description="This cannot be undone. Tasks, chat and reports can no longer be opened. Pending invitations are cancelled. Every member keeps the project log in Settings."
+        footer={
+          <>
+            <Button variant="secondary" onClick={close}>
+              Cancel
+            </Button>
+            <Button variant="danger" loading={archive.isPending} onClick={confirm}>
+              Archive project
+            </Button>
+          </>
+        }
+      >
+        {archive.isError && <FieldError role="alert">{errorMessage(archive.error)}</FieldError>}
+      </Dialog>
+    </div>
   )
 }

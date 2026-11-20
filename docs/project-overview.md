@@ -9,7 +9,7 @@ The source of truth for scope, priorities, and sprint plans is the team's Sprint
 ## First release scope
 
 - Passwordless sign-in with a 6-digit email code, and a unique username for every user.
-- Projects: create, list, open, rename, and delete (owner only).
+- Projects: create, list, open, rename, and archive (owner only). Archiving closes the board and chat but keeps the project log for every member under Settings > Archived projects, where each member can delete it for themselves.
 - Invitations: the owner invites a registered user by username; the invitee accepts or declines from their notifications.
 - Members: everyone sees the member list; the owner sets task access and removes members; a Team Member can leave a project.
 - Tasks with a required title and at least one assignee, plus optional description, priority, due date, and phase. A new task starts in To Do.

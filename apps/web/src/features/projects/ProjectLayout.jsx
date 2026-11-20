@@ -11,6 +11,16 @@ export default function ProjectLayout() {
   const project = useProject(projectId)
 
   if (project.isPending) return <PageSkeleton label="Opening project" />
+  if (project.error?.code === 'PROJECT_ARCHIVED') {
+    return (
+      <div className="mx-auto max-w-xl">
+        <ErrorState title="This project is archived" message="Its board and chat are closed. The project log is still available." />
+        <Link to={`/account/archived/${projectId}`} className="mt-4 inline-flex min-h-11 items-center font-medium text-action underline">
+          Open the project log
+        </Link>
+      </div>
+    )
+  }
   if (project.isError) {
     return (
       <div className="mx-auto max-w-xl">

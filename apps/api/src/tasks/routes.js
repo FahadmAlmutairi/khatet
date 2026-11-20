@@ -13,7 +13,7 @@ import { ApiError, forbidden, invalid, MAX_TEXT_LENGTH } from '../lib/errors.js'
 import { TRANSACTION_OPTIONS } from '../lib/transactions.js'
 import { notifyAssigned } from '../notifications/routes.js'
 import { recordActivity, usernamesFor } from '../activity/record.js'
-import { findMembership, isUuid } from '../projects/access.js'
+import { archived, findMembership, isUuid } from '../projects/access.js'
 
 export const tasksRouter = Router()
 
@@ -182,9 +182,15 @@ tasksRouter.post('/projects/:projectId/tasks', signedIn, async (req, res) => {
 async function findTask(taskId, userId, client = prisma) {
   const task = isUuid(taskId) ? await client.task.findUnique({ where: { id: taskId }, include: withAssignees }) : null
   const membership = task
-    ? await client.projectMember.findUnique({ where: { projectId_userId: { projectId: task.projectId, userId } } })
+    ? await client.projectMember.findUnique({
+        where: { projectId_userId: { projectId: task.projectId, userId } },
+        include: { project: { select: { archivedAt: true } } },
+      })
     : null
-  if (!membership) throw new ApiError(404, 'NOT_FOUND', 'This task no longer exists. It may have been deleted.')
+  if (!membership || membership.archiveRemovedAt) {
+    throw new ApiError(404, 'NOT_FOUND', 'This task no longer exists. It may have been deleted.')
+  }
+  if (membership.project.archivedAt) throw archived()
   return { task, membership }
 }
 

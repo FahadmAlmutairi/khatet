@@ -20,6 +20,11 @@ const realProjects = {
   getProject: (projectId) => apiFetch(`/projects/${projectId}`),
   updateProject: (projectId, patch) =>
     apiFetch(`/projects/${projectId}`, { method: 'PATCH', body: patch }),
+  // Archived projects: the owner archives; each member keeps the log until they delete it.
+  archiveProject: (projectId) => apiFetch(`/projects/${projectId}/archive`, { method: 'POST' }),
+  getArchivedProjects: () => apiFetch('/archived-projects'),
+  getArchivedProject: (projectId) => apiFetch(`/archived-projects/${projectId}`),
+  deleteArchivedProject: (projectId) => apiFetch(`/archived-projects/${projectId}`, { method: 'DELETE' }),
 }
 
 // US-07 to US-10, US-13, US-21, US-24 and US-30.

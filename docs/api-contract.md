@@ -28,7 +28,10 @@ GET    /api/projects
 POST   /api/projects
 GET    /api/projects/:projectId
 PATCH  /api/projects/:projectId                     (owner: name, description)
-DELETE /api/projects/:projectId                     (owner)
+POST   /api/projects/:projectId/archive             (owner: archive instead of delete)
+GET    /api/archived-projects                       (the signed-in user's archived projects)
+GET    /api/archived-projects/:projectId
+DELETE /api/archived-projects/:projectId            (delete it for the signed-in user only, 204)
 GET    /api/projects/:projectId/overview
 GET    /api/projects/:projectId/members
 PATCH  /api/projects/:projectId/members/:userId     (owner: task access)
@@ -189,7 +192,18 @@ The API must not mutate project data during upload, mapping, or review.
 
 The professor asked at the Sprint 2 demo for a project history that survives deleted tasks and departed members, so a reviewer can see what each person did. Every change to tasks, members, invitations and project settings adds an ActivityEvent (docs/data-model.md) in the same transaction.
 
-`GET /api/projects/:projectId/activity`, any member (404 for others, NFR-11), newest first. Query: `actorId` (one person, including former members), `taskId` (one task, including deleted ones), `kind` (`task` for task changes, `member` for members and invitations, `project` for project settings), `before` (the `nextCursor` of the previous page) and `limit` (1 to 100, default 50); a value of the wrong form gets 422 `VALIDATION_FAILED` on that field. Answers `{ events, nextCursor, actors }`: each event is `{ id, projectId, type, actorId, actorUsername, taskId, taskTitle, details, createdAt }`, `nextCursor` is null on the last page, and `actors` is `[{ id, username }]` for everyone in the log, for the person filter. The web app shows it on the Project log page in the project's sidebar. `GET /api/tasks/:taskId/activity` (US-19) can read the same table with `taskId`.
+`GET /api/projects/:projectId/activity`, any member (404 for others, NFR-11), newest first. Query: `actorId` (one person, including former members), `taskId` (one task, including deleted ones), `kind` (`task` for task changes, `member` for members and invitations, `project` for project settings and archiving), `before` (the `nextCursor` of the previous page) and `limit` (1 to 100, default 50); a value of the wrong form gets 422 `VALIDATION_FAILED` on that field. Answers `{ events, nextCursor, actors }`: each event is `{ id, projectId, type, actorId, actorUsername, taskId, taskTitle, details, createdAt }`, `nextCursor` is null on the last page, and `actors` is `[{ id, username }]` for everyone in the log, for the person filter. The web app shows it on the Project log page in the project's sidebar. `GET /api/tasks/:taskId/activity` (US-19) can read the same table with `taskId`.
+
+## Archived projects
+
+Projects are archived instead of deleted, so the project log (who did what) is never lost by one person's action, for example for an assessment after the project ends.
+
+- `POST /api/projects/:projectId/archive`, owner only (403 for a member, 404 for others). Answers the archived project below. In one transaction it copies the summary, removes pending invitations and the project's notifications, adds a `PROJECT_ARCHIVED` log entry and sets `archivedAt`. Archiving cannot be undone.
+- After that, every project route answers 410 `PROJECT_ARCHIVED` ("This project is archived. Its project log is in Settings, under Archived projects."), except `GET /api/projects/:projectId/activity`, which keeps working for the members the project had when archived. `GET /api/projects` leaves archived projects out.
+- `GET /api/archived-projects` lists the signed-in user's archived projects, newest first, and `GET /api/archived-projects/:projectId` answers one (404 if they are not a member or deleted it). Each is `{ id, name, description, createdAt, archivedAt, archivedByUsername, role, summary }`, where `summary` is `{ name, description, createdAt, members: [{ userId, username, role }], tasks: { total, byStatus } }` as copied at archive time.
+- `DELETE /api/archived-projects/:projectId` deletes it for the signed-in user only (204); they lose access to its log. When the last member deletes it, the project and everything in it are removed for good.
+
+The web app shows Archive project on the owner's Project settings page, with a confirmation. Each member finds the archived project under Settings > Archived projects, which opens a read-only page with the summary and the full project log, and a Delete permanently action. Opening an archived project's old address shows that it is archived, with a link to its log.
 
 ## AI report contract
 

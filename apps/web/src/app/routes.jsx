@@ -3,6 +3,7 @@ import AppShell from './AppShell.jsx'
 import { ActivityPage, BoardPage, OverviewPage, MembersPage, ProjectSettingsPage, ReportPage } from './lazyPages.js'
 import RouteError from './RouteError.jsx'
 import AccountSettingsPage from '../features/account/AccountSettingsPage.jsx'
+import ArchivedProjectPage from '../features/archive/ArchivedProjectPage.jsx'
 import ChooseUsernamePage from '../features/auth/ChooseUsernamePage.jsx'
 import RequireAuth from '../features/auth/RequireAuth.jsx'
 import SignInPage from '../features/auth/SignInPage.jsx'
@@ -39,6 +40,7 @@ export const routes = [
             ],
           },
           { path: 'account', element: <AccountSettingsPage /> },
+          { path: 'account/archived/:archivedId', element: <ArchivedProjectPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],
       },

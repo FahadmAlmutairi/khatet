@@ -98,11 +98,21 @@ function requireUser() {
 }
 
 // A user can open only the projects they belong to (NFR-11).
-function requireMembership(projectId) {
+// An archived project answers 410 PROJECT_ARCHIVED except for its log ({ allowArchived: true }).
+function requireMembership(projectId, { allowArchived = false } = {}) {
   const user = requireUser()
   const membership = db.members.find((item) => item.projectId === projectId && item.userId === user.id)
-  if (!membership) throw notFound('This project does not exist or you are not a member of it.')
+  if (!membership || membership.archiveRemovedAt) throw notFound('This project does not exist or you are not a member of it.')
+  if (db.projects.find((p) => p.id === projectId)?.archivedAt && !allowArchived) throw archivedError()
   return membership
+}
+
+function archivedError() {
+  return new ApiError({
+    code: 'PROJECT_ARCHIVED',
+    status: 410,
+    message: 'This project is archived. Its project log is in Settings, under Archived projects.',
+  })
 }
 
 function usernameOf(userId) {
@@ -308,7 +318,7 @@ export function getProjects() {
   return respond('getProjects', () => {
     const user = requireUser()
     return db.members
-      .filter((item) => item.userId === user.id)
+      .filter((item) => item.userId === user.id && !db.projects.find((p) => p.id === item.projectId)?.archivedAt)
       .map((membership) => serializeProject(db.projects.find((p) => p.id === membership.projectId), membership))
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
   })
@@ -372,6 +382,95 @@ export function updateProject(projectId, patch) {
     Object.assign(project, updates, { updatedAt: now() })
     if (changes.length) logActivity(projectId, 'PROJECT_UPDATED', { details: { changes } })
     return serializeProject(project, membership)
+  })
+}
+
+// ---------- Archived projects ----------
+
+const TASK_STATUSES = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'DONE']
+
+function serializeArchived(project, membership) {
+  return {
+    id: project.id,
+    name: project.name,
+    description: project.description,
+    createdAt: project.createdAt,
+    archivedAt: project.archivedAt,
+    archivedByUsername: usernameOf(project.archivedById),
+    role: membership.role,
+    summary: project.archiveSummary,
+  }
+}
+
+export function archiveProject(projectId) {
+  return respond('archiveProject', () => {
+    const membership = requireMembership(projectId)
+    if (membership.role !== 'OWNER') throw forbidden('Only the project owner can archive the project.')
+    const project = db.projects.find((item) => item.id === projectId)
+    const byStatus = Object.fromEntries(TASK_STATUSES.map((status) => [status, 0]))
+    const tasks = db.tasks.filter((task) => task.projectId === projectId)
+    for (const task of tasks) byStatus[task.status] += 1
+    logActivity(projectId, 'PROJECT_ARCHIVED', { details: { name: project.name } })
+    Object.assign(project, {
+      archivedAt: now(),
+      archivedById: membership.userId,
+      archiveSummary: {
+        name: project.name,
+        description: project.description,
+        createdAt: project.createdAt,
+        members: db.members
+          .filter((item) => item.projectId === projectId)
+          .map((item) => ({ userId: item.userId, username: usernameOf(item.userId), role: item.role })),
+        tasks: { total: tasks.length, byStatus },
+      },
+    })
+    db.invitations = db.invitations.filter((item) => !(item.projectId === projectId && item.status === 'PENDING'))
+    db.notifications = db.notifications.filter((item) => item.projectId !== projectId)
+    return serializeArchived(project, membership)
+  })
+}
+
+function requireArchived(projectId) {
+  const user = requireUser()
+  const membership = db.members.find((item) => item.projectId === projectId && item.userId === user.id)
+  const project = db.projects.find((item) => item.id === projectId)
+  if (!membership || membership.archiveRemovedAt || !project?.archivedAt) {
+    throw notFound('This archived project does not exist or you deleted it.')
+  }
+  return { membership, project }
+}
+
+export function getArchivedProjects() {
+  return respond('getArchivedProjects', () => {
+    const user = requireUser()
+    return db.members
+      .filter((item) => item.userId === user.id && !item.archiveRemovedAt)
+      .map((membership) => [db.projects.find((p) => p.id === membership.projectId), membership])
+      .filter(([project]) => project?.archivedAt)
+      .map(([project, membership]) => serializeArchived(project, membership))
+      .sort((a, b) => b.archivedAt.localeCompare(a.archivedAt))
+  })
+}
+
+export function getArchivedProject(projectId) {
+  return respond('getArchivedProject', () => {
+    const { project, membership } = requireArchived(projectId)
+    return serializeArchived(project, membership)
+  })
+}
+
+export function deleteArchivedProject(projectId) {
+  return respond('deleteArchivedProject', () => {
+    const { membership } = requireArchived(projectId)
+    membership.archiveRemovedAt = now()
+    const keeping = db.members.some((item) => item.projectId === projectId && !item.archiveRemovedAt)
+    if (!keeping) {
+      db.projects = db.projects.filter((item) => item.id !== projectId)
+      db.members = db.members.filter((item) => item.projectId !== projectId)
+      db.activity = db.activity.filter((item) => item.projectId !== projectId)
+      db.tasks = db.tasks.filter((item) => item.projectId !== projectId)
+    }
+    return null
   })
 }
 
@@ -837,7 +936,7 @@ const ACTIVITY_KINDS = {
 
 export function getActivity(projectId, { actorId, taskId, kind, before, limit = ACTIVITY_PAGE } = {}) {
   return respond('getActivity', () => {
-    requireMembership(projectId)
+    requireMembership(projectId, { allowArchived: true })
     const all = db.activity
       .filter((event) => event.projectId === projectId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))

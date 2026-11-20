@@ -18,6 +18,8 @@ export const keys = {
   report: (projectId) => ['report', projectId],
   reports: (projectId) => ['reports', projectId],
   activity: (projectId, filter = {}) => ['activity', projectId, filter],
+  archivedProjects: ['archivedProjects'],
+  archivedProject: (projectId) => ['archivedProject', projectId],
 }
 
 // ---------- Session ----------
@@ -84,6 +86,44 @@ export function useUpdateProject(projectId) {
       queryClient.setQueryData(keys.projects, (projects) =>
         projects?.map((item) => (item.id === project.id ? { ...item, ...project } : item)),
       )
+    },
+  })
+}
+
+// ---------- Archived projects ----------
+
+// Owner only. The project leaves everyone's sidebar; its log moves to Settings > Archived projects.
+export function useArchiveProject(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.archiveProject(projectId),
+    onSuccess: (archived) => {
+      queryClient.setQueryData(keys.projects, (projects) => projects?.filter((project) => project.id !== projectId))
+      queryClient.setQueryData(keys.archivedProject(projectId), archived)
+      queryClient.invalidateQueries({ queryKey: keys.archivedProjects })
+      queryClient.invalidateQueries({ queryKey: keys.notifications })
+      for (const key of [keys.project(projectId), keys.tasks(projectId), keys.members(projectId), keys.messages(projectId)]) {
+        queryClient.removeQueries({ queryKey: key, exact: true })
+      }
+    },
+  })
+}
+
+export function useArchivedProjects() {
+  return useQuery({ queryKey: keys.archivedProjects, queryFn: api.getArchivedProjects })
+}
+
+export function useArchivedProject(projectId) {
+  return useQuery({ queryKey: keys.archivedProject(projectId), queryFn: () => api.getArchivedProject(projectId) })
+}
+
+// Deletes the archived log for the signed-in user only; the others keep theirs.
+export function useDeleteArchivedProject() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (projectId) => api.deleteArchivedProject(projectId),
+    onSuccess: (_, projectId) => {
+      queryClient.setQueryData(keys.archivedProjects, (items) => items?.filter((item) => item.id !== projectId))
     },
   })
 }
