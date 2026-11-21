@@ -22,6 +22,8 @@ const realProjects = {
     apiFetch(`/projects/${projectId}`, { method: 'PATCH', body: patch }),
   // Archived projects: the owner archives; each member keeps the log until they delete it.
   archiveProject: (projectId) => apiFetch(`/projects/${projectId}/archive`, { method: 'POST' }),
+  // US-27: delete everything now, for every member, without archiving first.
+  deleteProject: (projectId) => apiFetch(`/projects/${projectId}`, { method: 'DELETE' }),
   getArchivedProjects: () => apiFetch('/archived-projects'),
   getArchivedProject: (projectId) => apiFetch(`/archived-projects/${projectId}`),
   deleteArchivedProject: (projectId) => apiFetch(`/archived-projects/${projectId}`, { method: 'DELETE' }),

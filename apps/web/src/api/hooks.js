@@ -109,6 +109,22 @@ export function useArchiveProject(projectId) {
   })
 }
 
+// US-27, owner only: deletes the project and everything in it for every member, log included.
+export function useDeleteProject(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.deleteProject(projectId),
+    onSuccess: () => {
+      queryClient.setQueryData(keys.projects, (projects) => projects?.filter((project) => project.id !== projectId))
+      queryClient.invalidateQueries({ queryKey: keys.notifications })
+      for (const key of [keys.project(projectId), keys.tasks(projectId), keys.members(projectId), keys.messages(projectId)]) {
+        queryClient.removeQueries({ queryKey: key, exact: true })
+      }
+      queryClient.removeQueries({ queryKey: ['activity', projectId] })
+    },
+  })
+}
+
 export function useArchivedProjects() {
   return useQuery({ queryKey: keys.archivedProjects, queryFn: api.getArchivedProjects })
 }
