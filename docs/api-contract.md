@@ -29,6 +29,7 @@ POST   /api/projects
 GET    /api/projects/:projectId
 PATCH  /api/projects/:projectId                     (owner: name, description)
 POST   /api/projects/:projectId/archive             (owner: archive instead of delete)
+DELETE /api/projects/:projectId                     (owner: delete everything now, 204)
 GET    /api/archived-projects                       (the signed-in user's archived projects)
 GET    /api/archived-projects/:projectId
 DELETE /api/archived-projects/:projectId            (delete it for the signed-in user only, 204)
@@ -204,6 +205,8 @@ Projects are archived instead of deleted, so the project log (who did what) is n
 - `GET /api/archived-projects` lists the signed-in user's archived projects, newest first, and `GET /api/archived-projects/:projectId` answers one (404 if they are not a member or deleted it). Each is `{ id, name, description, createdAt, archivedAt, archivedByUsername, role, summary }`, where `summary` is `{ name, description, createdAt, members: [{ userId, username, role }], tasks: { total, byStatus } }` as copied at archive time.
 - `DELETE /api/archived-projects/:projectId` deletes it for the signed-in user only (204); they lose access to its log. When the last member deletes it, the project and everything in it are removed for good.
 - `POST /api/archived-projects/:projectId/restore`, owner only, while the owner still has it (403 for a member, 404 if the owner deleted it). Answers `{ id, name }`. The project opens again with its tasks, chat and reports, and a `PROJECT_RESTORED` log entry is added. Members who had deleted their copy come back with the same access, so tasks assigned to them stay valid; the owner can remove them afterwards. Invitations and notifications removed at archive time do not come back.
+
+**Deleting without archiving (US-27).** `DELETE /api/projects/:projectId`, owner only (403 for a member, 404 for others, 410 `PROJECT_ARCHIVED` for an archived project, which is deleted under Archived projects instead), answers 204. It removes the project and everything in it for every member at once, including the project log, so the web app asks the owner to type the project name first. Members who still have it open get 404 on their next request.
 
 The web app shows Archive project on the owner's Project settings page, with a confirmation. Each member finds the archived project under Settings > Archived projects, which opens a read-only page with the summary and the full project log, a Delete permanently action, and for the owner a Restore project action (both with a confirmation). Opening an archived project's old address shows that it is archived, with a link to its log.
 

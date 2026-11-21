@@ -218,6 +218,43 @@ describe('archived projects', () => {
   })
 })
 
+describe('deleting a project (US-27)', () => {
+  it('asks the owner to type the project name, then deletes it for everyone', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/settings')
+
+    await user.click(await screen.findByRole('button', { name: 'Delete project' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete Khatet?' })
+    expect(within(dialog).getByText(/project log will be deleted for every member/)).toBeInTheDocument()
+    const confirm = within(dialog).getByRole('button', { name: 'Delete project' })
+    expect(confirm).toBeDisabled()
+
+    const typed = within(dialog).getByRole('textbox', { name: /Type “Khatet” to confirm/ })
+    await user.type(typed, 'khatet')
+    expect(confirm).toBeDisabled()
+    await user.clear(typed)
+    await user.type(typed, 'Khatet')
+    expect(confirm).toBeEnabled()
+    await user.click(confirm)
+
+    expect(await screen.findByText('Khatet is deleted.', { selector: '[aria-live]' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/projects')
+    expect(screen.queryByRole('link', { name: /Khatet.*Owner/ })).not.toBeInTheDocument()
+
+    // Not archived: it is gone from Archived projects too, and its old address does not open.
+    await router.navigate('/projects/p-khatet/board')
+    expect(await screen.findByRole('heading', { name: 'This project could not be opened' })).toBeInTheDocument()
+  })
+
+  it('does not show Delete project to a team member', async () => {
+    signIn()
+    renderApp('/projects/p-capstone/settings')
+    expect(await screen.findByText('Only the project owner can change project settings.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete project' })).not.toBeInTheDocument()
+  })
+})
+
 describe('restoring archived projects', () => {
   it('lets the owner restore an archived project from Settings', async () => {
     signIn()

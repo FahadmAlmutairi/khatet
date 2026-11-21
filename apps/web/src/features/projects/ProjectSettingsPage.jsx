@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useOutletContext } from 'react-router'
 import { apiReady } from '../../api/config.js'
 import { errorMessage, fieldError } from '../../api/errors.js'
-import { useArchiveProject, useUpdateProject } from '../../api/hooks.js'
+import { useArchiveProject, useDeleteProject, useUpdateProject } from '../../api/hooks.js'
 import { useDocumentTitle } from '../../app/pageMeta.js'
 import Button from '../../components/ui/Button.jsx'
 import Dialog from '../../components/ui/Dialog.jsx'
@@ -87,6 +87,7 @@ export default function ProjectSettingsPage() {
         </div>
       </form>
       <ArchiveSection project={project} />
+      <DeleteSection project={project} />
     </section>
   )
 }
@@ -142,6 +143,78 @@ function ArchiveSection({ project }) {
         }
       >
         {archive.isError && <FieldError role="alert">{errorMessage(archive.error)}</FieldError>}
+      </Dialog>
+    </div>
+  )
+}
+
+// US-27: delete the project now, for everyone, without archiving it first. Unlike archiving,
+// the project log goes too, so the owner types the project name to confirm.
+function DeleteSection({ project }) {
+  const [confirming, setConfirming] = useState(false)
+  const [typedName, setTypedName] = useState('')
+  const remove = useDeleteProject(project.id)
+  const navigate = useNavigate()
+  const toast = useToast()
+  const nameMatches = typedName === project.name
+
+  function close() {
+    setConfirming(false)
+    setTypedName('')
+    remove.reset()
+  }
+
+  function confirm(event) {
+    event.preventDefault()
+    if (!nameMatches) return
+    remove.mutate(undefined, {
+      onSuccess: () => {
+        navigate('/projects', { replace: true })
+        toast(`${project.name} is deleted.`)
+      },
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-xl border border-line bg-white p-5 sm:p-6">
+      <h2 className="text-base font-semibold text-body">Delete project</h2>
+      <p className="text-sm text-muted">
+        Deletes the project for everyone right away: all tasks, chat messages, reports and the project log. This cannot be
+        undone. To keep the project log, archive the project instead.
+      </p>
+      <div>
+        <Button variant="danger" onClick={() => setConfirming(true)} fullOnPhone>
+          Delete project
+        </Button>
+      </div>
+      <Dialog
+        open={confirming}
+        onClose={close}
+        title={`Delete ${project.name}?`}
+        description="All tasks, chat messages, reports and the project log will be deleted for every member. This cannot be undone."
+        footer={
+          <>
+            <Button variant="secondary" onClick={close}>
+              Cancel
+            </Button>
+            <Button type="submit" form="delete-project-form" variant="danger" loading={remove.isPending} disabled={!nameMatches}>
+              Delete project
+            </Button>
+          </>
+        }
+      >
+        <form id="delete-project-form" onSubmit={confirm} noValidate className="flex flex-col gap-3">
+          <TextField
+            label={`Type “${project.name}” to confirm`}
+            value={typedName}
+            autoComplete="off"
+            onChange={(event) => {
+              setTypedName(event.target.value)
+              remove.reset()
+            }}
+          />
+          {remove.isError && <FieldError role="alert">{errorMessage(remove.error)}</FieldError>}
+        </form>
       </Dialog>
     </div>
   )

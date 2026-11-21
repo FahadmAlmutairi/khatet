@@ -226,3 +226,21 @@ projectsRouter.post('/:projectId/archive', async (req, res) => {
 
   res.json(serializeArchivedProject(project, req.user.username))
 })
+
+// US-27: the owner deletes the project at once, for every member, without archiving it first.
+// Every table that belongs to a project (members, invitations, tasks and their assignees, chat
+// messages, notifications, activity events and AI reports) uses ON DELETE CASCADE, so this one
+// DELETE removes all of it: the database runs it as a single statement, so either everything
+// goes or nothing does. Unlike archiving, the project log is deleted too. An archived project
+// answers 410 here; it is deleted from Settings > Archived projects instead.
+// Members who still have the project open get 404 on their next request.
+projectsRouter.delete('/:projectId', async (req, res) => {
+  const membership = await findOwnerMembership(
+    req.params.projectId,
+    req.user.id,
+    'Only the project owner can delete the project.',
+  )
+  // deleteMany, so two clicks at once answer 204 twice instead of a server error.
+  await prisma.project.deleteMany({ where: { id: membership.projectId } })
+  res.status(204).end()
+})

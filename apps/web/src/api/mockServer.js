@@ -430,6 +430,19 @@ export function archiveProject(projectId) {
   })
 }
 
+// US-27: the owner deletes the project and everything in it, for every member.
+export function deleteProject(projectId) {
+  return respond('deleteProject', () => {
+    const membership = requireMembership(projectId)
+    if (membership.role !== 'OWNER') throw forbidden('Only the project owner can delete the project.')
+    db.projects = db.projects.filter((item) => item.id !== projectId)
+    for (const key of ['members', 'invitations', 'tasks', 'activity', 'messages', 'reports', 'notifications']) {
+      db[key] = db[key].filter((item) => item.projectId !== projectId)
+    }
+    return null
+  })
+}
+
 function requireArchived(projectId) {
   const user = requireUser()
   const membership = db.members.find((item) => item.projectId === projectId && item.userId === user.id)
