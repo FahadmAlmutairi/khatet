@@ -24,7 +24,7 @@ export function requireUsername(req, res, next) {
 }
 
 // The first request after sign-up creates the Khatet account (username still empty).
-async function findOrCreateUser({ authId, email }) {
+export async function findOrCreateUser({ authId, email }) {
   const existing = await prisma.user.findUnique({ where: { authId } })
   if (existing) return existing
   try {

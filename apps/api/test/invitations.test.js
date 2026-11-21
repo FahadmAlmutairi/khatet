@@ -3,6 +3,7 @@ import request from 'supertest'
 import { randomUUID } from 'node:crypto'
 import app from '../src/app.js'
 import { prisma } from '../src/db.js'
+import { INVITE_ATTEMPTS } from '../src/members/routes.js'
 import { authHeader, createProject, createUser, hasTestDatabase, resetDatabase } from './helpers.js'
 
 describe.skipIf(!hasTestDatabase)('members and invitations', () => {
@@ -151,15 +152,42 @@ describe.skipIf(!hasTestDatabase)('members and invitations', () => {
       expect(res.status).toBe(422)
       expect(res.body.error.fieldErrors[0]).toEqual({
         field: 'username',
-        message: 'No user has the username nobody_here.',
+        message: 'nobody_here cannot be invited. Check the spelling. Members and people already invited are not invited again.',
       })
+    })
+
+    // SEC-02: the answer must not tell whether an account exists.
+    it('gives an unknown username, a member and a pending invitation the same answer', async () => {
+      const member = await createUser('member')
+      await prisma.projectMember.create({ data: { projectId: project.id, userId: member.id } })
+      await createUser('sara')
+      await invite(owner, 'sara')
+
+      const answers = await Promise.all(['nobody_here', 'member', 'sara'].map((name) => invite(owner, name)))
+      const shapes = answers.map((res) => ({
+        status: res.status,
+        code: res.body.error.code,
+        message: res.body.error.fieldErrors[0].message.replace(/^\S+/, '<name>'),
+      }))
+      expect(new Set(shapes.map((shape) => JSON.stringify(shape))).size).toBe(1)
+      expect(shapes[0]).toMatchObject({ status: 422, code: 'VALIDATION_FAILED' })
+    })
+
+    it('limits how many invitations one owner can try in ten minutes', async () => {
+      for (let i = 0; i < INVITE_ATTEMPTS.limit; i += 1) {
+        expect((await invite(owner, `nobody_${i}`)).status).toBe(422)
+      }
+      const res = await invite(owner, 'one_more')
+      expect(res.status).toBe(429)
+      expect(res.body.error.code).toBe('RATE_LIMITED')
     })
 
     it('refuses to invite a current member or the owner', async () => {
       const member = await createUser('member')
       await prisma.projectMember.create({ data: { projectId: project.id, userId: member.id } })
-      expect((await invite(owner, 'member')).body.error.fieldErrors[0].message).toMatch(/already a member/)
-      expect((await invite(owner, 'owner_user')).body.error.fieldErrors[0].message).toMatch(/already a member/)
+      expect((await invite(owner, 'member')).body.error.fieldErrors[0].message).toMatch(/cannot be invited/)
+      expect((await invite(owner, 'owner_user')).body.error.fieldErrors[0].message).toMatch(/cannot be invited/)
+      expect(await prisma.invitation.count()).toBe(0)
     })
 
     it('refuses a second invitation while one is pending, but allows one after a decline', async () => {
@@ -167,7 +195,7 @@ describe.skipIf(!hasTestDatabase)('members and invitations', () => {
       const first = await invite(owner, 'sara')
       const again = await invite(owner, 'sara')
       expect(again.status).toBe(422)
-      expect(again.body.error.fieldErrors[0].message).toMatch(/pending invitation/)
+      expect(again.body.error.fieldErrors[0].message).toMatch(/cannot be invited/)
 
       await answer(sara, first.body.id, 'decline')
       expect((await invite(owner, 'sara')).status).toBe(201)

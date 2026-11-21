@@ -7,6 +7,7 @@ import { TRANSACTION_OPTIONS } from '../lib/transactions.js'
 import { recordActivity } from '../activity/record.js'
 import { archived, findMembership, findOwnerMembership } from './access.js'
 import { serializeArchivedProject } from './archived.js'
+import { removeFromProjectRoom } from '../realtime/socket.js'
 
 const TASK_STATUSES = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'DONE']
 
@@ -224,6 +225,7 @@ projectsRouter.post('/:projectId/archive', async (req, res) => {
     })
   }, TRANSACTION_OPTIONS)
 
+  await removeFromProjectRoom(projectId)
   res.json(serializeArchivedProject(project, req.user.username))
 })
 
@@ -242,5 +244,6 @@ projectsRouter.delete('/:projectId', async (req, res) => {
   )
   // deleteMany, so two clicks at once answer 204 twice instead of a server error.
   await prisma.project.deleteMany({ where: { id: membership.projectId } })
+  await removeFromProjectRoom(membership.projectId)
   res.status(204).end()
 })

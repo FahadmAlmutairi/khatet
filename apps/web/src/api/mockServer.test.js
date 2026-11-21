@@ -122,7 +122,7 @@ describe('sample API', () => {
 
   it('refuses an invitation to someone who is already a member', async () => {
     await expect(api.inviteMember('p-khatet', '@saad')).rejects.toMatchObject({
-      fieldErrors: [{ field: 'username', message: 'saad is already a member of this project.' }],
+      fieldErrors: [{ field: 'username', message: 'saad cannot be invited. Check the spelling. Members and people already invited are not invited again.' }],
     })
   })
 })

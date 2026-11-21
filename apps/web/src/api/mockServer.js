@@ -577,13 +577,19 @@ export function inviteMember(projectId, username) {
     if (membership.role !== 'OWNER') throw forbidden('Only the project owner can invite members.')
     const value = (username ?? '').trim().replace(/^@/, '').toLowerCase()
     if (!value) throw invalid([{ field: 'username', message: 'Enter a username.' }])
+    // SEC-02: the same answer for every refused case, as on the API.
+    const cannotInvite = () =>
+      invalid([
+        {
+          field: 'username',
+          message: `${value} cannot be invited. Check the spelling. Members and people already invited are not invited again.`,
+        },
+      ])
     const user = db.users.find((item) => item.username === value)
-    if (!user) throw invalid([{ field: 'username', message: `No user has the username ${value}.` }])
-    if (db.members.some((item) => item.projectId === projectId && item.userId === user.id)) {
-      throw invalid([{ field: 'username', message: `${value} is already a member of this project.` }])
-    }
+    if (!user) throw cannotInvite()
+    if (db.members.some((item) => item.projectId === projectId && item.userId === user.id)) throw cannotInvite()
     if (db.invitations.some((item) => item.projectId === projectId && item.invitedUserId === user.id && item.status === 'PENDING')) {
-      throw invalid([{ field: 'username', message: `${value} already has a pending invitation.` }])
+      throw cannotInvite()
     }
     const invitation = {
       id: newId('inv'),

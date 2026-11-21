@@ -13,6 +13,7 @@ import { ApiError, invalid, notFound } from '../lib/errors.js'
 import { TRANSACTION_OPTIONS } from '../lib/transactions.js'
 import { findMembership, findOwnerMembership, isUuid } from '../projects/access.js'
 import { recordActivity } from '../activity/record.js'
+import { removeFromProjectRoom } from '../realtime/socket.js'
 
 export const membersRouter = Router()
 
@@ -110,6 +111,37 @@ membersRouter.patch('/projects/:projectId/members/:userId', signedIn, async (req
   res.json(serializeMember(member))
 })
 
+// SEC-02: an unknown username, a current member and a pending invitation all get the same
+// answer, so the invite box cannot be used to test which usernames exist. Each owner also has a
+// budget of invitation attempts (on top of the per-address limit in app.js).
+export const INVITE_ATTEMPTS = { limit: 20, windowMs: 10 * 60_000 }
+const inviteAttempts = new Map()
+
+function countInviteAttempt(userId, now = Date.now()) {
+  const recent = (inviteAttempts.get(userId) ?? []).filter((time) => now - time < INVITE_ATTEMPTS.windowMs)
+  if (recent.length >= INVITE_ATTEMPTS.limit) {
+    inviteAttempts.set(userId, recent)
+    throw new ApiError(429, 'RATE_LIMITED', 'Too many invitations in a short time. Wait a few minutes and try again.')
+  }
+  recent.push(now)
+  inviteAttempts.set(userId, recent)
+  // Forget people with no recent attempts, so the map does not grow forever.
+  if (inviteAttempts.size > 10_000) {
+    for (const [key, times] of inviteAttempts) {
+      if (times.every((time) => now - time >= INVITE_ATTEMPTS.windowMs)) inviteAttempts.delete(key)
+    }
+  }
+}
+
+export function cannotInvite(username) {
+  return invalid([
+    {
+      field: 'username',
+      message: `${username} cannot be invited. Check the spelling. Members and people already invited are not invited again.`,
+    },
+  ])
+}
+
 // US-07: a sent invitation appears in the invitee's notifications.
 membersRouter.post('/projects/:projectId/invitations', signedIn, async (req, res) => {
   const { projectId } = await findOwnerMembership(
@@ -120,20 +152,21 @@ membersRouter.post('/projects/:projectId/invitations', signedIn, async (req, res
 
   const username = cleanUsername(req.body?.username)
   if (!username) throw invalid([{ field: 'username', message: 'Enter a username.' }])
+  countInviteAttempt(req.user.id)
 
   const invitedUser = await prisma.user.findUnique({ where: { username } })
-  if (!invitedUser) throw invalid([{ field: 'username', message: `No user has the username ${username}.` }])
+  if (!invitedUser) throw cannotInvite(username)
 
   const invitation = await prisma.$transaction(async (tx) => {
     const isMember = await tx.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: invitedUser.id } },
     })
-    if (isMember) throw invalid([{ field: 'username', message: `${username} is already a member of this project.` }])
+    if (isMember) throw cannotInvite(username)
 
     const pending = await tx.invitation.findFirst({
       where: { projectId, invitedUserId: invitedUser.id, status: 'PENDING' },
     })
-    if (pending) throw invalid([{ field: 'username', message: `${username} already has a pending invitation.` }])
+    if (pending) throw cannotInvite(username)
 
     const created = await tx.invitation.create({
       data: { projectId, invitedUserId: invitedUser.id, invitedById: req.user.id },
@@ -297,6 +330,7 @@ membersRouter.delete('/projects/:projectId/members/:userId', signedIn, async (re
     })
   }, TRANSACTION_OPTIONS)
 
+  await removeFromProjectRoom(projectId, userId)
   res.json({ userId })
 })
 // US-12: A team member can leave a project, but the owner cannot.
@@ -370,5 +404,6 @@ membersRouter.post('/projects/:projectId/leave', signedIn, async (req, res) => {
     await recordActivity(tx, { projectId, actor: req.user, type: 'MEMBER_LEFT' })
   }, TRANSACTION_OPTIONS)
 
+  await removeFromProjectRoom(projectId, userId)
   res.json({ projectId, userId })
 })

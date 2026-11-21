@@ -145,3 +145,59 @@ describe.skipIf(!hasTestDatabase)('US-24: project chat', () => {
     expect(await prisma.chatMessage.count()).toBe(0)
   })
 })
+
+describe.skipIf(!hasTestDatabase)('US-25: reference a task in chat', () => {
+  let owner, member, project, otherProject, task, foreignTask
+
+  beforeEach(async () => {
+    await resetDatabase()
+    owner = await createUser('owner_user')
+    member = await createUser('member')
+    project = await createProject(owner, [{ user: member, taskAccess: 'VIEW_ONLY' }])
+    otherProject = await createProject(owner)
+    task = await prisma.task.create({ data: { projectId: project.id, title: 'Fix CSV import', position: 1, createdById: owner.id } })
+    foreignTask = await prisma.task.create({
+      data: { projectId: otherProject.id, title: 'Elsewhere', position: 1, createdById: owner.id },
+    })
+  })
+  afterAll(() => prisma.$disconnect())
+
+  const url = () => `/api/projects/${project.id}/messages`
+  const send = (as, text) => request(app).post(url()).set(authHeader(as)).send({ text })
+
+  it('saves a message that mentions a task of the project and returns its title', async () => {
+    const res = await send(member, `Look at #[task:${task.id}] please`)
+    expect(res.status).toBe(201)
+    expect(res.body.text).toBe(`Look at #[task:${task.id}] please`)
+    expect(res.body.references).toEqual([{ taskId: task.id, title: 'Fix CSV import' }])
+  })
+
+  it('lists each mentioned task once, with its current title', async () => {
+    await send(owner, `#[task:${task.id}] and again #[task:${task.id}]`)
+    await prisma.task.update({ where: { id: task.id }, data: { title: 'Fix CSV import errors' } })
+    const res = await request(app).get(url()).set(authHeader(member))
+    expect(res.body[0].references).toEqual([{ taskId: task.id, title: 'Fix CSV import errors' }])
+  })
+
+  it('marks a deleted task with a null title', async () => {
+    await send(owner, `Done with #[task:${task.id}]`)
+    await prisma.task.delete({ where: { id: task.id } })
+    const res = await request(app).get(url()).set(authHeader(member))
+    expect(res.body[0].references).toEqual([{ taskId: task.id, title: null }])
+  })
+
+  it('returns an empty references list for a message without tasks', async () => {
+    const res = await send(owner, 'Just text with a # sign')
+    expect(res.body.references).toEqual([])
+  })
+
+  it('refuses a task from another project, an unknown task and a malformed ID', async () => {
+    for (const id of [foreignTask.id, randomUUID(), 'not-a-uuid']) {
+      const res = await send(owner, `See #[task:${id}]`)
+      expect(res.status).toBe(422)
+      expect(res.body.error.code).toBe('VALIDATION_FAILED')
+      expect(res.body.error.fieldErrors[0].field).toBe('text')
+    }
+    expect(await prisma.chatMessage.count()).toBe(0)
+  })
+})

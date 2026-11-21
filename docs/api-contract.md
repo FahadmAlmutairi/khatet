@@ -39,7 +39,7 @@ GET    /api/projects/:projectId/members
 PATCH  /api/projects/:projectId/members/:userId     (owner: task access)
 DELETE /api/projects/:projectId/members/:userId     (owner: remove member)
 POST   /api/projects/:projectId/leave               (Team Member)
-POST   /api/projects/:projectId/invitations         (owner: invite by username)
+POST   /api/projects/:projectId/invitations         (owner: invite by username; SEC-02: an unknown username, a member and a pending invitation all get the same 422 on `username`, and each owner may try 20 invitations per 10 minutes, then 429 `RATE_LIMITED`)
 DELETE /api/projects/:projectId/invitations/:invitationId  (owner: cancel a pending invitation, 204)
 POST   /api/invitations/:invitationId/accept
 POST   /api/invitations/:invitationId/decline
@@ -161,7 +161,7 @@ Use one typed error concept across the API so the UI can explain and recover fro
 | Tasks | Stable `['tasks', { projectId, filters }]`; reconcile board moves narrowly rather than refetching everything. |
 | Notifications | Stable unread state; avoid broad refetch after unrelated mutations. |
 | Task details | Query selected task by URL ID; preserve surrounding board context. |
-| Chat | Refresh `['messages', projectId]` every few seconds (at most every 3 seconds, so NFR-09's 5-second delivery holds) with an `after` cursor until Socket.IO replaces refreshing. |
+| Chat | Refresh `['messages', projectId]` every few seconds (at most every 3 seconds, so NFR-09's 5-second delivery holds) with an `after` cursor while the Socket.IO connection is down or the room was refused; while it is joined, `message:new` adds messages at once. |
 | AI report | Poll report status until `READY` or `FAILED`. |
 | Import | Preview and status are server state; use confirmed results for review/commit. |
 
@@ -188,7 +188,7 @@ The API must not mutate project data during upload, mapping, or review.
 
 **Task references (US-25, Sprint 3).** A message mentions a task with the token `#[task:<taskId>]` in its `text`. On `POST`, a token whose task is not in the same project gets 422 `VALIDATION_FAILED` on the field `text`. Each message from `GET` (and the `POST` answer) adds `references: [{ taskId, title }]`, one entry per mentioned task with its current title, and `title: null` once the task is deleted. The web app shows each token as a chip that opens the task, or "Deleted task" without a link. Until `references` is sent, the web app takes titles from the board's task list.
 
-**Socket.IO (TR-05, Sprint 3).** Socket.IO runs on the same Express server. The client sends its Supabase access token in the handshake as `auth.token`. It emits `chat:join` with `{ projectId }` and waits for the acknowledgement: `{ ok: true }` once the server has checked membership with the shared policy module and joined the socket to the room `project:<projectId>`, or `{ ok: false, error: { code, message } }`. It emits `chat:leave` with `{ projectId }` when the chat closes. After `POST /messages` saves a message, the server emits `message:new` to the room with the same message object the REST routes return. Messages are still stored and loaded through REST; while the socket is not connected, or the join was refused, the web app refreshes every 3 seconds as before.
+**Socket.IO (TR-05, Sprint 3).** Socket.IO runs on the same Express server. The client sends its Supabase access token in the handshake as `auth.token`. It emits `chat:join` with `{ projectId }` and waits for the acknowledgement: `{ ok: true }` once the server has checked membership with the shared policy module and joined the socket to the room `project:<projectId>`, or `{ ok: false, error: { code, message } }`. It emits `chat:leave` with `{ projectId }` when the chat closes. After `POST /messages` saves a message, the server emits `message:new` to the room with the same message object the REST routes return. Messages are still stored and loaded through REST; while the socket is not connected, or the join was refused, the web app refreshes every 3 seconds as before. A handshake without a valid token fails with `UNAUTHENTICATED` (or `USERNAME_REQUIRED` for an account without a username). A member who is removed or leaves, and everyone in an archived or deleted project, is taken out of the room at once. Built in `apps/api/src/realtime/socket.js` (21 Nov 2026).
 
 ## Project log contract
 
