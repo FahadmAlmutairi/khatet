@@ -1,25 +1,27 @@
 import { useState } from 'react'
 import { Link, useOutletContext } from 'react-router'
-import { reportAvailable } from '../../api/config.js'
+import { phasesAvailable, reportAvailable } from '../../api/config.js'
 import { errorMessage } from '../../api/errors.js'
-import { useActivity, useLatestReport, useMe, useMembers, useTasks } from '../../api/hooks.js'
+import { useActivity, useLatestReport, useMe, useMembers, usePhases, useTasks } from '../../api/hooks.js'
 import { useDocumentTitle } from '../../app/pageMeta.js'
 import { AvatarStack } from '../../components/Avatar.jsx'
 import StatusPill from '../../components/StatusPill.jsx'
-import { CalendarIcon, HistoryIcon, ReportIcon, WarningIcon } from '../../components/icons.jsx'
+import { CalendarIcon, HistoryIcon, ReportIcon, TimelineIcon, WarningIcon } from '../../components/icons.jsx'
 import SegmentedControl from '../../components/ui/SegmentedControl.jsx'
 import { ErrorState, LoadingState } from '../../components/ui/States.jsx'
 import { dateFromToday, dueLine, formatDueDate, formatTimestamp } from '../../lib/domain.js'
 import { projectStats } from '../../lib/projectStats.js'
 import { activityTime, describeActivity } from '../activity/describeActivity.js'
 import { reportParts } from '../report/parseReport.js'
+import { buildTimeline, currentPhase, formatRange } from '../timeline/timelineData.js'
 
 const UPCOMING_LIMIT = 5
 const ATTENTION_LIMIT = 4
 const ACTIVITY_LIMIT = 5
 
 // US-28: the project at a glance (Figma: Overview / Desktop / Approved, 694:1201).
-// Everything is counted from the board, the project log and the latest report.
+// Everything is counted from the board, the phases, the project log and the latest report.
+// The Timeline card on top carries "X of Y tasks done" (US-28 AC1) with a small view of the schedule (US-29).
 export default function OverviewPage() {
   const { project } = useOutletContext()
   const tasks = useTasks(project.id)
@@ -48,6 +50,7 @@ export default function OverviewPage() {
         <>
           {/* Two independent columns on desktop, so a short card never leaves a gap under it.
               On phones the columns dissolve and Needs attention comes right after Upcoming work. */}
+          <TimelineSummary projectId={project.id} tasks={tasks.data} />
           <div className="grid gap-4 lg:grid-cols-5 lg:items-start">
             <div className="contents lg:col-span-3 lg:flex lg:min-w-0 lg:flex-col lg:gap-4">
               <UpcomingWork projectId={project.id} tasks={tasks.data} usernames={usernames} />
@@ -64,11 +67,75 @@ export default function OverviewPage() {
   )
 }
 
+// "X of Y tasks done" and a strip of the schedule: phases as bands, open dated tasks as dots and a
+// line for today. Backlog tasks are left out of the count, as on the AI report snapshot.
+function TimelineSummary({ projectId, tasks }) {
+  const phases = usePhases(projectId, { enabled: phasesAvailable })
+  const phaseList = phasesAvailable ? (phases.data ?? []) : []
+  const stats = projectStats(tasks)
+  const timeline = buildTimeline({ phases: phaseList, tasks: tasks.filter((task) => task.status !== 'BACKLOG') })
+  const stage = currentPhase(phaseList)
+  const progress = stats.total ? `${stats.done} of ${stats.total} ${stats.total === 1 ? 'task' : 'tasks'} done` : 'No tasks yet'
+
+  return (
+    <Card title="Timeline" icon="timeline" action={<p className="text-sm font-semibold text-heading">{progress}</p>}>
+      {stage && (
+        <p className="text-sm text-body">
+          <span className="font-medium text-heading">{stage.state === 'now' ? 'Now' : 'Next'}:</span> {stage.phase.name}
+          <span className="text-muted"> · {formatRange(stage.phase.startDate, stage.phase.endDate)}</span>
+        </p>
+      )}
+      {timeline.isEmpty ? (
+        <p className="text-sm text-muted">Tasks with a due date{phasesAvailable ? ' and phases' : ''} appear on the timeline.</p>
+      ) : (
+        <TimelineStrip timeline={timeline} phases={phaseList} />
+      )}
+      <CardLink to={`/projects/${projectId}/timeline`}>Open the timeline</CardLink>
+    </Card>
+  )
+}
+
+function TimelineStrip({ timeline, phases }) {
+  const today = timeline.position(timeline.today, { middle: true })
+  const open = timeline.groups.flatMap((group) => group.tasks).filter((task) => task.status !== 'DONE')
+  return (
+    <div aria-hidden="true" className="flex flex-col gap-1.5 pt-5">
+      <div className="relative h-3 rounded-full bg-surface ring-1 ring-line">
+        {phases.map((phase, index) => (
+          <span
+            key={phase.id}
+            className={`absolute inset-y-0 rounded-full ${index % 2 ? 'bg-surface-supporting/70' : 'bg-priority-low-bg'} ring-1 ring-white`}
+            style={{ left: `${timeline.position(phase.startDate)}%`, width: `${timeline.span(phase.startDate, phase.endDate)}%` }}
+          />
+        ))}
+        {open.map((task) => (
+          <span
+            key={task.id}
+            className={`absolute top-1/2 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white ${task.dueDate < timeline.today ? 'bg-blocked' : 'bg-action'}`}
+            style={{ left: `${timeline.position(task.dueDate, { middle: true })}%` }}
+          />
+        ))}
+        <span className="absolute -inset-y-1.5 w-0.5 -translate-x-1/2 rounded-full bg-attention" style={{ left: `${today}%` }}>
+          <span className="absolute bottom-full left-1/2 mb-0.5 -translate-x-1/2 text-[11px] font-semibold whitespace-nowrap text-attention">Today</span>
+        </span>
+      </div>
+      <div className="relative h-4 text-[11px] text-muted">
+        {timeline.months.map((month) => (
+          <span key={month.key} className="absolute top-0 truncate pl-0.5" style={{ left: `${month.left}%`, width: `${month.width}%` }}>
+            {month.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // Each card header starts with a small tinted icon, so the cards are told apart at a glance.
 const CARD_ICONS = {
   upcoming: { icon: <CalendarIcon />, tone: 'bg-priority-low-bg text-priority-low-text' },
   attention: { icon: <WarningIcon />, tone: 'bg-priority-high-bg text-blocked' },
   activity: { icon: <HistoryIcon />, tone: 'bg-nav-active text-action' },
+  timeline: { icon: <TimelineIcon />, tone: 'bg-nav-active text-action' },
   report: { icon: <ReportIcon />, tone: 'bg-surface-subtle/60 text-heading' },
 }
 

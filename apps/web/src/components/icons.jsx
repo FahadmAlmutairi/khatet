@@ -19,6 +19,18 @@ export function OverviewIcon() {
   )
 }
 
+// Three staggered bars on a time line (US-29 Timeline).
+export function TimelineIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M2 2v12h12" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="4.5" y="3.6" width="5" height="2" rx="1" stroke="currentColor" strokeWidth="1.1" />
+      <rect x="6.5" y="7" width="6" height="2" rx="1" stroke="currentColor" strokeWidth="1.1" />
+      <rect x="9" y="10.4" width="4" height="2" rx="1" stroke="currentColor" strokeWidth="1.1" />
+    </svg>
+  )
+}
+
 export function BoardIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
