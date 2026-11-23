@@ -1,9 +1,9 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api/client.js'
 import { ApiError } from '../api/errors.js'
-import { createProject, createTask, failNextCall, getTasks, resetMockServer } from '../api/mockServer.js'
+import { createProject, createTask, deletePhase, failNextCall, getTasks, resetMockServer, runAutomaticReport } from '../api/mockServer.js'
 import { dateFromToday, formatDueDate } from '../lib/domain.js'
 import { renderApp } from '../test/renderApp.jsx'
 
@@ -1033,6 +1033,21 @@ describe('notifications (US-08, US-30)', () => {
     expect(within(panel).getAllByRole('listitem')).toHaveLength(3)
     expect(await screen.findByRole('button', { name: 'Notifications' })).toBeInTheDocument()
   })
+
+  it('tells the owner when an automatic report is ready and opens it (US-32)', async () => {
+    signIn()
+    runAutomaticReport('p-khatet')
+    const user = userEvent.setup()
+    const router = renderApp('/projects')
+    await user.click(await screen.findByRole('button', { name: 'Notifications, 3 unread' }))
+    const panel = screen.getByRole('dialog', { name: /Notifications/ })
+    const item = await within(panel).findByRole('button', { name: /AI report ready/ })
+    expect(item).toHaveTextContent('A new automatic report for “Khatet” is ready to read.')
+    await user.click(item)
+    await waitFor(() => expect(router.state.location.pathname).toBe('/projects/p-khatet/report'))
+    expect(await screen.findByRole('article', { name: /^Generated automatically / }, { timeout: 5000 })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Notifications, 2 unread' })).toBeInTheDocument()
+  })
 })
 
 describe('AI report (US-31)', () => {
@@ -1040,7 +1055,7 @@ describe('AI report (US-31)', () => {
     signIn()
     const user = userEvent.setup()
     renderApp('/projects/p-study/report')
-    const history = await screen.findByRole('navigation', { name: 'Reports · 2' }, { timeout: 5000 })
+    const history = await screen.findByRole('navigation', { name: 'Reports · 3' }, { timeout: 5000 })
     expect(await screen.findByRole('heading', { name: 'On the board now', level: 2 })).toBeInTheDocument()
 
     await user.selectOptions(within(history).getByLabelText('Choose a report'), 'r-0')
@@ -1116,6 +1131,32 @@ describe('AI report (US-31)', () => {
     expect(router.state.location.pathname).toBe('/projects/p-khatet/report')
     expect(await screen.findByRole('heading', { level: 1, name: 'Reports' })).toBeInTheDocument()
   })
+
+  it('lets the owner turn on automatic reports and shows the next one (US-32)', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/report')
+    const section = (await screen.findByRole('heading', { name: 'Automatic reports', level: 2 })).closest('section')
+    expect(await within(section).findByText('Reports are written only when you generate one.')).toBeInTheDocument()
+    expect(within(section).getByRole('button', { name: 'Off', pressed: true })).toBeInTheDocument()
+    await user.click(within(section).getByRole('button', { name: 'Weekly' }))
+    expect(await within(section).findByText(/^Next report .+\. You get a notification when it is ready\.$/)).toBeInTheDocument()
+    expect(within(section).getByRole('button', { name: 'Weekly', pressed: true })).toBeInTheDocument()
+    expect(await api.getReportSchedule('p-khatet')).toMatchObject({ frequency: 'WEEKLY' })
+  })
+
+  it('shows members the setting as text and marks automatic reports (US-32)', async () => {
+    signIn()
+    const user = userEvent.setup()
+    renderApp('/projects/p-study/report')
+    expect(await screen.findByRole('heading', { name: 'Automatic reports: Weekly', level: 2 }, { timeout: 5000 })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Weekly' })).not.toBeInTheDocument()
+    const history = await screen.findByRole('navigation', { name: 'Reports · 3' })
+    await user.selectOptions(within(history).getByLabelText('Choose a report'), 'r-auto-1')
+    expect(await screen.findByRole('article', { name: /^Generated automatically / })).toBeInTheDocument()
+    expect(screen.getByText('Automatic', { selector: '#report-meta span' })).toBeInTheDocument()
+    expect(within(history).getByRole('option', { name: '1 Oct, 05:00 · Automatic', selected: true })).toBeInTheDocument()
+  })
 })
 
 describe('project overview (US-28)', () => {
@@ -1145,6 +1186,83 @@ describe('project overview (US-28)', () => {
     await user.click(within(activity).getByRole('link', { name: /View the project log/ }))
     expect(router.state.location.pathname).toBe('/projects/p-khatet/log')
   })
+
+  it('shows how many tasks are done and the current phase (US-28, US-29)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-23T09:00:00Z') })
+    try {
+      signIn()
+      const user = userEvent.setup()
+      const router = renderApp('/projects/p-khatet/overview')
+      const card = (await screen.findByRole('heading', { name: 'Timeline', level: 2 }, { timeout: 5000 })).closest('section')
+      // Backlog is left out: 2 of the 8 tasks from To Do to Done are done.
+      expect(within(card).getByText('2 of 8 tasks done')).toBeInTheDocument()
+      expect((await within(card).findByText('Now:')).parentElement).toHaveTextContent('Now: Release and testing · 22 Nov to 5 Dec 2026')
+      await user.click(within(card).getByRole('link', { name: /Open the timeline/ }))
+      expect(router.state.location.pathname).toBe('/projects/p-khatet/timeline')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('timeline (US-29)', () => {
+  beforeEach(() => vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-23T09:00:00Z') }))
+  afterEach(() => vi.useRealTimers())
+
+  it('shows phases and dated tasks in date order with today, and leaves undated tasks out', async () => {
+    signIn()
+    const user = userEvent.setup()
+    const router = renderApp('/projects/p-khatet/board')
+    const sidebar = await screen.findByRole('complementary')
+    await user.click(await within(sidebar).findByRole('link', { name: 'Timeline' }))
+    expect(router.state.location.pathname).toBe('/projects/p-khatet/timeline')
+    expect(await screen.findByRole('heading', { name: 'Timeline', level: 1 })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Timeline' }))
+
+    const chart = await screen.findByRole('region', { name: 'Timeline from Sep to Dec. Today is 23 Nov 2026.' })
+    for (const phase of ['Discovery', 'Build', 'Release and testing']) expect(within(chart).getByText(phase)).toBeInTheDocument()
+    const order = within(chart)
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('aria-label').split(',')[0])
+    expect(order).toEqual([
+      'Define board hierarchy',
+      'Fix CSV validation errors',
+      'Prepare usability test script',
+      'Set up the tasks table migration',
+      'Build the board columns',
+    ])
+    expect(within(chart).getByRole('link', { name: 'Fix CSV validation errors, due 8 Oct 2026, In Progress, blocked, overdue' })).toBeInTheDocument()
+    expect(within(chart).getByText('Today')).toBeInTheDocument()
+    expect(screen.queryByText('Write sign-in error messages')).not.toBeInTheDocument()
+    expect(screen.getByText('5 tasks have no due date, so they are not shown.')).toBeInTheDocument()
+
+    await user.click(within(chart).getByRole('link', { name: /^Build the board columns/ }))
+    expect(router.state.location.pathname).toBe('/projects/p-khatet/board')
+    expect(router.state.location.search).toBe('?task=t-7')
+  })
+
+  it('has a list view with a today marker in date order', async () => {
+    signIn()
+    renderApp('/projects/p-khatet/timeline?view=list')
+    const october = (await screen.findByRole('heading', { name: 'October 2026' }, { timeout: 5000 })).closest('section')
+    expect(within(october).getAllByRole('link').map((link) => link.getAttribute('aria-label').split(',')[0])).toEqual([
+      'Fix CSV validation errors',
+      'Prepare usability test script',
+      'Set up the tasks table migration',
+      'Build the board columns',
+    ])
+    const november = screen.getByRole('heading', { name: 'November 2026' }).closest('section')
+    const rows = within(november).getAllByRole('listitem').map((row) => row.getAttribute('aria-label') ?? row.textContent)
+    expect(rows[0]).toMatch(/Release and testing/)
+    expect(rows[1]).toBe('Today, 23 Nov 2026')
+  })
+
+  it('says what to do when nothing has a date yet', async () => {
+    signIn()
+    const project = await createProject({ name: 'Empty plan' })
+    renderApp(`/projects/${project.id}/timeline`)
+    expect(await screen.findByRole('heading', { name: 'Nothing on the timeline yet' }, { timeout: 5000 })).toBeInTheDocument()
+  })
 })
 
 describe('task activity', () => {
@@ -1159,6 +1277,21 @@ describe('task activity', () => {
 })
 
 describe('project log', () => {
+  it('records phase changes under Project (US-20)', async () => {
+    signIn()
+    await api.updateTask('t-4', { phaseId: 'ph-release' })
+    await deletePhase('ph-release')
+    const user = userEvent.setup()
+    renderApp('/projects/p-khatet/log')
+    const kinds = await screen.findByRole('group', { name: 'Kind of change' }, { timeout: 5000 })
+    expect(await screen.findByText('Phase: no phase to “Release and testing”')).toBeInTheDocument()
+    await user.click(within(kinds).getByRole('button', { name: 'Project' }))
+    expect(
+      await screen.findByText((_, element) => element?.tagName === 'P' && element.textContent === 'fahad deleted the phase “Release and testing”'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('Its tasks stay on the board without a phase.')).toBeInTheDocument()
+  })
+
   it('shows one kind of change at a time', async () => {
     signIn()
     const user = userEvent.setup()
