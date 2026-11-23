@@ -69,6 +69,21 @@ const realReports = {
   generateReport: (projectId) => apiFetch(`/projects/${projectId}/reports`, { method: 'POST' }),
 }
 
+// US-32: automatic reports. Only used once apiReady.reportSchedule is on.
+const realReportSchedule = {
+  getReportSchedule: (projectId) => apiFetch(`/projects/${projectId}/report-schedule`),
+  updateReportSchedule: (projectId, frequency) =>
+    apiFetch(`/projects/${projectId}/report-schedule`, { method: 'PATCH', body: { frequency } }),
+}
+
+// US-20: phases (docs/api-contract.md, Phases and timeline). Only used once apiReady.phases is on.
+const realPhases = {
+  getPhases: (projectId) => apiFetch(`/projects/${projectId}/phases`),
+  createPhase: (projectId, input) => apiFetch(`/projects/${projectId}/phases`, { method: 'POST', body: input }),
+  updatePhase: (phaseId, patch) => apiFetch(`/phases/${phaseId}`, { method: 'PATCH', body: patch }),
+  deletePhase: (phaseId) => apiFetch(`/phases/${phaseId}`, { method: 'DELETE' }),
+}
+
 // The project log (docs/api-contract.md, Project log).
 const realActivity = {
   getActivity: (projectId, { actorId, taskId, kind, before } = {}) => {
@@ -95,5 +110,7 @@ const auth = useRealAuth
 export const api = {
   ...sample,
   ...auth,
-  ...(useRealAuth ? { ...realProjects, ...realMembersAndNotifications, ...realReports, ...realActivity } : {}),
+  ...(useRealAuth
+    ? { ...realProjects, ...realMembersAndNotifications, ...realReports, ...realReportSchedule, ...realPhases, ...realActivity }
+    : {}),
 }

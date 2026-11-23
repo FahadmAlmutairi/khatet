@@ -76,17 +76,20 @@ export function createSampleData() {
       task('t-3', 'p-khatet', 'Prepare usability test script', 'TODO', 1, ['u-saad'], {
         priority: 'HIGH',
         dueDate: '2026-10-09',
+        phaseId: 'ph-build',
       }),
       task('t-4', 'p-khatet', 'Write sign-in error messages', 'TODO', 2, ['u-omar'], { priority: 'MEDIUM' }),
       task('t-5', 'p-khatet', 'Set up the tasks table migration', 'TODO', 3, ['u-fahad', 'u-saad', 'u-omar', 'u-ali'], {
         priority: 'HIGH',
         dueDate: '2026-10-10',
+        phaseId: 'ph-build',
         description:
           'Create the Task and TaskAssignee tables with the fields from docs/data-model.md. Every task keeps at least one assignee.',
       }),
       task('t-6', 'p-khatet', 'Fix CSV validation errors', 'IN_PROGRESS', 1, ['u-fahad'], {
         priority: 'HIGH',
         dueDate: '2026-10-08',
+        phaseId: 'ph-build',
         isBlocked: true,
         blockedReason: 'Waiting for sample file',
         description: 'The import shows a raw error when a column is missing. Show which row and column failed.',
@@ -94,10 +97,12 @@ export function createSampleData() {
       task('t-7', 'p-khatet', 'Build the board columns', 'IN_PROGRESS', 2, ['u-fahad', 'u-omar'], {
         priority: 'MEDIUM',
         dueDate: '2026-10-11',
+        phaseId: 'ph-build',
       }),
       task('t-8', 'p-khatet', 'Define board hierarchy', 'READY_FOR_REVIEW', 1, ['u-fahad', 'u-saad'], {
         priority: 'MEDIUM',
         dueDate: '2026-09-20',
+        phaseId: 'ph-discover',
         description: 'Clarify the board columns, movement rules, and work-in-progress limits before the next review.',
       }),
       task('t-9', 'p-khatet', 'Agree the colour tokens', 'DONE', 1, ['u-saad'], { priority: 'LOW' }),
@@ -105,6 +110,7 @@ export function createSampleData() {
       task('t-11', 'p-study', 'Summarise chapter 4 (trees)', 'TODO', 1, ['u-fahad'], {
         priority: 'MEDIUM',
         dueDate: '2026-10-12',
+        phaseId: 'ph-study-1',
       }),
       task('t-12', 'p-study', 'Solve past exam questions', 'IN_PROGRESS', 1, ['u-saad', 'u-omar'], { priority: 'HIGH' }),
       task('t-13', 'p-study', 'Book a study room', 'DONE', 1, ['u-omar'], {}),
@@ -114,6 +120,17 @@ export function createSampleData() {
       }),
       task('t-15', 'p-capstone', 'List related papers', 'TODO', 1, ['u-omar'], { priority: 'LOW' }),
     ],
+    // US-20: project stages on the timeline (US-29). Each task links to at most one phase.
+    phases: [
+      { id: 'ph-discover', projectId: 'p-khatet', name: 'Discovery', startDate: '2026-09-01', endDate: '2026-09-30', createdAt: '2026-09-01T09:10:00Z', updatedAt: '2026-09-01T09:10:00Z' },
+      { id: 'ph-build', projectId: 'p-khatet', name: 'Build', startDate: '2026-10-01', endDate: '2026-11-21', createdAt: '2026-09-01T09:11:00Z', updatedAt: '2026-09-01T09:11:00Z' },
+      { id: 'ph-release', projectId: 'p-khatet', name: 'Release and testing', startDate: '2026-11-22', endDate: '2026-12-05', createdAt: '2026-09-01T09:12:00Z', updatedAt: '2026-09-01T09:12:00Z' },
+      { id: 'ph-study-1', projectId: 'p-study', name: 'Trees and graphs', startDate: '2026-10-01', endDate: '2026-10-20', createdAt: '2026-09-05T09:10:00Z', updatedAt: '2026-09-05T09:10:00Z' },
+    ],
+    // US-32: automatic AI reports. Study Planner sends one every week; the others are off.
+    reportSchedules: {
+      'p-study': { frequency: 'WEEKLY', nextRunAt: '2026-10-12T05:00:00Z' },
+    },
     // The project log, oldest first. nasser left Khatet, and the task he wrote was deleted, but both stay in the log.
     activity: [
       { id: 'a-1', projectId: 'p-khatet', actorId: 'u-fahad', actorUsername: 'fahad', type: 'PROJECT_CREATED', taskId: null, taskTitle: null, details: { name: 'Khatet' }, createdAt: '2026-09-01T09:00:00Z' },
@@ -151,6 +168,26 @@ export function createSampleData() {
           '',
           '## Suggestions',
           '- **Give "Solve past exam questions" one owner**: Both saad and omar hold it.',
+        ].join('\n'),
+      },
+      // US-32: made by the weekly schedule, so it has no author.
+      {
+        id: 'r-auto-1',
+        projectId: 'p-study',
+        createdById: null,
+        trigger: 'AUTOMATIC',
+        model: 'gpt-6-luna',
+        promptVersion: 1,
+        createdAt: '2026-10-01T05:00:00Z',
+        content: [
+          '## Progress summary',
+          'One of three tasks is done. "Book a study room" was finished this week.',
+          '',
+          '## Warnings',
+          'No warnings.',
+          '',
+          '## Suggestions',
+          '- **Start "Summarise chapter 4 (trees)" soon**: It is due on 12 Oct.',
         ].join('\n'),
       },
       {
@@ -220,6 +257,7 @@ function task(id, projectId, title, status, position, assigneeIds, extra) {
     blockedReason: null,
     priority: null,
     dueDate: null,
+    phaseId: null,
     assigneeIds,
     createdById: 'u-fahad',
     createdAt: '2026-09-14T09:00:00Z',

@@ -126,3 +126,86 @@ describe('sample API', () => {
     })
   })
 })
+
+// US-20: the sample server follows docs/api-contract.md, "Phases and timeline".
+describe('sample API: phases', () => {
+  beforeEach(() => api.resetMockServer({ signedInAs: 'u-fahad' }))
+
+  it('lists a project’s phases by start date', async () => {
+    const { phases } = await api.getPhases('p-khatet')
+    expect(phases.map((phase) => phase.name)).toEqual(['Discovery', 'Build', 'Release and testing'])
+  })
+
+  it('checks the name and that the end date is not before the start date', async () => {
+    await expect(api.createPhase('p-khatet', { name: ' ', startDate: '2026-12-10', endDate: '2026-12-01' })).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+      fieldErrors: [
+        { field: 'name', message: 'Enter a phase name.' },
+        { field: 'endDate', message: 'The end date must be on or after the start date.' },
+      ],
+    })
+    const phase = await api.createPhase('p-khatet', { name: ' Handover ', startDate: '2026-12-06', endDate: '2026-12-06' })
+    expect(phase).toMatchObject({ projectId: 'p-khatet', name: 'Handover', startDate: '2026-12-06', endDate: '2026-12-06' })
+    // A change is checked against the phase as it will be.
+    await expect(api.updatePhase(phase.id, { startDate: '2026-12-07' })).rejects.toMatchObject({
+      fieldErrors: [{ field: 'endDate', message: 'The end date must be on or after the start date.' }],
+    })
+  })
+
+  it('lets only the owner add, change or delete phases', async () => {
+    await expect(api.createPhase('p-study', { name: 'Revision', startDate: '2026-10-21', endDate: '2026-10-30' })).rejects.toMatchObject({
+      code: 'FORBIDDEN',
+    })
+    await expect(api.deletePhase('ph-study-1')).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    expect((await api.getPhases('p-study')).phases).toHaveLength(1)
+  })
+
+  it('links a task to a phase of its own project only, and deleting the phase keeps the task', async () => {
+    await expect(api.updateTask('t-4', { phaseId: 'ph-study-1' })).rejects.toMatchObject({ code: 'VALIDATION_FAILED' })
+    const linked = await api.updateTask('t-4', { phaseId: 'ph-release' })
+    expect(linked.phaseId).toBe('ph-release')
+
+    await api.deletePhase('ph-release')
+    const task = (await api.getTasks('p-khatet')).find((item) => item.id === 't-4')
+    expect(task).toMatchObject({ title: 'Write sign-in error messages', phaseId: null })
+
+    const { events } = await api.getActivity('p-khatet', { kind: 'project' })
+    expect(events[0]).toMatchObject({ type: 'PHASE_DELETED', details: { name: 'Release and testing' }, taskId: null })
+    const edit = (await api.getActivity('p-khatet', { taskId: 't-4' })).events.find((event) => event.type === 'TASK_UPDATED')
+    expect(edit.details.changes).toContainEqual({ field: 'phase', from: null, to: 'Release and testing' })
+  })
+})
+
+// US-32: docs/api-contract.md, "Automatic reports".
+describe('sample API: automatic reports', () => {
+  beforeEach(() => api.resetMockServer({ signedInAs: 'u-fahad' }))
+
+  it('starts Off and lets the owner choose Weekly or Monthly', async () => {
+    expect(await api.getReportSchedule('p-khatet')).toEqual({ frequency: 'DISABLED', nextRunAt: null })
+    const weekly = await api.updateReportSchedule('p-khatet', 'WEEKLY')
+    expect(weekly.frequency).toBe('WEEKLY')
+    const days = (new Date(weekly.nextRunAt) - Date.now()) / 86_400_000
+    expect(days).toBeGreaterThan(6.9)
+    expect(days).toBeLessThan(7.1)
+    await expect(api.updateReportSchedule('p-khatet', 'DAILY')).rejects.toMatchObject({
+      code: 'VALIDATION_FAILED',
+      fieldErrors: [{ field: 'frequency', message: 'Choose Weekly, Monthly or Off.' }],
+    })
+    expect(await api.updateReportSchedule('p-khatet', 'DISABLED')).toEqual({ frequency: 'DISABLED', nextRunAt: null })
+  })
+
+  it('lets members read the setting but not change it', async () => {
+    expect((await api.getReportSchedule('p-study')).frequency).toBe('WEEKLY')
+    await expect(api.updateReportSchedule('p-study', 'DISABLED')).rejects.toMatchObject({ code: 'FORBIDDEN' })
+  })
+
+  it('puts an automatic report in the same list, without an author, and tells the owner', async () => {
+    await api.updateReportSchedule('p-khatet', 'MONTHLY')
+    const report = api.runAutomaticReport('p-khatet')
+    expect(report).toMatchObject({ trigger: 'AUTOMATIC', createdBy: null })
+    const { reports } = await api.getReports('p-khatet')
+    expect(reports[0]).toMatchObject({ id: report.id, trigger: 'AUTOMATIC' })
+    const { items } = await api.getNotifications()
+    expect(items[0]).toMatchObject({ type: 'REPORT_READY', projectId: 'p-khatet', reportId: report.id, projectName: 'Khatet', read: false })
+  })
+})

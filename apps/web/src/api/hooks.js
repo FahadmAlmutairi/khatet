@@ -17,6 +17,8 @@ export const keys = {
   messages: (projectId) => ['messages', projectId],
   report: (projectId) => ['report', projectId],
   reports: (projectId) => ['reports', projectId],
+  reportSchedule: (projectId) => ['reportSchedule', projectId],
+  phases: (projectId) => ['phases', projectId],
   activity: (projectId, filter = {}) => ['activity', projectId, filter],
   archivedProjects: ['archivedProjects'],
   archivedProject: (projectId) => ['archivedProject', projectId],
@@ -563,6 +565,41 @@ export function useGenerateReport(projectId) {
       queryClient.setQueryData(keys.report(projectId), report)
       queryClient.setQueryData(keys.reports(projectId), (old) => [report, ...(old ?? []).filter((item) => item.id !== report.id)])
     },
+  })
+}
+
+// ---------- Automatic reports (US-32) ----------
+
+// { frequency: 'DISABLED' | 'WEEKLY' | 'MONTHLY', nextRunAt } for any member.
+export function useReportSchedule(projectId, { enabled = true } = {}) {
+  return useQuery({ queryKey: keys.reportSchedule(projectId), enabled, queryFn: () => api.getReportSchedule(projectId) })
+}
+
+// Owner only. The choice shows at once and goes back if the server refuses it.
+export function useUpdateReportSchedule(projectId) {
+  const queryClient = useQueryClient()
+  const key = keys.reportSchedule(projectId)
+  return useMutation({
+    mutationFn: (frequency) => api.updateReportSchedule(projectId, frequency),
+    onMutate: async (frequency) => {
+      await queryClient.cancelQueries({ queryKey: key })
+      const previous = queryClient.getQueryData(key)
+      queryClient.setQueryData(key, (old) => ({ ...old, frequency }))
+      return { previous }
+    },
+    onError: (_error, _frequency, context) => queryClient.setQueryData(key, context?.previous),
+    onSuccess: (schedule) => queryClient.setQueryData(key, schedule),
+  })
+}
+
+// ---------- Phases (US-20, read by the Timeline in US-29) ----------
+
+// The project's phases ordered by start date. Off (an empty list) until the phases route is live.
+export function usePhases(projectId, { enabled = true } = {}) {
+  return useQuery({
+    queryKey: keys.phases(projectId),
+    enabled,
+    queryFn: async () => (await api.getPhases(projectId)).phases,
   })
 }
 
