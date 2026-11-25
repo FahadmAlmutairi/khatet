@@ -6,7 +6,7 @@ import { useMe, useRequestCode } from '../../api/hooks.js'
 import Button from '../../components/ui/Button.jsx'
 import { FieldError, TextField } from '../../components/ui/Field.jsx'
 import { useFocusFirstInvalid } from '../../components/ui/useFocusFirstInvalid.js'
-import AuthLayout, { SampleSignInNote } from './AuthLayout.jsx'
+import AuthLayout from './AuthLayout.jsx'
 
 // US-01 and US-02: one email form for new and returning users.
 export default function SignInPage() {
@@ -30,7 +30,7 @@ export default function SignInPage() {
   const emailError = fieldError(requestCode.error, 'email')
 
   return (
-    <AuthLayout title="Sign in or create an account" after={<SampleSignInNote />}>
+    <AuthLayout title="Sign in or create an account">
       <p className="text-sm leading-[21px] text-muted">We’ll email you a 6-digit code.</p>
       <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-6">
         <TextField

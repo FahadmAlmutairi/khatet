@@ -406,7 +406,7 @@ export default function MembersPage() {
               <span>Access</span>
               <span />
             </div>
-            <ul aria-label="Project members" className="list-enter flex flex-col gap-2.5 lg:gap-0">
+            <ul aria-label="Project members" data-tour="members" className="list-enter flex flex-col gap-2.5 lg:gap-0">
               {list.map((member) => (
                 <MemberRow
                   key={member.userId}

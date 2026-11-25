@@ -1,6 +1,6 @@
 import { useDocumentTitle } from '../../app/pageMeta.js'
 import Logo from '../../components/Logo.jsx'
-import { useRealAuth } from '../../api/config.js'
+import { Link } from 'react-router'
 
 // Figma: Sign in 946:1624, Verify 946:1634, Username 946:1646 (desktop) and 778:94, 778:66, 954:774 (mobile).
 export default function AuthLayout({ title, children, after }) {
@@ -8,7 +8,9 @@ export default function AuthLayout({ title, children, after }) {
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
       <header className="flex h-16 items-center bg-white px-5 sm:h-[72px] sm:px-16">
-        <Logo />
+        <Link to="/" className="inline-flex min-h-11 items-center rounded-md" aria-label="Khatet home">
+          <Logo label="" />
+        </Link>
       </header>
       <main id="main" className="flex flex-1 flex-col items-center justify-start px-5 py-12 sm:justify-center sm:px-4 sm:py-10">
         {/* Mobile drops the card and sits on the page background (Figma 778:94). */}
@@ -19,16 +21,5 @@ export default function AuthLayout({ title, children, after }) {
         {after}
       </main>
     </div>
-  )
-}
-
-// Explains how the sample sign-in works. Hidden when real sign-in is turned on.
-export function SampleSignInNote() {
-  if (useRealAuth) return null
-  return (
-    <p className="mt-4 w-full max-w-[440px] rounded-lg px-3 py-2.5 text-sm text-muted">
-      <strong className="font-semibold text-heading">Sample data.</strong> Use fahad@example.com and any 6 digits. 000000
-      shows the wrong-code message and 111111 the expired one. Any other email creates a new account.
-    </p>
   )
 }

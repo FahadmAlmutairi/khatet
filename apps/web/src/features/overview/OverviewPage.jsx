@@ -139,10 +139,10 @@ const CARD_ICONS = {
   report: { icon: <ReportIcon />, tone: 'bg-surface-subtle/60 text-heading' },
 }
 
-function Card({ title, icon, action, className = '', children }) {
+function Card({ title, icon, action, className = '', tour, children }) {
   const badge = CARD_ICONS[icon]
   return (
-    <section className={`flex min-w-0 flex-col gap-3 rounded-xl border border-line bg-white p-4 sm:p-5 ${className}`}>
+    <section data-tour={tour} className={`flex min-w-0 flex-col gap-3 rounded-xl border border-line bg-white p-4 sm:p-5 ${className}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2.5">
           {badge && (
@@ -304,7 +304,7 @@ function NeedsAttention({ projectId, tasks, usernames }) {
   const flagged = [...new Set([...stats.blocked, ...stats.overdue])]
   const shown = flagged.slice(0, ATTENTION_LIMIT)
   return (
-    <Card title={flagged.length ? `Needs attention · ${flagged.length}` : 'Needs attention'} icon="attention">
+    <Card title={flagged.length ? `Needs attention · ${flagged.length}` : 'Needs attention'} icon="attention" tour="needs-attention">
       {shown.length === 0 ? (
         <p className="text-sm text-muted">Nothing is blocked or overdue.</p>
       ) : (
