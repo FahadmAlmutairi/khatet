@@ -68,7 +68,7 @@ export default function ChatToPlan() {
         </p>
         <ul className="mt-4 flex flex-col gap-3">
           {PAIRS.map((pair, index) => (
-            <li key={pair.task} className="chat-bubble flex items-end gap-2" style={{ '--delay': `${index * 90}ms` }}>
+            <li key={pair.task} className="flex items-end gap-2">
               <span
                 aria-hidden="true"
                 className="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-[11px] font-semibold text-heading"
@@ -76,7 +76,15 @@ export default function ChatToPlan() {
                 {pair.from.slice(0, 2).toUpperCase()}
               </span>
               <p className="rounded-2xl rounded-bl-md bg-surface px-3 py-2 text-sm text-body">
-                <span className="block text-xs font-semibold text-heading">{pair.from}</span>
+                <span className="flex items-center gap-2 text-xs font-semibold text-heading">
+                  {pair.from}
+                  {sorted && (
+                    <span className="chat-moved inline-flex items-center gap-1 font-medium text-action" style={{ '--delay': `${200 + index * 110}ms` }}>
+                      <StatusIcon status="DONE" />
+                      On the board
+                    </span>
+                  )}
+                </span>
                 {pair.message}
               </p>
             </li>
@@ -106,7 +114,19 @@ export default function ChatToPlan() {
           Khatet board
           <span className="rounded-full bg-nav-active px-2 py-0.5 font-medium tracking-normal text-heading normal-case">4 tasks</span>
         </p>
-        <ul className="mt-4 flex flex-col gap-2.5" aria-label="The same work as tasks">
+        {/* Before sorting, faint outlines show where the tasks will land. They hold no text, so nothing on
+            screen is too faint to read. */}
+        {!sorted && (
+          <ul aria-hidden="true" className="mt-4 flex flex-col gap-2.5">
+            {PAIRS.map((pair) => (
+              <li key={pair.task} className="flex h-[92px] flex-col justify-center gap-2.5 rounded-[12px] border border-dashed border-[#d5ddd3] px-3">
+                <span className="h-2 w-1/2 rounded-full bg-surface-subtle" />
+                <span className="h-2 w-1/4 rounded-full bg-surface-subtle" />
+              </li>
+            ))}
+          </ul>
+        )}
+        <ul className={`mt-4 flex flex-col gap-2.5 ${sorted ? '' : 'hidden'}`} aria-label="The same work as tasks">
           {PAIRS.map((pair, index) => (
             <li
               key={pair.task}

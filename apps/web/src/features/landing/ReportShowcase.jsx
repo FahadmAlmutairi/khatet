@@ -15,10 +15,10 @@ const SNAPSHOT = [
 function Section({ icon, title, tone = 'text-heading', children, delay }) {
   return (
     <div className="report-line flex flex-col gap-2" style={{ '--delay': `${delay}ms` }}>
-      <h4 className={`flex items-center gap-2 text-sm font-semibold ${tone}`}>
+      <h3 className={`flex items-center gap-2 text-sm font-semibold ${tone}`}>
         {icon}
         {title}
-      </h4>
+      </h3>
       {children}
     </div>
   )

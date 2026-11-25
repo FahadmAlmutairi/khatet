@@ -195,11 +195,12 @@ function Facts() {
     <section aria-label="Khatet in numbers" className="border-y border-line bg-white">
       <dl className="mx-auto grid max-w-[1200px] grid-cols-2 gap-px bg-line px-0 sm:grid-cols-4">
         {facts.map(([value, label, detail], index) => (
-          <div key={label} data-reveal style={{ '--reveal-delay': `${index * 60}ms` }} className="flex flex-col gap-1 bg-white px-5 py-7 sm:px-8">
-            <dt className="order-2 text-sm text-muted">
+          // The white cells stay put (they draw the grid lines); only their text fades in.
+          <div key={label} style={{ '--reveal-delay': `${index * 60}ms` }} className="flex flex-col gap-1 bg-white px-5 py-7 sm:px-8">
+            <dt data-reveal className="order-2 text-sm text-muted">
               <span className="font-semibold text-heading">{label}</span> {detail}
             </dt>
-            <dd className="landing-display order-1 text-[40px] leading-none font-semibold text-heading tabular-nums">{value}</dd>
+            <dd data-reveal className="landing-display order-1 text-[40px] leading-none font-semibold text-heading tabular-nums">{value}</dd>
           </div>
         ))}
       </dl>

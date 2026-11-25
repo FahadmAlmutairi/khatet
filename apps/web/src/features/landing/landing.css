@@ -95,6 +95,12 @@
   transform: translateY(12px);
 }
 
+/* Anything that takes keyboard focus shows at once, even before its section has faded in. */
+.landing-motion [data-reveal]:focus-within {
+  opacity: 1;
+  transform: none;
+}
+
 .landing-motion [data-reveal] {
   transition:
     opacity 600ms var(--ease-apple),
@@ -196,30 +202,19 @@
 
 /* ---------- Chat to plan ---------- */
 
-.chat-bubble {
-  transition:
-    opacity 500ms var(--ease-apple),
-    transform 600ms var(--ease-apple);
-  transition-delay: var(--delay, 0ms);
+/* Sorting: each message is marked as on the board, and its task slides onto the board. Text stays at
+   full contrast in both states. */
+.chat-moved,
+.chat-plan[data-sorted='true'] .plan-card {
+  animation: chat-land 560ms var(--ease-apple) backwards;
+  animation-delay: var(--delay, 0ms);
 }
 
-.chat-plan[data-sorted='true'] .chat-bubble {
-  opacity: 0.35;
-  transform: translateX(-6px) scale(0.98);
-}
-
-.plan-card {
-  transition:
-    opacity 500ms var(--ease-apple),
-    transform 600ms var(--ease-apple);
-  transition-delay: var(--delay, 0ms);
-}
-
-/* Before sorting, the board shows faint outlines where the tasks will land. */
-.chat-plan[data-sorted='false'] .plan-card {
-  opacity: 0.22;
-  transform: translateX(-14px);
-  filter: grayscale(1);
+@keyframes chat-land {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
 }
 
 /* ---------- Feature story ---------- */
@@ -278,9 +273,7 @@
 @media (prefers-reduced-motion: reduce) {
   .hero-cursor,
   .hero-panel,
-  .story-visual,
-  .chat-bubble,
-  .plan-card {
+  .story-visual {
     transition: none !important;
   }
 }

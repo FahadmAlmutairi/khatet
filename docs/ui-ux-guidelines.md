@@ -95,6 +95,14 @@ Use a visible stepper: Upload/source -> Map -> Review -> Confirm. Validate file 
 
 The owner generates a report; every participant can read it with the date it was generated. Show a summary of progress, warnings (unrealistic deadlines, overloaded members, long-blocked work), and suggestions. State clearly that the report never changes project data; there are no Accept or Apply buttons. Use terracotta for AI and warnings, with text and icons. Show a generating state, a failed state with a clear message and a Try again button, and an empty state before the first report. Automatic reports (Weekly, Monthly, or Disabled) are a Could have story for Sprint 4; they appear in the same list as manual reports.
 
+### Public landing page and live demo
+
+Signed-out visitors open the landing page at `/`; signed-in people go straight to their projects. The page shows the product itself instead of stock images: an animated board preview in the hero (move a task, flag a blocker, finish work, talk in chat, get an AI report), the group chat turned into tasks, the board, Overview, chat and project log, the AI report with proof that nothing changed, the three task access levels, accessibility, three steps to start, the guided tour and the team. Use real feature names and sample data only, with no invented statistics, testimonials or customer logos.
+
+The hero preview has a pause button and a button for each step (WCAG 2.2.2), pauses when it is off screen or the tab is hidden, and shows its final state without movement when reduced motion is on. Sections fade and rise 12 px once when they scroll into view; anything that takes focus shows at once. Every interactive example works with the keyboard and keeps text at full contrast in every state.
+
+`/demo` opens the real app on the sample data with every date moved so that the sample project is current, a banner to restart the tour, create an account or leave, and a seven-step guided tour (`/demo?tour=off` skips it). The demo never calls the real API or the chat socket, and nothing changed in it is saved. The tour is not modal: the page stays usable, the card is a labelled dialog that takes focus on each step, Escape closes it, nothing advances on a timer, and the step about moving a card names the keyboard path (More actions, then Move to) next to dragging. On phones the tour card sits at the bottom of the screen, and it steps aside while a modal window or the phone sidebar is open.
+
 ## Component system
 
 Use three levels:
