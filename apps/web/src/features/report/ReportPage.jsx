@@ -41,6 +41,7 @@ export default function ReportPage() {
       onClick={() => generate.mutate(undefined, { onSuccess: () => setSelectedId(null) })}
       loading={generate.isPending}
       fullOnPhone
+      data-tour="generate-report"
     >
       <SparkleIcon />
       {shown ? 'Generate new report' : 'Generate report'}

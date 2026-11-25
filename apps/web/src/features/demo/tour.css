@@ -1,0 +1,30 @@
+/* The guided tour in the live demo (ProductTour.jsx). */
+
+/* The lit-up target: a ring, and a wide shadow that dims the rest of the page. */
+.tour-spotlight {
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 6px rgb(64 83 63 / 0.55),
+    0 0 0 200vmax rgb(20 31 23 / 0.38);
+  transition:
+    transform 320ms var(--ease-apple),
+    width 320ms var(--ease-apple),
+    height 320ms var(--ease-apple);
+}
+
+.tour-dim {
+  background: rgb(20 31 23 / 0.38);
+  animation: fade-in 200ms ease-out;
+}
+
+.tour-card {
+  transition: opacity 180ms ease-out;
+  animation: enter 240ms var(--ease-apple);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spotlight,
+  .tour-card {
+    transition: none;
+  }
+}

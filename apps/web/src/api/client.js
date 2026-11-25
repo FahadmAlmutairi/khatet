@@ -11,6 +11,7 @@
 import * as sample from './mockServer.js'
 import * as realAuth from './realAuth.js'
 import { useRealAuth } from './config.js'
+import { isDemoSession } from './demoSession.js'
 import { apiFetch } from './realAuth.js'
 
 const realProjects = {
@@ -100,8 +101,14 @@ const auth = useRealAuth
     }
   : {}
 
-export const api = {
+const live = {
   ...sample,
   ...auth,
   ...(useRealAuth ? { ...realProjects, ...realMembersAndNotifications, ...realReports, ...realActivity, ...realImports } : {}),
 }
+
+// The live demo (demoSession.js) runs every call on the sample data, even on the live site, so a
+// visitor can try the real screens without an account and nothing reaches the real API.
+export const api = useRealAuth
+  ? Object.fromEntries(Object.keys(live).map((name) => [name, (...args) => (isDemoSession() ? sample : live)[name](...args)]))
+  : live

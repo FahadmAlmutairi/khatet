@@ -3,8 +3,9 @@
 // docs/api-contract.md so the screens show the right states, but the real checks
 // belong to the backend. Data resets when the page reloads.
 import { formatDueDate } from '../lib/domain.js'
+import { isDemoSession, shiftSampleDates } from './demoSession.js'
 import { ApiError } from './errors.js'
-import { createSampleData } from './sampleData.js'
+import { createSampleData, SAMPLE_USER_ID } from './sampleData.js'
 import { checkMapping, parseCsv, readRow, readTable, suggestMapping } from './sampleImport.js'
 
 const SESSION_KEY = 'khatet.sampleSession'
@@ -12,7 +13,8 @@ const STATUS_ORDER = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'DON
 const PRIORITY_VALUES = ['LOW', 'MEDIUM', 'HIGH']
 const ACCESS_VALUES = ['VIEW_ONLY', 'EDIT_ASSIGNED', 'EDIT_ALL']
 
-let db = createSampleData()
+// The live demo (demoSession.js) uses the same data with its dates moved to around today.
+let db = isDemoSession() ? shiftSampleDates(createSampleData()) : createSampleData()
 let currentUserId = readSession()
 let pendingEmail = null
 let delayMs = 250
@@ -26,6 +28,14 @@ export function resetMockServer({ signedInAs = null, delay = 0 } = {}) {
   pendingEmail = null
   delayMs = delay
   writeSession(signedInAs)
+}
+
+// The live demo starts from fresh sample data, signed in as the owner of the Khatet project.
+export function startDemoServer() {
+  db = shiftSampleDates(createSampleData())
+  currentUserId = SAMPLE_USER_ID
+  pendingEmail = null
+  writeSession(SAMPLE_USER_ID)
 }
 
 // Lets tests and reviewers make the next call to `name` fail once.

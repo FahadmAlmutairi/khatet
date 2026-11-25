@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { chatSocketEnabled, getChatSocket, joinProjectRoom } from './chatSocket.js'
 import { api } from './client.js'
+import { isDemoSession } from './demoSession.js'
 
 export const keys = {
   me: ['me'],
@@ -463,9 +464,11 @@ function appendMessages(shown, newer) {
 export function useChatSocket(projectId, { enabled = true } = {}) {
   const queryClient = useQueryClient()
   const [live, setLive] = useState(false)
+  // The live demo stays on sample data, so its chat never opens a socket to the real server.
+  const socketOn = chatSocketEnabled && !isDemoSession()
 
   useEffect(() => {
-    if (!enabled || !chatSocketEnabled) return undefined
+    if (!enabled || !socketOn) return undefined
     let active = true
     let socket = null
 
@@ -507,9 +510,9 @@ export function useChatSocket(projectId, { enabled = true } = {}) {
       // The socket is only needed while a chat is open; this frees the free Render server.
       socket.disconnect()
     }
-  }, [enabled, projectId, queryClient])
+  }, [enabled, socketOn, projectId, queryClient])
 
-  return enabled && chatSocketEnabled && live
+  return enabled && socketOn && live
 }
 
 // The first request loads the latest messages; each refresh asks only for the ones after
