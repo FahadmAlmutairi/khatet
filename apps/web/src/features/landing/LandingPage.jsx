@@ -38,23 +38,6 @@ function PlayIcon() {
 }
 
 // The خ mark at any size, drawn as a stroke so it can draw itself.
-function DrawnMark({ className = '', stroke = '#263629', dot = '#C86C4D', strokeWidth = 9 }) {
-  return (
-    <svg viewBox="0 0 64 64" fill="none" aria-hidden="true" className={className}>
-      <path
-        className="landing-mark-stroke"
-        pathLength="120"
-        d="M14 26H40L22 40C18 44 22 52 30 52H50"
-        stroke={stroke}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {dot && <circle className="landing-mark-dot" cx="27" cy="11" r="5.5" fill={dot} />}
-    </svg>
-  )
-}
-
 function Header() {
   const sentinelRef = useRef(null)
   const [scrolled, setScrolled] = useState(false)
@@ -114,15 +97,11 @@ function Hero() {
     <section aria-labelledby="hero-title" className="relative isolate overflow-hidden pt-10 pb-16 sm:pt-12 sm:pb-24">
       <div aria-hidden="true" className="landing-paper absolute inset-0 -z-10" />
       <div className="mx-auto flex max-w-[1200px] flex-col items-center px-4 text-center sm:px-6">
-        <p data-reveal className="inline-flex items-center gap-2 rounded-full border border-[#dbe3d9] bg-white/80 py-1.5 pr-3.5 pl-2 text-sm font-medium text-heading shadow-card">
-          <DrawnMark className="size-5" />
-          5 clear stages, from Backlog to Done
-        </p>
         <h1
           id="hero-title"
           data-reveal
           style={{ '--reveal-delay': '60ms' }}
-          className="landing-display mt-6 max-w-[860px] text-[40px] leading-[1.04] font-semibold text-heading sm:text-[60px] lg:text-[64px]"
+          className="landing-display mt-4 max-w-[860px] text-[40px] leading-[1.04] font-semibold text-heading sm:text-[60px] lg:text-[64px]"
         >
           Plan together. Finish on time.
         </h1>
@@ -175,6 +154,14 @@ function TourSection() {
               Create an account
             </Link>
           </div>
+          <p className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line pt-5 text-sm font-medium text-heading">
+            <span aria-hidden="true" className="flex items-center gap-1.5">
+              {['BACKLOG', 'TODO', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'DONE'].map((status) => (
+                <StatusIcon key={status} status={status} />
+              ))}
+            </span>
+            5 clear stages, from Backlog to Done
+          </p>
         </div>
 
         {/* A picture of the tour: a highlighted card and the step card beside it. */}
