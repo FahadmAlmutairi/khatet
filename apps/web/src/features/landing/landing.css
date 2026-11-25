@@ -200,80 +200,9 @@
   transition: opacity 320ms ease-out;
 }
 
-/* ---------- Chat to plan ---------- */
-
-/* Sorting: each message is marked as on the board, and its task slides onto the board. Text stays at
-   full contrast in both states. */
-.chat-moved,
-.chat-plan[data-sorted='true'] .plan-card {
-  animation: chat-land 560ms var(--ease-apple) backwards;
-  animation-delay: var(--delay, 0ms);
-}
-
-@keyframes chat-land {
-  from {
-    opacity: 0;
-    transform: translateX(-12px);
-  }
-}
-
-/* ---------- Feature story ---------- */
-
-.story-visual {
-  transition:
-    opacity 420ms var(--ease-apple),
-    transform 520ms var(--ease-apple);
-}
-
-.story-visual[data-active='false'] {
-  opacity: 0;
-  transform: translateY(10px) scale(0.985);
-  pointer-events: none;
-}
-
-.story-step {
-  transition: opacity 300ms ease-out;
-}
-
-/* ---------- How it works: the line that joins the steps ---------- */
-
-/* The line grows from the first step to the last (scaleX only). It overrides the usual rise. */
-.steps-line {
-  transform-origin: left center;
-}
-
-.landing-motion .steps-line[data-reveal]:not([data-shown]) {
-  opacity: 1;
-  transform: scaleX(0);
-}
-
-.landing-motion .steps-line[data-reveal] {
-  transition: transform 1400ms var(--ease-apple) 200ms;
-}
-
-/* ---------- Report ---------- */
-
-.report-line {
-  animation: hero-pop 460ms var(--ease-apple) backwards;
-  animation-delay: var(--delay, 0ms);
-}
-
-.report-shimmer {
-  background: linear-gradient(90deg, rgb(255 255 255 / 0.06) 0%, rgb(255 255 255 / 0.16) 50%, rgb(255 255 255 / 0.06) 100%);
-  background-size: 200% 100%;
-  animation: report-shimmer 1200ms linear infinite;
-}
-
-@keyframes report-shimmer {
-  to {
-    background-position: -200% 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .hero-cursor,
-  .hero-panel,
-  .story-visual {
+  .hero-panel {
     transition: none !important;
   }
 }

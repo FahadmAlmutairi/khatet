@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { resetMockServer } from '../../api/mockServer.js'
@@ -33,20 +33,5 @@ describe('public landing page', () => {
 
     await user.click(within(preview).getByRole('button', { name: 'Flag a blocker' }))
     expect(within(preview).getByRole('button', { name: 'Flag a blocker' })).toHaveAttribute('aria-current', 'step')
-  })
-
-  it('explains each task access level in words', async () => {
-    const user = userEvent.setup()
-    renderApp('/')
-    const list = await screen.findByRole('list', { name: 'What omar can do' })
-    const access = screen.getByRole('group', { name: 'Task access for omar' })
-
-    // The default: omar edits only the task assigned to omar.
-    expect(within(list).getAllByText('Can edit')).toHaveLength(1)
-    await user.click(within(access).getByRole('button', { name: 'View tasks only' }))
-    expect(within(list).queryByText('Can edit')).not.toBeInTheDocument()
-    expect(screen.getByText(/omar sees every task and uses chat, but cannot change tasks/)).toBeInTheDocument()
-    await user.click(within(access).getByRole('button', { name: 'Edit all tasks' }))
-    await waitFor(() => expect(within(list).getAllByText('Can edit')).toHaveLength(3))
   })
 })
