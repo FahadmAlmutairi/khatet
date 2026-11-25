@@ -13,6 +13,7 @@ import { chatRouter } from './chat/routes.js'
 import { activityRouter } from './activity/routes.js'
 import { reportsRouter } from './reports/routes.js'
 import { archivedRouter } from './projects/archived.js'
+import { importsRouter } from './imports/routes.js'
 
 const app = express()
 
@@ -38,6 +39,9 @@ const limit = (limitPerMinute) =>
 app.use(requestId)
 app.use(helmet())
 app.use(cors({ origin: config.corsOrigins }))
+// US-33: an imported CSV file arrives as text inside JSON, so these routes take up to 4 MB
+// (a 1 MB file of non-English text, escaped). Every other route keeps the 100 KB default.
+app.use('/api/projects/:projectId/imports', express.json({ limit: '4mb' }))
 app.use(express.json())
 app.use('/api', limit(120))
 app.use(['/api/projects/:projectId/invitations', '/api/me'], limit(20))
@@ -51,6 +55,7 @@ app.use('/api', authRouter)
 app.use('/api', membersRouter)
 app.use('/api', notificationsRouter)
 app.use('/api', tasksRouter)
+app.use('/api', importsRouter)
 app.use('/api', chatRouter)
 app.use('/api', activityRouter)
 app.use('/api', reportsRouter)
