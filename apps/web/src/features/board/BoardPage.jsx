@@ -16,6 +16,8 @@ import BoardColumns from './BoardColumns.jsx'
 import CreateTaskDialog from './CreateTaskDialog.jsx'
 import FilterBar from './FilterBar.jsx'
 import TaskDetails from './TaskDetails.jsx'
+import ImportDialog from './import/ImportDialog.jsx'
+import { importAvailable } from '../../api/config.js'
 import { COVERS_PAGE_QUERY } from '../../lib/inertOthers.js'
 
 function accessNote(project) {
@@ -38,6 +40,9 @@ export default function BoardPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [creating, setCreating] = useState(false)
   const [inviting, setInviting] = useState(false)
+  const [importing, setImporting] = useState(false)
+  // US-33: only the owner imports tasks from a CSV file.
+  const canImport = importAvailable && project.role === 'OWNER'
   const [chatOpen, setChatOpen] = useState(false)
   const chatButtonRef = useRef(null)
   // A card moved from its menu lands in another lane as a new element, so focus goes back to it there (NFR-04).
@@ -224,6 +229,11 @@ export default function BoardPage() {
               Invite member
             </Button>
           )}
+          {canImport && (
+            <Button variant="secondary" onClick={() => setImporting(true)}>
+              Import tasks
+            </Button>
+          )}
           {project.permissions.canCreateTask && (
             <Button onClick={() => setCreating(true)} disabled={!members.data} className="gap-1.5">
               <PlusIcon />
@@ -301,6 +311,8 @@ export default function BoardPage() {
         draftTask={chatDraft}
         onDraftUsed={() => setChatDraft(null)}
       />
+
+      {canImport && <ImportDialog open={importing} onClose={() => setImporting(false)} projectId={project.id} />}
 
       {project.permissions.canManageMembers && (
         <InviteDialog open={inviting} onClose={() => setInviting(false)} projectId={project.id} backLabel="Board" />

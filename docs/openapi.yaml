@@ -3,7 +3,7 @@ openapi: 3.0.3
 info:
   title: Khatet API
   version: 0.2.0
-description: API documentation for US-26 project settings and US-11 member removal.
+description: API documentation for US-26 project settings, US-11 member removal and US-33 CSV import.
 servers:
   - url: /api
 
@@ -179,7 +179,179 @@ paths:
         '409':
           description: ONLY_ASSIGNEE - Reassign affected tasks before leaving.
 
+  /projects/{projectId}/imports/preview:
+    post:
+      summary: Read a CSV file for import (saves nothing)
+      operationId: previewImport
+      description: >
+        US-33. Owner only. Without mapping, answers the columns, a suggested field for each
+        and the first 3 rows. With mapping, also answers every row with its values and
+        problems. Rules in docs/api-contract.md, Import contract. Body limit 4 MB.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportRequest'
+      responses:
+        '200':
+          description: The file's columns, and with a mapping every row.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [columns, suggestedMapping, rowCount, sample]
+                properties:
+                  columns:
+                    type: array
+                    items: { type: string }
+                  suggestedMapping:
+                    $ref: '#/components/schemas/ImportMapping'
+                  rowCount:
+                    type: integer
+                  sample:
+                    type: array
+                    maxItems: 3
+                    items:
+                      type: array
+                      items: { type: string }
+                  mapping:
+                    $ref: '#/components/schemas/ImportMapping'
+                  rows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ImportRow'
+                  validCount:
+                    type: integer
+                  skippedCount:
+                    type: integer
+        '401':
+          description: UNAUTHENTICATED - Sign-in required.
+        '403':
+          description: FORBIDDEN - Only the project owner can import tasks.
+        '404':
+          description: NOT_FOUND - Project does not exist or user is not a member.
+        '410':
+          description: PROJECT_ARCHIVED - The project is archived.
+        '422':
+          description: VALIDATION_FAILED - A problem with the file (field csv) or the mapping (field mapping).
+
+  /projects/{projectId}/imports/confirm:
+    post:
+      summary: Create the valid rows of a CSV file as tasks
+      operationId: confirmImport
+      description: >
+        US-33. Owner only. Checks every row again and creates only the rows without problems,
+        in one transaction, at the end of their status column. Each task gets a TASK_CREATED
+        log entry with imported true, and its assignees other than the owner a TASK_ASSIGNED
+        notification.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/projectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ImportRequest'
+                - required: [mapping]
+      responses:
+        '201':
+          description: The tasks were created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [createdCount, skippedCount, taskIds]
+                properties:
+                  createdCount:
+                    type: integer
+                  skippedCount:
+                    type: integer
+                  taskIds:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+        '401':
+          description: UNAUTHENTICATED - Sign-in required.
+        '403':
+          description: FORBIDDEN - Only the project owner can import tasks.
+        '404':
+          description: NOT_FOUND - Project does not exist or user is not a member.
+        '410':
+          description: PROJECT_ARCHIVED - The project is archived.
+        '422':
+          description: VALIDATION_FAILED - A problem with the file or the mapping, or no row is ready to import (field csv).
+
 components:
+  parameters:
+    projectId:
+      name: projectId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    ImportMapping:
+      type: array
+      description: One entry per column, in column order. Title once, no field twice.
+      items:
+        type: string
+        nullable: true
+        enum: [title, description, status, priority, dueDate, assignees, null]
+    ImportRequest:
+      type: object
+      required: [csv]
+      properties:
+        csv:
+          type: string
+          maxLength: 1000000
+          description: The file's text. A header line, then 1 to 500 rows, at most 50 columns.
+        mapping:
+          $ref: '#/components/schemas/ImportMapping'
+    ImportRow:
+      type: object
+      required: [line, values, errors]
+      properties:
+        line:
+          type: integer
+          description: The line in the file; the header is line 1.
+        values:
+          type: object
+          properties:
+            title: { type: string }
+            description: { type: string }
+            status:
+              type: string
+              enum: [BACKLOG, TODO, IN_PROGRESS, READY_FOR_REVIEW, DONE]
+            priority:
+              type: string
+              nullable: true
+              enum: [LOW, MEDIUM, HIGH, null]
+            dueDate:
+              type: string
+              format: date
+              nullable: true
+            assignees:
+              type: array
+              items: { type: string }
+        errors:
+          type: array
+          description: Empty when the row is ready to import.
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field: { type: string }
+              message: { type: string }
   securitySchemes:
     bearerAuth:
       type: http
