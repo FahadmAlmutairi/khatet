@@ -243,6 +243,7 @@ export default function HeroPreview() {
   // `step` is the story step shown in the controls; `applied` is how far the board itself has got.
   const [step, setStep] = useState(() => (reduce ? LAST : 0))
   const [applied, setApplied] = useState(() => (reduce ? LAST : 0))
+  const [replay, setReplay] = useState(0)
   const [playing, setPlaying] = useState(() => !reduce)
   const [lifted, setLifted] = useState(null)
   const [fading, setFading] = useState(false)
@@ -386,15 +387,21 @@ export default function HeroPreview() {
       setLifted(null)
       setCursor((value) => ({ ...value, visible: false, pressed: false }))
     }
-  }, [step, playing, inView, pageVisible, reduce])
+  }, [step, replay, playing, inView, pageVisible, reduce])
 
   // Choosing a step shows the board as it is at the end of that step.
+  // A step button replays that step from its start: the board jumps to just before it, then the
+  // step plays. With reduced motion it shows the step's result at once.
   function jumpTo(index) {
-    skipGlideRef.current = Math.abs(index - appliedRef.current) > 1 || reduce
+    const before = reduce ? index : index - 1
+    skipGlideRef.current = true
     setFading(false)
     setLifted(null)
-    setApplied(index)
+    appliedRef.current = before
+    setApplied(before)
     setStep(index)
+    setReplay((value) => value + 1)
+    if (!reduce) setPlaying(true)
   }
 
   return (
