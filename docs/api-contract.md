@@ -54,7 +54,7 @@ GET    /api/projects/:projectId/activity?actorId=&taskId=&kind=&before=&limit=  
 GET    /api/projects/:projectId/phases
 POST   /api/projects/:projectId/phases              (owner)
 PATCH  /api/phases/:phaseId                         (owner)
-GET    /api/projects/:projectId/timeline
+DELETE /api/phases/:phaseId                         (owner, 204)
 GET    /api/projects/:projectId/messages?after=:cursor
 POST   /api/projects/:projectId/messages
 GET    /api/notifications
@@ -62,7 +62,9 @@ PATCH  /api/notifications/:notificationId           (mark read)
 GET    /api/projects/:projectId/reports
 POST   /api/projects/:projectId/reports             (owner: generate AI report)
 GET    /api/projects/:projectId/reports/:reportId
+GET    /api/projects/:projectId/report-schedule     (any member, Could have)
 PATCH  /api/projects/:projectId/report-schedule     (owner, Could have)
+POST   /api/internal/scheduled-reports              (scheduled job only, X-Cron-Secret)
 POST   /api/projects/:projectId/imports/preview     (owner, Could have)
 POST   /api/projects/:projectId/imports/confirm     (owner, Could have)
 ```
@@ -219,7 +221,7 @@ The same route with `{ csv, mapping }` also saves nothing and adds the preview s
 
 The professor asked at the Sprint 2 demo for a project history that survives deleted tasks and departed members, so a reviewer can see what each person did. Every change to tasks, members, invitations and project settings adds an ActivityEvent (docs/data-model.md) in the same transaction.
 
-`GET /api/projects/:projectId/activity`, any member (404 for others, NFR-11), newest first. Query: `actorId` (one person, including former members), `taskId` (one task, including deleted ones), `kind` (`task` for task changes, `member` for members and invitations, `project` for project settings and archiving), `before` (the `nextCursor` of the previous page) and `limit` (1 to 100, default 50); a value of the wrong form gets 422 `VALIDATION_FAILED` on that field. Answers `{ events, nextCursor, actors }`: each event is `{ id, projectId, type, actorId, actorUsername, taskId, taskTitle, details, createdAt }`, `nextCursor` is null on the last page, and `actors` is `[{ id, username }]` for everyone in the log, for the person filter. The web app shows it on the Project log page in the project's sidebar. `GET /api/tasks/:taskId/activity` (US-19) can read the same table with `taskId`.
+`GET /api/projects/:projectId/activity`, any member (404 for others, NFR-11), newest first. Query: `actorId` (one person, including former members), `taskId` (one task, including deleted ones), `kind` (`task` for task changes, `member` for members and invitations, `project` for project settings, archiving and phases), `before` (the `nextCursor` of the previous page) and `limit` (1 to 100, default 50); a value of the wrong form gets 422 `VALIDATION_FAILED` on that field. Answers `{ events, nextCursor, actors }`: each event is `{ id, projectId, type, actorId, actorUsername, taskId, taskTitle, details, createdAt }`, `nextCursor` is null on the last page, and `actors` is `[{ id, username }]` for everyone in the log, for the person filter. The web app shows it on the Project log page in the project's sidebar. `GET /api/tasks/:taskId/activity` (US-19) can read the same table with `taskId`.
 
 ## Archived projects
 
@@ -235,6 +237,21 @@ Projects are archived instead of deleted, so the project log (who did what) is n
 
 The web app shows Archive project on the owner's Project settings page, with a confirmation. Each member finds the archived project under Settings > Archived projects, which opens a read-only page with the summary and the full project log, a Delete permanently action, and for the owner a Restore project action (both with a confirmation). Opening an archived project's old address shows that it is archived, with a link to its log.
 
+## Phases and timeline
+
+US-20 (phases) and US-29 (timeline), Sprint 4. Written on 23 Nov 2026 with the web app's sample server (`apps/web/src/api/mockServer.js`), which already follows it. The web app calls these routes once `apiReady.phases` is on in `apps/web/src/api/config.js`.
+
+A phase is `{ id, projectId, name, startDate, endDate, createdAt, updatedAt }`. `startDate` and `endDate` are calendar days (`YYYY-MM-DD`, no time zone), like a task's `dueDate`; both days are part of the phase.
+
+- `GET /api/projects/:projectId/phases`, any member (404 for others, NFR-11; 410 `PROJECT_ARCHIVED` for an archived project): 200 with `{ phases }`, ordered by `startDate`, then `name`. An empty list when the project has none.
+- `POST /api/projects/:projectId/phases`, owner only (403 `FORBIDDEN` for members), body `{ name, startDate, endDate }`: 201 with the phase. The name is trimmed. 422 `VALIDATION_FAILED` with one `fieldErrors` entry per problem: `name` when it is empty or longer than 80 characters, `startDate` or `endDate` when missing or not a `YYYY-MM-DD` day, and `endDate` when it is before `startDate`.
+- `PATCH /api/phases/:phaseId`, owner only: any of `name`, `startDate` and `endDate`; the same rules apply to the phase as it will be after the change. 200 with the phase. 404 when the phase does not exist or the user is not a member of its project.
+- `DELETE /api/phases/:phaseId`, owner only: 204. The phase's tasks keep everything except the link (`phaseId` becomes `null`, `ON DELETE SET NULL`).
+- Tasks: every task response includes `phaseId` (`null` when it has none). `POST /api/projects/:projectId/tasks` and `PATCH /api/tasks/:taskId` accept `phaseId`; `null` clears it, and a phase that is not in the same project gets 422 `VALIDATION_FAILED` on `phaseId`. Changing the phase follows the same task-access rules as the other task fields.
+- Project log: `PHASE_CREATED` with `details: { name, startDate, endDate }`, `PHASE_UPDATED` with `details: { name, changes: [{ field, from, to }] }` (fields `name`, `startDate`, `endDate`), and `PHASE_DELETED` with `details: { name }`. These events have no `taskId` and count as `kind=project`. A task's phase change appears inside `TASK_UPDATED` as `{ field: "phase", from, to }`, where `from` and `to` are phase names (or `null` for no phase), so the log still reads correctly after a phase is renamed or deleted.
+
+**Timeline.** There is no timeline route: the Timeline page and the Overview's Timeline card are drawn from `GET /phases` and the task list the board already loads (`GET /api/projects/:projectId/tasks`). Tasks without a `dueDate` are left out of the timeline and only counted. Until `apiReady.phases` is on, the page shows the dated tasks without phases.
+
 ## AI report contract
 
 Only the Project Owner can generate a report; every participant can list and read reports with their generation date. `POST /reports` returns a report ID with status `RUNNING`. Within 30 seconds the report becomes `READY` with a summary, warnings, and suggestions, or `FAILED` with a typed error that the UI shows with a retry button. Generating a report never changes tasks, assignments, dates, or permissions, and there is no endpoint to apply a suggestion. Provider credentials stay server-side.
@@ -246,6 +263,16 @@ Only the Project Owner can generate a report; every participant can list and rea
 - `POST /api/projects/:projectId/reports`, owner only (403 `FORBIDDEN` for members): 201 with the new report. A second run within 10 minutes gets 429 `REPORT_TOO_SOON` with `nextAllowedAt` (ISO date and time) next to `code` and `message` in the error. AI failures use the codes from `reportClient.js` (`AI_TIMEOUT`, `AI_BUSY`, `AI_QUOTA`, `AI_NOT_CONFIGURED`, `AI_EMPTY_REPORT`, `AI_FAILED`) with a message that is safe to show.
 - A report is `{ id, projectId, content, model, promptVersion, createdAt, createdBy: { id, username } }`. `content` is the AI text with the three `## ` headings from `reportPrompt.js`.
 
+
+**Automatic reports (US-32, Sprint 4).** Written on 23 Nov 2026 with the web app's sample server, which already follows it. The web app calls these routes once `apiReady.reportSchedule` is on.
+
+- A report gains `trigger`: `MANUAL` (made with `POST /reports`) or `AUTOMATIC` (made by the schedule). An automatic report has `createdBy: null`. Automatic reports are in the same `GET /reports` list as manual ones, and `GET /reports/latest` answers whichever is newest.
+- `GET /api/projects/:projectId/report-schedule`, any member (404 for others): 200 with `{ frequency, nextRunAt }`. `frequency` is `DISABLED` (the default), `WEEKLY` or `MONTHLY`; `nextRunAt` is an ISO date and time, or `null` while `DISABLED`.
+- `PATCH /api/projects/:projectId/report-schedule`, owner only (403 `FORBIDDEN` for members), body `{ frequency }`: 200 with the same shape. Choosing `WEEKLY` sets `nextRunAt` to 7 days from now and `MONTHLY` to the same day next month; `DISABLED` sets it to `null`. Any other value gets 422 `VALIDATION_FAILED` on `frequency`. Archived projects get 410 `PROJECT_ARCHIVED`.
+- `POST /api/internal/scheduled-reports` is called by a scheduled GitHub Actions workflow every hour with the header `X-Cron-Secret` (the Render secret `CRON_SECRET`); without the right secret it answers 401 and does nothing. It writes one report for each project whose `nextRunAt` has passed (archived projects are skipped), with the same prompt, timeout and 10-minute guard as `POST /reports`, then moves `nextRunAt` on by 7 days or 1 month. A failed AI call saves nothing and leaves `nextRunAt` as it is, so the next hourly run tries again. It answers 200 with `{ generated, failed }` counts.
+- When an automatic report is saved, the owner gets a notification `{ type: "REPORT_READY", projectId, reportId, actorId: null }` in `GET /api/notifications`, with `projectName` like the other notification types. The web app shows "AI report ready" and opens the project's Reports page.
+- Generating a report on the schedule changes nothing else in the project, the same rule as for manual reports.
+
 ## Authentication and permissions
 
 The web app signs in with Supabase Auth (6-digit email code that expires after 10 minutes and works only once) and sends the Supabase access token as `Authorization: Bearer <token>`. The API verifies the token on every request and on the Socket.IO handshake. A new user must choose a unique username before using projects.
@@ -255,7 +282,7 @@ Task access for members:
 - `VIEW_ONLY`: read tasks.
 - `EDIT_ASSIGNED` (default): edit and move only the tasks assigned to them.
 - `EDIT_ALL`: create, edit, move, and delete any task.
-- Every member can read and send project chat messages. Only the owner manages members, invitations, task access, phases, and project settings.
+- Every member can read and send project chat messages and read phases and the report schedule. Only the owner manages members, invitations, task access, phases, the report schedule, and project settings.
 - Removing a member (`DELETE /api/projects/:projectId/members/:userId`) or leaving (`POST /api/projects/:projectId/leave`) answers 409 with code `ONLY_ASSIGNEE` and the affected tasks (one `fieldErrors` entry per task: `field: "tasks"`, `message` is the task title, `taskId` its ID) while that person is the only assignee of a task. The owner cannot leave their own project (403).
 - A signed-in user can open only the projects they belong to (NFR-11). Integration tests cover every endpoint with each access level.
 

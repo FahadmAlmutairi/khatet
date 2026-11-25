@@ -1,12 +1,14 @@
 import { useId, useState } from 'react'
 import { useOutletContext } from 'react-router'
-import { reportAvailable } from '../../api/config.js'
+import { reportAvailable, reportScheduleAvailable } from '../../api/config.js'
 import { errorMessage } from '../../api/errors.js'
-import { useGenerateReport, useReports, useTasks } from '../../api/hooks.js'
+import { useGenerateReport, useReportSchedule, useReports, useTasks, useUpdateReportSchedule } from '../../api/hooks.js'
 import { InfoIcon, SparkleIcon } from '../../components/icons.jsx'
 import { projectStats } from '../../lib/projectStats.js'
 import { useDocumentTitle } from '../../app/pageMeta.js'
 import Button, { Spinner } from '../../components/ui/Button.jsx'
+import SegmentedControl from '../../components/ui/SegmentedControl.jsx'
+import { useToast } from '../../components/ui/toastContext.js'
 import { EmptyState, ErrorState, LoadingState, Notice } from '../../components/ui/States.jsx'
 import { useTakingLong } from '../../components/ui/useTakingLong.js'
 import { formatTimestamp } from '../../lib/domain.js'
@@ -54,13 +56,16 @@ export default function ReportPage() {
         <div className="flex flex-col gap-1">
           <h1 className="text-title font-bold text-body">Reports</h1>
           {shown && (
-            <p id="report-meta" className="text-sm text-muted">
-              Generated {formatTimestamp(shown.createdAt)} by {shown.createdBy?.username ?? 'unknown'}
+            <p id="report-meta" className="flex flex-wrap items-center gap-2 text-sm text-muted">
+              {reportByline(shown)}
+              {isAutomatic(shown) && <AutomaticTag />}
             </p>
           )}
         </div>
         {isOwner && shown && !generate.isPending && generateButton}
       </div>
+
+      {reportScheduleAvailable && <AutomaticReports projectId={project.id} isOwner={isOwner} wide={hasHistory} />}
 
       {generate.isPending && <Generating />}
       {generate.isError && <GenerateError error={generate.error} onRetry={() => generate.mutate()} />}
@@ -99,8 +104,68 @@ export default function ReportPage() {
   )
 }
 
+// US-32: reports made by the schedule have no author.
+function isAutomatic(report) {
+  return report.trigger === 'AUTOMATIC'
+}
+
+function reportByline(report) {
+  return isAutomatic(report)
+    ? `Generated automatically ${formatTimestamp(report.createdAt)}`
+    : `Generated ${formatTimestamp(report.createdAt)} by ${report.createdBy?.username ?? 'unknown'}`
+}
+
+function AutomaticTag() {
+  return <span className="rounded-full bg-nav-active px-2 py-0.5 text-xs font-medium text-heading">Automatic</span>
+}
+
 function reportLabel(report, index) {
-  return `${formatTimestamp(report.createdAt)}${index === 0 ? ' · Latest' : ''}`
+  return `${formatTimestamp(report.createdAt)}${isAutomatic(report) ? ' · Automatic' : ''}${index === 0 ? ' · Latest' : ''}`
+}
+
+const FREQUENCIES = [
+  ['DISABLED', 'Off'],
+  ['WEEKLY', 'Weekly'],
+  ['MONTHLY', 'Monthly'],
+]
+
+const FREQUENCY_TEXT = { DISABLED: 'Off', WEEKLY: 'Weekly', MONTHLY: 'Monthly' }
+
+// US-32: the owner has a report written every week or month; it lands in the same list as the
+// ones made by hand and the owner gets a notification. Members see the setting as text.
+function AutomaticReports({ projectId, isOwner, wide }) {
+  const schedule = useReportSchedule(projectId)
+  const update = useUpdateReportSchedule(projectId)
+  const toast = useToast()
+  const frequency = schedule.data?.frequency ?? 'DISABLED'
+  const nextRunAt = update.isPending ? null : schedule.data?.nextRunAt
+
+  function choose(next) {
+    if (next === frequency) return
+    update.mutate(next, { onError: (error) => toast(errorMessage(error), 'error') })
+  }
+
+  let detail
+  if (schedule.isError) detail = errorMessage(schedule.error)
+  else if (frequency === 'DISABLED') {
+    detail = isOwner ? 'Reports are written only when you generate one.' : 'Reports are written when the owner generates one.'
+  } else if (!nextRunAt) detail = 'Setting the next report…'
+  else if (isOwner) detail = `Next report ${formatTimestamp(nextRunAt)}. You get a notification when it is ready.`
+  else detail = `Next report ${formatTimestamp(nextRunAt)}.`
+
+  return (
+    <section aria-labelledby="automatic-reports-title" className={`flex flex-col gap-3 rounded-xl border border-line bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5 ${wide ? 'lg:max-w-[64.5rem]' : ''}`}>
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <h2 id="automatic-reports-title" className="text-base font-semibold text-heading">
+          Automatic reports{!isOwner && schedule.isSuccess ? `: ${FREQUENCY_TEXT[frequency]}` : ''}
+        </h2>
+        <p className={`text-sm ${schedule.isError ? 'text-blocked' : 'text-muted'}`}>{schedule.isPending ? 'Loading…' : detail}</p>
+      </div>
+      {isOwner && schedule.isSuccess && (
+        <SegmentedControl label="Automatic reports" options={FREQUENCIES} value={frequency} onChange={choose} />
+      )}
+    </section>
+  )
 }
 
 // Earlier reports: a list beside the report on wide screens, a select above it on phones.
@@ -142,7 +207,7 @@ function ReportHistory({ id, reports, selected, onSelect }) {
                   {formatTimestamp(report.createdAt)}
                   {index === 0 && <span className="font-normal text-muted"> · Latest</span>}
                 </span>
-                <span className="text-xs text-muted">by {report.createdBy?.username ?? 'unknown'}</span>
+                <span className="text-xs text-muted">{isAutomatic(report) ? 'Automatic' : `by ${report.createdBy?.username ?? 'unknown'}`}</span>
               </button>
             </li>
           )

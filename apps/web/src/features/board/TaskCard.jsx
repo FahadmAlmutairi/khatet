@@ -7,7 +7,7 @@ import PriorityBadge from '../../components/PriorityBadge.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import Menu from '../../components/ui/Menu.jsx'
 import { dueLine } from '../../lib/domain.js'
-import { EASE } from '../../lib/motion.js'
+import { EASE, reducedMotion } from '../../lib/motion.js'
 import { moveMenuItems } from './moveMenu.jsx'
 
 export function BlockedPill() {
@@ -119,9 +119,11 @@ export default function TaskCard({ task, usernames, onOpen, onMove, className = 
     id: task.id,
     data: { type: 'task', status: task.status },
     disabled: !task.permissions.canMove,
-    // Cards also glide when the dragged card leaves or joins their lane, not only within one lane.
-    animateLayoutChanges: (args) => defaultAnimateLayoutChanges({ ...args, wasDragging: true }),
-    transition: { duration: 260, easing: EASE },
+    // R-1: while a card is dragged and as it lands, BoardColumns glides the cards itself (FLIP), so
+    // dnd-kit only animates order changes that arrive outside a drag, such as another member's move.
+    animateLayoutChanges: (args) =>
+      args.isSorting || args.wasDragging ? false : defaultAnimateLayoutChanges({ ...args, wasDragging: true }),
+    transition: reducedMotion() ? null : { duration: 260, easing: EASE },
   })
 
   function openFromCard(event) {
@@ -137,10 +139,11 @@ export default function TaskCard({ task, usernames, onOpen, onMove, className = 
       onClick={openFromCard}
       style={{ transform: CSS.Translate.toString(transform), transition }}
       className={`list-none ${className} ${task.permissions.canMove ? 'cursor-grab touch-manipulation' : 'cursor-pointer'} ${
-        isDragging ? 'rounded-[var(--radius-card)] border-2 border-dashed border-surface-supporting bg-nav-active' : ''
+        isDragging ? 'rounded-[var(--radius-card)] bg-nav-active outline-2 -outline-offset-2 outline-dashed outline-surface-supporting' : ''
       }`}
     >
-      {/* B7: while dragged, the card leaves a dashed slot where it will land. */}
+      {/* B7: while dragged, the card leaves a dashed slot where it will land. The dashes are an outline,
+          so the slot keeps the card's exact height and the cards below do not shift by the border. */}
       <div className={isDragging ? 'invisible' : undefined}>
         <TaskCardBody task={task} usernames={usernames} onOpen={onOpen} onMove={onMove} quiet={quiet} {...reorderProps} />
       </div>

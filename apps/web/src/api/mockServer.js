@@ -221,6 +221,14 @@ function validateTaskFields(input, projectId, { partial }) {
     if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) errors.push({ field: 'dueDate', message: 'Enter a valid date.' })
     clean.dueDate = dueDate
   }
+  // US-20: a task links to at most one phase of its own project; null clears the link.
+  if ('phaseId' in input) {
+    const phaseId = input.phaseId || null
+    if (phaseId && !db.phases.some((phase) => phase.id === phaseId && phase.projectId === projectId)) {
+      errors.push({ field: 'phaseId', message: 'Choose a phase of this project.' })
+    }
+    clean.phaseId = phaseId
+  }
 
   if (errors.length) throw invalid(errors)
   return clean
@@ -684,6 +692,7 @@ export function createTask(projectId, input) {
       description: '',
       priority: null,
       dueDate: null,
+      phaseId: null,
       ...fields,
       status: 'TODO',
       position: columnTasks(projectId, 'TODO').length + 1,
@@ -732,6 +741,9 @@ function describeChanges(before, after) {
     changes.push({ field: 'blockedReason', from: before.blockedReason, to: after.blockedReason })
   }
   if (before.description !== after.description) changes.push({ field: 'description' })
+  if ((before.phaseId ?? null) !== (after.phaseId ?? null)) {
+    changes.push({ field: 'phase', from: phaseName(before.phaseId), to: phaseName(after.phaseId) })
+  }
   const added = after.assigneeIds.filter((id) => !before.assigneeIds.includes(id))
   const removed = before.assigneeIds.filter((id) => !after.assigneeIds.includes(id))
   if (added.length || removed.length) {
@@ -880,7 +892,9 @@ function serializeReport(report) {
     model: report.model,
     promptVersion: report.promptVersion,
     createdAt: report.createdAt,
-    createdBy: { id: report.createdById, username: usernameOf(report.createdById) },
+    // US-32: automatic reports have no author.
+    trigger: report.trigger ?? 'MANUAL',
+    createdBy: report.createdById ? { id: report.createdById, username: usernameOf(report.createdById) } : null,
   }
 }
 
@@ -964,6 +978,152 @@ export function generateReport(projectId) {
   })
 }
 
+// ---------- Automatic AI reports (US-32) ----------
+
+const REPORT_FREQUENCIES = ['DISABLED', 'WEEKLY', 'MONTHLY']
+
+// The next run after `from`: 7 days later for Weekly, the same day next month for Monthly.
+export function nextReportRun(frequency, from = new Date()) {
+  if (frequency === 'WEEKLY') return new Date(from.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  if (frequency === 'MONTHLY') {
+    const next = new Date(from)
+    next.setMonth(next.getMonth() + 1)
+    return next.toISOString()
+  }
+  return null
+}
+
+function scheduleOf(projectId) {
+  return db.reportSchedules[projectId] ?? { frequency: 'DISABLED', nextRunAt: null }
+}
+
+// Any member reads the setting; only the owner changes it (docs/api-contract.md, Automatic reports).
+export function getReportSchedule(projectId) {
+  return respond('getReportSchedule', () => {
+    requireMembership(projectId)
+    return scheduleOf(projectId)
+  })
+}
+
+export function updateReportSchedule(projectId, frequency) {
+  return respond('updateReportSchedule', () => {
+    const membership = requireMembership(projectId)
+    if (membership.role !== 'OWNER') throw forbidden('Only the project owner can change automatic reports.')
+    if (!REPORT_FREQUENCIES.includes(frequency)) throw invalid([{ field: 'frequency', message: 'Choose Weekly, Monthly or Off.' }])
+    db.reportSchedules[projectId] = { frequency, nextRunAt: nextReportRun(frequency) }
+    return scheduleOf(projectId)
+  })
+}
+
+// Stands in for the hourly scheduled run on the server: writes an automatic report for a
+// project and tells its owner. Used by tests and by reviewers in the browser console.
+export function runAutomaticReport(projectId) {
+  const owner = db.members.find((item) => item.projectId === projectId && item.role === 'OWNER')
+  const report = {
+    id: newId('r'),
+    projectId,
+    createdById: null,
+    trigger: 'AUTOMATIC',
+    model: 'sample',
+    promptVersion: 2,
+    createdAt: now(),
+    content: ['## Progress summary', `${projectTasks(projectId).filter((task) => task.status === 'DONE').length} tasks are done.`, '', '## Warnings', 'No warnings.'].join('\n'),
+  }
+  db.reports.push(report)
+  const schedule = scheduleOf(projectId)
+  if (schedule.frequency !== 'DISABLED') db.reportSchedules[projectId] = { ...schedule, nextRunAt: nextReportRun(schedule.frequency) }
+  if (owner) {
+    db.notifications.push({ id: newId('n'), userId: owner.userId, type: 'REPORT_READY', projectId, reportId: report.id, actorId: null, read: false, createdAt: now() })
+  }
+  return serializeReport(report)
+}
+
+// ---------- Phases (US-20) ----------
+
+function phaseName(phaseId) {
+  return phaseId ? (db.phases.find((phase) => phase.id === phaseId)?.name ?? null) : null
+}
+
+function projectPhases(projectId) {
+  return db.phases
+    .filter((phase) => phase.projectId === projectId)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.name.localeCompare(b.name))
+}
+
+// Every member reads the phases, ordered by start date (docs/api-contract.md, Phases and timeline).
+export function getPhases(projectId) {
+  return respond('getPhases', () => {
+    requireMembership(projectId)
+    return { phases: projectPhases(projectId) }
+  })
+}
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
+function validatePhase(input, current = {}) {
+  const errors = []
+  const merged = { ...current, ...input }
+  const name = (merged.name ?? '').trim()
+  if (!name) errors.push({ field: 'name', message: 'Enter a phase name.' })
+  else if (name.length > 80) errors.push({ field: 'name', message: 'Keep the name under 80 characters.' })
+  if (!DATE_PATTERN.test(merged.startDate ?? '')) errors.push({ field: 'startDate', message: 'Enter a start date.' })
+  if (!DATE_PATTERN.test(merged.endDate ?? '')) errors.push({ field: 'endDate', message: 'Enter an end date.' })
+  else if (DATE_PATTERN.test(merged.startDate ?? '') && merged.endDate < merged.startDate) {
+    errors.push({ field: 'endDate', message: 'The end date must be on or after the start date.' })
+  }
+  if (errors.length) throw invalid(errors)
+  return { name, startDate: merged.startDate, endDate: merged.endDate }
+}
+
+function requireOwner(projectId, message) {
+  const membership = requireMembership(projectId)
+  if (membership.role !== 'OWNER') throw forbidden(message)
+  return membership
+}
+
+export function createPhase(projectId, input) {
+  return respond('createPhase', () => {
+    requireOwner(projectId, 'Only the project owner can add phases.')
+    const fields = validatePhase(input)
+    const phase = { id: newId('ph'), projectId, ...fields, createdAt: now(), updatedAt: now() }
+    db.phases.push(phase)
+    logActivity(projectId, 'PHASE_CREATED', { details: { ...fields } })
+    return phase
+  })
+}
+
+function findPhase(phaseId) {
+  const phase = db.phases.find((item) => item.id === phaseId)
+  if (!phase) throw notFound('This phase no longer exists.')
+  return phase
+}
+
+export function updatePhase(phaseId, patch) {
+  return respond('updatePhase', () => {
+    const phase = findPhase(phaseId)
+    requireOwner(phase.projectId, 'Only the project owner can edit phases.')
+    const fields = validatePhase(patch, phase)
+    const changes = ['name', 'startDate', 'endDate']
+      .filter((field) => phase[field] !== fields[field])
+      .map((field) => ({ field, from: phase[field], to: fields[field] }))
+    Object.assign(phase, fields, { updatedAt: now() })
+    if (changes.length) logActivity(phase.projectId, 'PHASE_UPDATED', { details: { name: phase.name, changes } })
+    return phase
+  })
+}
+
+// Tasks keep everything except the link to the deleted phase.
+export function deletePhase(phaseId) {
+  return respond('deletePhase', () => {
+    const phase = findPhase(phaseId)
+    requireOwner(phase.projectId, 'Only the project owner can delete phases.')
+    db.phases = db.phases.filter((item) => item.id !== phaseId)
+    for (const task of db.tasks) if (task.phaseId === phaseId) task.phaseId = null
+    logActivity(phase.projectId, 'PHASE_DELETED', { details: { name: phase.name } })
+    return { id: phaseId }
+  })
+}
+
 // ---------- Project log ----------
 
 const ACTIVITY_PAGE = 50
@@ -972,7 +1132,7 @@ const ACTIVITY_PAGE = 50
 const ACTIVITY_KINDS = {
   task: (type) => type.startsWith('TASK_'),
   member: (type) => type.startsWith('MEMBER_') || type.startsWith('INVITATION_'),
-  project: (type) => type.startsWith('PROJECT_'),
+  project: (type) => type.startsWith('PROJECT_') || type.startsWith('PHASE_'),
 }
 
 export function getActivity(projectId, { actorId, taskId, kind, before, limit = ACTIVITY_PAGE } = {}) {
