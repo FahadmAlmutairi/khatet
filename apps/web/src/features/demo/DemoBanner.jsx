@@ -10,10 +10,7 @@ export default function DemoBanner() {
     <section aria-label="Live demo" className="flex flex-wrap items-center gap-x-3 gap-y-1 bg-heading px-4 py-1.5 text-white lg:px-8">
       <p className="flex min-w-0 grow basis-full items-center gap-2 text-sm text-[#dbe4d7] sm:basis-0">
         <span className="shrink-0 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold text-white">Live demo</span>
-        <span className="truncate">
-          <span className="sm:hidden">Sample project. Changes are not saved.</span>
-          <span className="max-sm:hidden">You are exploring a sample project. Nothing you change is saved.</span>
-        </span>
+        <span className="truncate">Sample project. Changes are not saved.</span>
       </p>
       <div className="-mx-2.5 flex flex-wrap items-center gap-1 sm:mx-0">
         <button type="button" id="demo-restart-tour" onClick={() => setTourStep(0)} className={action}>

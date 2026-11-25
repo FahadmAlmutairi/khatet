@@ -99,6 +99,7 @@
 .landing-motion [data-reveal]:focus-within {
   opacity: 1;
   transform: none;
+  transition: none;
 }
 
 .landing-motion [data-reveal] {
@@ -163,13 +164,11 @@
 /* The chat panel slides in from the right edge of the window. */
 .hero-panel {
   transition:
-    transform 520ms var(--ease-apple),
-    opacity 300ms ease-out;
+    transform 520ms var(--ease-apple);
 }
 
 .hero-panel[data-open='false'] {
   transform: translateX(104%);
-  opacity: 0;
 }
 
 /* The fill on the active story step grows across it while the step plays. */

@@ -21,49 +21,49 @@ const TOUR_STEPS = [
     path: 'overview',
     target: '[data-tour="needs-attention"]',
     title: 'Start with what needs attention',
-    body: 'Welcome to a sample project for a team of four. Blocked and overdue tasks gather under Needs attention, so problems show up before the deadline.',
+    body: 'Blocked and overdue tasks show up here first.',
   },
   {
     path: 'board',
     target: '[data-task-id="t-7"]',
     title: 'Move work across the board',
-    body: 'Drag this card to Ready for Review. From the keyboard, open its More actions menu and choose Move to instead.',
+    body: 'Drag this card to Ready for Review, or use its More actions menu.',
     // Shown once the card has moved, however it was moved.
     done: (tasks) => {
       const task = tasks?.find((item) => item.id === 't-7')
       return Boolean(task && task.status !== 'IN_PROGRESS')
     },
-    success: 'Moved. Everyone on the team now sees the new status.',
+    success: 'Moved. The whole team sees it.',
   },
   {
     path: 'board',
     target: '[data-task-id="t-6"]',
     title: 'Blocked is a flag, not a column',
-    body: 'This task stays In Progress while it waits for a sample file. The reason shows on the card and on the Overview, so the team knows how to help.',
+    body: 'A blocked task keeps its place and shows why it is stuck.',
   },
   {
     path: 'board',
     target: '[data-tour="chat"]',
     title: 'Talk right next to the work',
-    body: 'Open Project chat to message the team. Type # to mention a task, and anyone can open it straight from the message.',
+    body: 'Message the team. Type # to mention a task.',
   },
   {
     path: 'report',
     target: '[data-tour="generate-report"]',
     title: 'Ask for a project report',
-    body: 'Generate a report for a progress summary, warnings and suggestions. It is advice only: it never changes tasks, dates, people or access.',
+    body: 'Get a summary, warnings and suggestions. It never changes your project.',
   },
   {
     path: 'members',
     target: '[data-tour="members"]',
     title: 'Invite your team and set access',
-    body: 'Invite teammates by username, then choose what each person can do: view tasks only, edit the tasks assigned to them, or edit all tasks.',
+    body: 'Invite teammates and choose what each person can edit.',
   },
   {
     path: null,
     target: null,
     title: 'You are ready to plan',
-    body: 'Keep exploring this sample project, or create your own account with just your email. Nothing you changed here is saved.',
+    body: 'Keep exploring, or create your own account.',
   },
 ]
 

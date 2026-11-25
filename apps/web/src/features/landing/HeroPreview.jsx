@@ -12,7 +12,7 @@ import { useInView, useReducedMotion } from './hooks.js'
 // Everything inside the stage is decorative (aria-hidden); the figure caption tells the same story.
 
 const TASKS = {
-  slides: { title: 'Draft the demo day slides', priority: 'MEDIUM', due: 'Due Thu', people: ['fahad'] },
+  slides: { title: 'Draft the launch slides', priority: 'MEDIUM', due: 'Due Thu', people: ['fahad'] },
   survey: { title: 'Write the survey questions', priority: 'LOW', due: 'Due Sun', people: ['lina'] },
   signin: { title: 'Wireframe the sign-in flow', priority: 'MEDIUM', overdue: 'Overdue · Mon', people: ['sara'] },
   lab: { title: 'Book the usability lab', priority: 'HIGH', due: 'Due tomorrow', people: ['omar'] },
@@ -164,7 +164,7 @@ function ChatPanel({ open, narrow }) {
   return (
     <div
       data-open={open ? 'true' : 'false'}
-      className={`hero-panel absolute top-[48px] right-0 bottom-0 z-10 flex flex-col border-l border-line bg-white ${narrow ? 'w-[214px]' : 'w-[252px]'}`}
+      className={`hero-panel absolute top-[48px] right-0 bottom-0 z-10 flex flex-col border-l border-line bg-white ${narrow ? 'w-[200px]' : 'w-[220px]'}`}
     >
       <div className="flex h-11 items-center gap-2 border-b border-line px-3.5 text-[13px] font-semibold text-heading">
         <ChatIcon />
@@ -180,7 +180,7 @@ function ChatPanel({ open, narrow }) {
               </p>
               <p className="mt-0.5 text-[12px] leading-[17px] text-body">The lab is still waiting on room approval.</p>
               <span className="mt-1.5 inline-flex max-w-full items-center gap-1 rounded-md border border-line bg-surface px-1.5 py-0.5 text-[11px] font-medium text-heading">
-                <StatusIcon status="IN_PROGRESS" />
+                <StatusIcon status="BLOCKED" />
                 <span className="truncate">Book the usability lab</span>
               </span>
             </div>
@@ -191,7 +191,7 @@ function ChatPanel({ open, narrow }) {
               <p className="text-[11px] text-muted">
                 <span className="font-semibold text-heading">lina</span> · 10:44
               </p>
-              <p className="mt-0.5 text-[12px] leading-[17px] text-body">I can ask the department office after class.</p>
+              <p className="mt-0.5 text-[12px] leading-[17px] text-body">I can ask the office this afternoon.</p>
             </div>
           </div>
           <div className="mt-1 flex h-9 items-center rounded-[9px] border border-line px-2.5 text-[12px] text-muted">
@@ -221,11 +221,11 @@ function ReportCard({ narrow }) {
           <span className="mt-0.5 shrink-0 text-attention">
             <WarningIcon />
           </span>
-          The lab booking has been blocked for two days.
+          The lab booking is blocked and holds up the demo.
         </li>
         <li className="flex items-start gap-1.5 text-body">
           <span aria-hidden="true" className="mt-[7px] size-1.5 shrink-0 rounded-full bg-action" />
-          lina offered to help omar with the booking.
+          omar has the most open tasks on the team.
         </li>
       </ul>
       <p className="mt-3 border-t border-line pt-2 text-[11px] font-medium text-action">Advice only. Nothing in the project was changed.</p>

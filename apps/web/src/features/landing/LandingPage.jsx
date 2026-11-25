@@ -76,7 +76,7 @@ function Header() {
         className="landing-header sticky top-0 z-40 border-b border-transparent"
       >
         <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-6 px-4 sm:h-[72px] sm:px-6">
-          <a href="#top" className="flex items-center gap-2.5 rounded-md">
+          <a href="#top" className="flex min-h-11 items-center gap-2.5 rounded-md">
             <Logo label="" size={30} />
             <span className="text-lg font-semibold tracking-[-0.01em] text-heading">Khatet</span>
             <span className="sr-only">, back to the top</span>
@@ -111,7 +111,7 @@ function Header() {
 
 function Hero() {
   return (
-    <section aria-labelledby="hero-title" className="relative isolate overflow-hidden pt-10 pb-16 sm:pt-16 sm:pb-24">
+    <section aria-labelledby="hero-title" className="relative isolate overflow-hidden pt-10 pb-16 sm:pt-12 sm:pb-24">
       <div aria-hidden="true" className="landing-paper absolute inset-0 -z-10" />
       <div className="mx-auto flex max-w-[1200px] flex-col items-center px-4 text-center sm:px-6">
         <p data-reveal className="inline-flex items-center gap-2 rounded-full border border-[#dbe3d9] bg-white/80 py-1.5 pr-3.5 pl-2 text-sm font-medium text-heading shadow-card">
@@ -122,7 +122,7 @@ function Hero() {
           id="hero-title"
           data-reveal
           style={{ '--reveal-delay': '60ms' }}
-          className="landing-display mt-6 max-w-[860px] text-[40px] leading-[1.04] font-semibold text-heading sm:text-[60px] lg:text-[68px]"
+          className="landing-display mt-6 max-w-[860px] text-[40px] leading-[1.04] font-semibold text-heading sm:text-[60px] lg:text-[64px]"
         >
           One calm plan for your whole team.
         </h1>
@@ -131,8 +131,7 @@ function Hero() {
           style={{ '--reveal-delay': '120ms' }}
           className="landing-pretty mt-5 max-w-[620px] text-[17px] leading-relaxed text-muted sm:text-xl"
         >
-          Khatet keeps your tasks, board, chat and progress in one shared place, so everyone knows what to do next
-          and what needs attention before the deadline.
+          Tasks, board, chat and progress in one shared place.
         </p>
         <div data-reveal style={{ '--reveal-delay': '180ms' }} className="mt-8 flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center">
           <Link to="/sign-in" className={primaryCta}>
@@ -144,10 +143,7 @@ function Hero() {
             Try the live demo
           </Link>
         </div>
-        <p data-reveal style={{ '--reveal-delay': '220ms' }} className="mt-4 text-sm text-muted">
-          Sign in with an email code. There is no password to remember.
-        </p>
-        <div id="preview" data-reveal style={{ '--reveal-delay': '280ms' }} className="mt-12 w-full sm:mt-16">
+        <div id="preview" data-reveal style={{ '--reveal-delay': '280ms' }} className="mt-12 w-full sm:mt-10">
           <HeroPreview />
         </div>
       </div>
@@ -159,8 +155,8 @@ function Facts() {
   const facts = [
     ['5', 'clear stages', 'from Backlog to Done'],
     ['3', 'access levels', 'for every teammate'],
-    ['1', 'keyboard path', 'for every drag'],
-    ['0', 'changes', 'made by a report'],
+    ['6-digit', 'email code', 'no password'],
+    ['AA', 'WCAG 2.2', 'accessibility'],
   ]
   return (
     <section aria-label="Khatet in numbers" className="border-y border-line bg-white">
@@ -192,8 +188,7 @@ function TourSection() {
             See the real app in two minutes
           </h2>
           <p className="landing-pretty text-[17px] leading-relaxed text-muted">
-            Open a sample project and follow a short tour of the real screens: the overview, the board, chat, the report
-            and members. You need no account, and nothing you change is saved.
+            A short tour of a sample project. No account needed.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link to="/demo" className={primaryCta}>
@@ -231,8 +226,8 @@ function TourSection() {
           </div>
           <div className="relative -mt-6 ml-auto w-[88%] rounded-[16px] border border-line bg-white p-4 shadow-[0_24px_48px_-16px_rgba(20,40,25,0.35)]">
             <p className="text-xs font-semibold text-action">Step 2 of 7</p>
-            <p className="mt-1 text-base font-semibold text-heading">One board for the whole team</p>
-            <p className="mt-1 text-sm text-muted">Drag a card to a new column, or open its More actions menu and choose Move to.</p>
+            <p className="mt-1 text-base font-semibold text-heading">Move work across the board</p>
+            <p className="mt-1 text-sm text-muted">Drag this card to Ready for Review.</p>
             <div className="mt-3 flex items-center justify-between">
               <span className="flex gap-1">
                 {Array.from({ length: 7 }, (_, index) => (
@@ -261,11 +256,18 @@ function Footer() {
             <span className="text-base font-semibold text-heading">Khatet</span>
           </p>
           <p className="text-sm text-muted">
-            Team projects, planned together. The <span lang="ar">خ</span> in our mark is the first letter of Khatet in Arabic.
+            Team projects, planned together.
           </p>
         </div>
         <nav aria-label="Footer">
           <ul className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
+            {NAV.map(([href, label]) => (
+              <li key={href}>
+                <a href={href} className="inline-flex min-h-11 items-center text-muted hover:text-heading sm:min-h-9">
+                  {label}
+                </a>
+              </li>
+            ))}
             <li>
               <Link to="/demo" className="inline-flex min-h-11 items-center text-muted hover:text-heading sm:min-h-9">
                 Live demo

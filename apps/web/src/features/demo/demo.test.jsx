@@ -25,7 +25,7 @@ describe('live demo and guided tour', () => {
     const second = await screen.findByRole('dialog', { name: 'Move work across the board' })
     await waitFor(() => expect(router.state.location.pathname).toBe('/projects/p-khatet/board'))
     // The step that teaches dragging also names the keyboard path.
-    expect(within(second).getByText(/open its More actions menu and choose Move to/)).toBeInTheDocument()
+    expect(within(second).getByText(/use its More actions menu/)).toBeInTheDocument()
 
     await user.click(within(second).getByRole('button', { name: 'Back' }))
     await screen.findByRole('dialog', { name: 'Start with what needs attention' })
