@@ -18,12 +18,18 @@ export const useRealAuth = Boolean(apiUrl && supabaseUrl && supabaseKey) && env.
 // aiReport (US-31): GET /api/projects/:projectId/reports/latest, GET and POST /api/projects/:projectId/reports.
 //   The routes are on main (PR #28). Until OPENAI_API_KEY is on Render, Generate report shows
 //   'The AI report is not set up on this server yet.'
+// imports (US-33): POST /api/projects/:projectId/imports/preview and /imports/confirm. Off until the
+//   whole dialog is merged (the preview, confirm and result steps come after upload and mapping).
 export const apiReady = {
   chatSocket: true,
   memberRemoval: true,
   projectSettings: true,
   aiReport: true,
+  imports: false,
 }
 
 // US-31: the AI report page shows on sample data, and on the live site once its routes are ready.
 export const reportAvailable = apiReady.aiReport || !useRealAuth
+
+// US-33: the owner's Import tasks button shows on sample data, and on the live site once ready.
+export const importAvailable = apiReady.imports || !useRealAuth

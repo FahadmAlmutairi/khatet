@@ -126,3 +126,60 @@ describe('sample API', () => {
     })
   })
 })
+
+describe('sample API: CSV import (US-33)', () => {
+  beforeEach(() => api.resetMockServer({ signedInAs: 'u-fahad' }))
+
+  const csv = 'Task,Stage,Assigned to\nWrite the README,Done,saad\nCheck the footer,,\n,To do,\nPlan the demo,Later,ghost\n'
+  const mapping = ['title', 'status', 'assignees']
+
+  it('answers the columns, a suggested match and sample rows, and saves nothing', async () => {
+    const before = (await api.getTasks('p-khatet')).length
+    const preview = await api.previewImport('p-khatet', { csv })
+    expect(preview).toEqual({
+      columns: ['Task', 'Stage', 'Assigned to'],
+      suggestedMapping: mapping,
+      rowCount: 4,
+      sample: [
+        ['Write the README', 'Done', 'saad'],
+        ['Check the footer', '', ''],
+        ['', 'To do', ''],
+      ],
+    })
+    expect((await api.getTasks('p-khatet')).length).toBe(before)
+  })
+
+  it('checks every row against the mapping', async () => {
+    const preview = await api.previewImport('p-khatet', { csv, mapping })
+    expect(preview).toMatchObject({ validCount: 2, skippedCount: 2 })
+    expect(preview.rows[0]).toEqual({
+      line: 2,
+      values: { title: 'Write the README', description: '', status: 'DONE', priority: null, dueDate: null, assignees: ['saad'] },
+      errors: [],
+    })
+    expect(preview.rows[3].errors.map((error) => error.field)).toEqual(['status', 'assignees'])
+    await expect(api.previewImport('p-khatet', { csv, mapping: [null, 'status', null] })).rejects.toMatchObject({
+      fieldErrors: [{ field: 'mapping', message: 'Choose the column that holds the task title.' }],
+    })
+  })
+
+  it('creates only the valid rows at the end of their columns', async () => {
+    const result = await api.confirmImport('p-khatet', { csv, mapping })
+    expect(result).toMatchObject({ createdCount: 2, skippedCount: 2 })
+    const tasks = await api.getTasks('p-khatet')
+    const readme = tasks.find((task) => task.title === 'Write the README')
+    expect(readme).toMatchObject({ status: 'DONE', assigneeIds: ['u-saad'] })
+    expect(readme.position).toBe(tasks.filter((task) => task.status === 'DONE').length)
+    expect(tasks.find((task) => task.title === 'Check the footer')).toMatchObject({ status: 'TODO', assigneeIds: ['u-fahad'] })
+    const { events } = await api.getActivity('p-khatet', { kind: 'task' })
+    expect(events[0].details.imported).toBe(true)
+  })
+
+  it('lets only the owner import, and explains an unreadable file', async () => {
+    await expect(api.previewImport('p-khatet', { csv: 'Title\n' })).rejects.toMatchObject({
+      fieldErrors: [{ field: 'csv', message: 'The file has a header line but no rows.' }],
+    })
+    api.resetMockServer({ signedInAs: 'u-saad' })
+    await expect(api.previewImport('p-khatet', { csv })).rejects.toMatchObject({ status: 403 })
+  })
+})

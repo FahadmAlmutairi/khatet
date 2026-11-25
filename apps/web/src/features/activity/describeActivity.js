@@ -46,7 +46,7 @@ export function describeActivity(event) {
       return { before: 'changed the project settings', after: '', more: changeLines(details.changes) }
     case 'TASK_CREATED':
       return {
-        before: 'created',
+        before: details.imported ? 'imported' : 'created',
         after: details.assignees?.length ? `and assigned ${list(details.assignees)}` : '',
         more: [],
       }
@@ -85,7 +85,7 @@ export function describeTaskActivity(event) {
   switch (event.type) {
     case 'TASK_CREATED':
       return {
-        text: details.assignees?.length ? `created the task and assigned ${list(details.assignees)}` : 'created the task',
+        text: `${details.imported ? 'imported' : 'created'} the task${details.assignees?.length ? ` and assigned ${list(details.assignees)}` : ''}`,
         more: [],
       }
     case 'TASK_MOVED':

@@ -69,6 +69,14 @@ const realReports = {
   generateReport: (projectId) => apiFetch(`/projects/${projectId}/reports`, { method: 'POST' }),
 }
 
+// US-33: CSV import (docs/api-contract.md, Import contract). The file's text goes inside JSON.
+const realImports = {
+  previewImport: (projectId, { csv, mapping }) =>
+    apiFetch(`/projects/${projectId}/imports/preview`, { method: 'POST', body: mapping === undefined ? { csv } : { csv, mapping } }),
+  confirmImport: (projectId, { csv, mapping }) =>
+    apiFetch(`/projects/${projectId}/imports/confirm`, { method: 'POST', body: { csv, mapping } }),
+}
+
 // The project log (docs/api-contract.md, Project log).
 const realActivity = {
   getActivity: (projectId, { actorId, taskId, kind, before } = {}) => {
@@ -95,5 +103,5 @@ const auth = useRealAuth
 export const api = {
   ...sample,
   ...auth,
-  ...(useRealAuth ? { ...realProjects, ...realMembersAndNotifications, ...realReports, ...realActivity } : {}),
+  ...(useRealAuth ? { ...realProjects, ...realMembersAndNotifications, ...realReports, ...realActivity, ...realImports } : {}),
 }

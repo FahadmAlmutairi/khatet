@@ -5,6 +5,7 @@
 import { formatDueDate } from '../lib/domain.js'
 import { ApiError } from './errors.js'
 import { createSampleData } from './sampleData.js'
+import { checkMapping, parseCsv, readRow, readTable, suggestMapping } from './sampleImport.js'
 
 const SESSION_KEY = 'khatet.sampleSession'
 const STATUS_ORDER = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'DONE']
@@ -985,5 +986,85 @@ export function getActivity(projectId, { actorId, taskId, kind, before, limit = 
       nextCursor: start + limit < matching.length ? events.at(-1).id : null,
       actors: [...actors].map(([id, username]) => ({ id, username })).sort((a, b) => a.username.localeCompare(b.username)),
     }
+  })
+}
+
+// ---------- CSV import (US-33) ----------
+// The same two routes as the API (docs/api-contract.md, Import contract), with the same rules
+// (sampleImport.js). Nothing is kept between the steps: confirm reads the file again.
+
+function loadImport(projectId, csv) {
+  const membership = requireMembership(projectId)
+  if (membership.role !== 'OWNER') throw forbidden('Only the project owner can import tasks.')
+  const table = readTable(parseCsv(typeof csv === 'string' ? csv : ''), csv)
+  if (table.errors.length) throw invalid(table.errors.map((message) => ({ field: 'csv', message })))
+  const members = new Map()
+  for (const item of db.members.filter((member) => member.projectId === projectId && !member.archiveRemovedAt)) {
+    const user = db.users.find((candidate) => candidate.id === item.userId)
+    if (user?.username) members.set(user.username.toLowerCase(), { id: user.id, username: user.username })
+  }
+  const owner = db.users.find((user) => user.id === membership.userId)
+  return { table, members, importer: { id: owner.id, username: owner.username } }
+}
+
+function checkedImportRows({ table, members, importer }, mapping) {
+  const problem = checkMapping(mapping, table.columns)
+  if (problem) throw invalid([{ field: 'mapping', message: problem }])
+  return table.rows.map((row) => readRow(row, mapping, { members, importer }))
+}
+
+export function previewImport(projectId, { csv, mapping } = {}) {
+  return respond('previewImport', () => {
+    const loaded = loadImport(projectId, csv)
+    const { table } = loaded
+    const answer = {
+      columns: table.columns,
+      suggestedMapping: suggestMapping(table.columns),
+      rowCount: table.rows.length,
+      sample: table.rows.slice(0, 3).map((row) => table.columns.map((_, index) => (row.cells[index] ?? '').trim())),
+    }
+    if (mapping === undefined) return answer
+    const rows = checkedImportRows(loaded, mapping)
+    const validCount = rows.filter((row) => row.errors.length === 0).length
+    return {
+      ...answer,
+      mapping,
+      rows: rows.map(({ line, values: { assigneeIds: _ids, ...values }, errors }) => ({ line, values, errors })),
+      validCount,
+      skippedCount: rows.length - validCount,
+    }
+  })
+}
+
+export function confirmImport(projectId, { csv, mapping } = {}) {
+  return respond('confirmImport', () => {
+    const rows = checkedImportRows(loadImport(projectId, csv), mapping)
+    const valid = rows.filter((row) => row.errors.length === 0)
+    if (valid.length === 0) {
+      throw invalid([{ field: 'csv', message: 'No row is ready to import. Fix the problems in the file and upload it again.' }])
+    }
+    const taskIds = valid.map(({ values }) => {
+      const task = {
+        id: newId('t'),
+        projectId,
+        title: values.title,
+        description: values.description,
+        status: values.status,
+        position: columnTasks(projectId, values.status).length + 1,
+        priority: values.priority,
+        dueDate: values.dueDate,
+        assigneeIds: values.assigneeIds,
+        isBlocked: false,
+        blockedReason: null,
+        createdById: currentUserId,
+        createdAt: now(),
+        updatedAt: now(),
+      }
+      db.tasks.push(task)
+      notifyAssignees(task, task.assigneeIds)
+      logActivity(projectId, 'TASK_CREATED', { task, details: { status: task.status, assignees: values.assignees, imported: true } })
+      return task.id
+    })
+    return { createdCount: taskIds.length, skippedCount: rows.length - taskIds.length, taskIds }
   })
 }
