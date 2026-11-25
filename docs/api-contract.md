@@ -8,7 +8,7 @@ Draft frontend/backend agreement, version `0.2`. The API is a Node.js + Express 
 
 - Base path: `/api` in the examples below.
 - Transport: HTTPS in deployed environments.
-- Format: JSON for resource and operation responses; `multipart/form-data` for file upload where required.
+- Format: JSON for resource and operation responses. CSV import (US-33) sends the file's text inside JSON, so no route takes `multipart/form-data` yet.
 - API documentation: REST with OpenAPI. Each route's request and response shape is in the OpenAPI file before the frontend uses it. Request bodies are validated with Zod.
 - IDs, timestamps, roles, permissions, and status values are authoritative server data.
 - Request bodies must be validated at the API boundary. Never trust project IDs, member IDs, roles, or status values supplied by the browser.
@@ -183,6 +183,31 @@ The UI must not treat animation completion as save success.
 4. Status exposes progress, counts, warnings, errors, cancellation/retry state, and final next action.
 
 The API must not mutate project data during upload, mapping, or review.
+
+**Sprint 4 shape (US-33, written 25 Nov 2026).** As with AI reports, the first version answers in one request instead of the operation and status lifecycle above: at most 500 rows are created in one transaction, which takes a few seconds. The browser reads the file and sends its text inside JSON (no `multipart/form-data`, no stored upload), so there is no import state between the steps, and confirm reads the file and checks every row again instead of trusting an earlier preview. Built in `apps/api/src/imports/`.
+
+Both routes: owner only (403 `FORBIDDEN` "Only the project owner can import tasks." for a member, 404 for others, 410 `PROJECT_ARCHIVED`). They take a JSON body up to 4 MB; every other route keeps the 100 KB default.
+
+- **The file.** `csv` is the file's text: at most 1,000,000 characters, a header line that names the columns, then 1 to 500 rows (lines with no text are left out; a blank header becomes "Column 2" and so on), at most 50 columns. Cells may be quoted (RFC 4180), lines may end in `\n` or `\r\n`, a byte order mark is dropped, and a header line with more semicolons than commas is read with `;` as the separator (Excel in some regions). A problem with the file as a whole gets 422 `VALIDATION_FAILED` with one field error on `csv`, for example "The file has a header line but no rows." or "The file has a quote (\") that is never closed."
+- **The mapping.** `mapping` has one entry per column, in column order: a field name or `null` to ignore the column. Fields: `title`, `description`, `status`, `priority`, `dueDate`, `assignees`. Title must be chosen; no field twice. Otherwise 422 on `mapping` ("Choose the column that holds the task title.", "Only one column can fill Status.", "Choose a field or \"Ignore\" for every column."). Phase is not a field yet: it joins the list once the US-20 phases routes are on `main`.
+- **A row.** `title` 1 to 200 characters; `description` at most 5000. `status` accepts the board's names in any case and spacing (Backlog, To Do, In Progress or Doing, Ready for Review or Review, Done or Complete) or the enum values; empty means `TODO`. `priority` Low, Medium or High, empty means none. `dueDate` `YYYY-MM-DD` or `YYYY/MM/DD`, a real calendar day. `assignees` usernames separated by `,`, `;` or `|`, with or without `@`, in any case, each a current member; empty means the owner, as a task needs one assignee. Each problem is `{ field, message }` in words, for example `{ "field": "assignees", "message": "ghost is not a member of this project." }`.
+
+`POST /api/projects/:projectId/imports/preview` with `{ csv }` saves nothing and answers 200 with the matching step:
+
+```json
+{
+  "columns": ["Task", "Stage", "Due", "Assigned to"],
+  "suggestedMapping": ["title", "status", "dueDate", "assignees"],
+  "rowCount": 42,
+  "sample": [["Write the report", "In progress", "2026-12-01", "sara"]]
+}
+```
+
+`suggestedMapping` matches header names (for example "Task name" or "Summary" to title, "Due" or "Deadline" to due date, "Assigned to" or "Owner" to assignees), each field at most once, `null` when nothing matches. `sample` is the first 3 rows, trimmed.
+
+The same route with `{ csv, mapping }` also saves nothing and adds the preview step to that answer: `mapping` (as sent), `rows`, `validCount` and `skippedCount`. Each row is `{ line, values: { title, description, status, priority, dueDate, assignees }, errors }`, where `line` is the line in the file (the header is line 1), `assignees` are the matched usernames (or the owner's), and a row with an empty `errors` list is ready to import.
+
+`POST /api/projects/:projectId/imports/confirm` with `{ csv, mapping }` checks every row again and, in one transaction, creates only the rows without problems, in file order at the end of their status column, each created by the owner. Each new task adds a `TASK_CREATED` log entry with `details: { status, assignees, imported: true }`, and each assignee other than the owner gets a `TASK_ASSIGNED` notification. Answers 201 `{ createdCount, skippedCount, taskIds }`. When no row is ready it creates nothing and answers 422 on `csv` ("No row is ready to import. Fix the problems in the file and upload it again."). Cancel is the web app closing the dialog; nothing was saved, so there is nothing to undo. The web app refreshes the board's tasks after a confirm.
 
 ## Chat contract
 

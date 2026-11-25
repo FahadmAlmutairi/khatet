@@ -270,6 +270,27 @@ export function useCreateTask(projectId) {
   })
 }
 
+// ---------- CSV import (US-33) ----------
+
+// Owner only. Reads the file and saves nothing. Without `mapping` it answers the columns, a
+// suggested field for each and sample rows; with `mapping` it adds every row and its problems.
+export function usePreviewImport(projectId) {
+  return useMutation({ mutationFn: ({ csv, mapping }) => api.previewImport(projectId, { csv, mapping }) })
+}
+
+// Owner only. Creates the rows without problems, then the board, the log and the bell reload.
+export function useConfirmImport(projectId) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ csv, mapping }) => api.confirmImport(projectId, { csv, mapping }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: keys.tasks(projectId) })
+      refreshActivity(queryClient, projectId)
+      queryClient.invalidateQueries({ queryKey: keys.notifications })
+    },
+  })
+}
+
 export function useUpdateTask() {
   const queryClient = useQueryClient()
   return useMutation({

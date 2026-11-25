@@ -23,6 +23,8 @@ export const useRealAuth = Boolean(apiUrl && supabaseUrl && supabaseKey) && env.
 // reportSchedule (US-32, Sprint 4, Salman): GET and PATCH /api/projects/:projectId/report-schedule,
 //   `trigger` on reports and REPORT_READY notifications (docs/api-contract.md, Automatic reports).
 //   Until it ships, the Reports page hides the Automatic reports control.
+// imports (US-33): POST /api/projects/:projectId/imports/preview and /imports/confirm. Off until the
+//   whole dialog is merged (the preview, confirm and result steps come after upload and mapping).
 export const apiReady = {
   chatSocket: true,
   memberRemoval: true,
@@ -30,6 +32,7 @@ export const apiReady = {
   aiReport: true,
   phases: false,
   reportSchedule: false,
+  imports: false,
 }
 
 // US-31: the AI report page shows on sample data, and on the live site once its routes are ready.
@@ -44,3 +47,6 @@ export const phaseSettingsReady = false
 
 // US-32: the Automatic reports control, on sample data or once the schedule routes are live.
 export const reportScheduleAvailable = reportAvailable && (apiReady.reportSchedule || !useRealAuth)
+
+// US-33: the owner's Import tasks button shows on sample data, and on the live site once ready.
+export const importAvailable = apiReady.imports || !useRealAuth
