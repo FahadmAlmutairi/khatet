@@ -7,7 +7,7 @@ import { renderApp } from '../../test/renderApp.jsx'
 describe('public landing page', () => {
   it('shows a signed-out visitor the landing page at the main address', async () => {
     const router = renderApp('/')
-    expect(await screen.findByRole('heading', { level: 1, name: 'One calm plan for your whole team.' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Plan together. Finish on time.' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/')
 
     // Every way in: create an account, sign in, or open the live demo.

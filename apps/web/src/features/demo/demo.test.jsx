@@ -51,7 +51,7 @@ describe('live demo and guided tour', () => {
     await user.click(within(banner).getByRole('button', { name: 'Leave demo' }))
     await waitFor(() => expect(router.state.location.pathname).toBe('/'))
     expect(isDemoSession()).toBe(false)
-    expect(await screen.findByRole('heading', { level: 1, name: 'One calm plan for your whole team.' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Plan together. Finish on time.' })).toBeInTheDocument()
   })
 })
 

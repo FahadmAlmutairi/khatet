@@ -124,7 +124,7 @@ function Hero() {
           style={{ '--reveal-delay': '60ms' }}
           className="landing-display mt-6 max-w-[860px] text-[40px] leading-[1.04] font-semibold text-heading sm:text-[60px] lg:text-[64px]"
         >
-          One calm plan for your whole team.
+          Plan together. Finish on time.
         </h1>
         <p
           data-reveal
