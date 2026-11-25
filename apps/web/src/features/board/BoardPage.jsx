@@ -213,6 +213,7 @@ export default function BoardPage() {
             onClick={() => (chatOpen ? closeChat() : setChatOpen(true))}
             aria-expanded={chatOpen}
             className="gap-1.5"
+            data-tour="chat"
           >
             <ChatIcon />
             Project chat

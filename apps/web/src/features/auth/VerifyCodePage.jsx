@@ -4,7 +4,7 @@ import { errorMessage, fieldError } from '../../api/errors.js'
 import { useRequestCode, useVerifyCode } from '../../api/hooks.js'
 import { takeReturnTo } from '../../api/returnTo.js'
 import Button, { Spinner } from '../../components/ui/Button.jsx'
-import AuthLayout, { SampleSignInNote } from './AuthLayout.jsx'
+import AuthLayout from './AuthLayout.jsx'
 import CodeInput, { LENGTH as CODE_LENGTH } from './CodeInput.jsx'
 import { FieldError } from '../../components/ui/Field.jsx'
 import { useTakingLong, WAKING_UP } from '../../components/ui/useTakingLong.js'
@@ -72,7 +72,7 @@ export default function VerifyCodePage() {
   const codeError = fieldError(verify.error, 'code')
 
   return (
-    <AuthLayout title="Check your email" after={<SampleSignInNote />}>
+    <AuthLayout title="Check your email">
       <p className="text-sm leading-[21px] text-muted">
         We sent a 6-digit code to {email}. It expires in 10 minutes.
       </p>

@@ -4,6 +4,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { Link, NavLink, Outlet, useLocation, useNavigate, useParams } from 'react-router'
 import { apiReady, reportAvailable } from '../api/config.js'
+import { isDemoSession } from '../api/demoSession.js'
 import { inertOthers } from '../lib/inertOthers.js'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
@@ -11,6 +12,9 @@ import { BoardIcon, ChevronIcon, HistoryIcon, OverviewIcon, ReportIcon, CloseIco
 import Logo from '../components/Logo.jsx'
 import Button from '../components/ui/Button.jsx'
 import Dialog from '../components/ui/Dialog.jsx'
+import DemoBanner from '../features/demo/DemoBanner.jsx'
+import { useLeaveDemo } from '../features/demo/demo.js'
+import ProductTour from '../features/demo/ProductTour.jsx'
 import NotificationsButton from '../features/notifications/NotificationsButton.jsx'
 import { useProjectOrder } from '../features/projects/projectOrder.js'
 import { EASE } from '../lib/motion.js'
@@ -355,6 +359,34 @@ const panelButton = 'inline-flex size-8 items-center justify-center rounded-md t
 function SignOutDialog({ open, onClose }) {
   const signOut = useSignOut()
   const navigate = useNavigate()
+  const leaveDemo = useLeaveDemo()
+  // In the live demo, signing out leaves the demo and goes back to the landing page.
+  if (isDemoSession()) {
+    return (
+      <Dialog
+        open={open}
+        onClose={onClose}
+        title="Leave the demo?"
+        footer={
+          <>
+            <Button variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                onClose()
+                leaveDemo('/')
+              }}
+            >
+              Leave demo
+            </Button>
+          </>
+        }
+      >
+        <p className="text-base">The sample project starts fresh the next time you open the demo.</p>
+      </Dialog>
+    )
+  }
   return (
     <Dialog
       open={open}
@@ -387,6 +419,8 @@ function SignOutDialog({ open, onClose }) {
 }
 
 export default function AppShell() {
+  // The live demo (features/demo) shows a banner and the guided tour over the real screens.
+  const demo = isDemoSession()
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   // Desktop: the sidebar can be hidden to give the board more room; the choice is remembered.
@@ -568,6 +602,7 @@ export default function AppShell() {
       )}
 
       <div ref={contentRef} className="flex min-w-0 flex-1 flex-col">
+        {demo && <DemoBanner />}
         <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-[#e3e5de] bg-white px-4 lg:px-8">
           <button
             type="button"
@@ -596,6 +631,7 @@ export default function AppShell() {
         </main>
       </div>
       <SignOutDialog open={confirmSignOut} onClose={() => setConfirmSignOut(false)} />
+      {demo && <ProductTour />}
     </div>
   )
 }
