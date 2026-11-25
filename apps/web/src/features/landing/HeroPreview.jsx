@@ -521,7 +521,7 @@ export default function HeroPreview() {
                       key={`${index}-${step}-${playing}`}
                       data-state={state}
                       data-paused={!inView || !pageVisible ? 'true' : 'false'}
-                      className="hero-step-fill absolute inset-0 bg-action sm:bg-nav-active"
+                      className="hero-step-fill absolute inset-0 bg-action sm:bg-[#dbe6d8]"
                       style={{ animationDuration: `${stepDuration(item)}ms` }}
                     />
                   </span>

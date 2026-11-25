@@ -116,7 +116,7 @@ function Hero() {
       <div className="mx-auto flex max-w-[1200px] flex-col items-center px-4 text-center sm:px-6">
         <p data-reveal className="inline-flex items-center gap-2 rounded-full border border-[#dbe3d9] bg-white/80 py-1.5 pr-3.5 pl-2 text-sm font-medium text-heading shadow-card">
           <DrawnMark className="size-5" />
-          Team projects, planned together
+          5 clear stages, from Backlog to Done
         </p>
         <h1
           id="hero-title"
@@ -147,30 +147,6 @@ function Hero() {
           <HeroPreview />
         </div>
       </div>
-    </section>
-  )
-}
-
-function Facts() {
-  const facts = [
-    ['5', 'clear stages', 'from Backlog to Done'],
-    ['3', 'access levels', 'for every teammate'],
-    ['6-digit', 'email code', 'no password'],
-    ['AA', 'WCAG 2.2', 'accessibility'],
-  ]
-  return (
-    <section aria-label="Khatet in numbers" className="border-y border-line bg-white">
-      <dl className="mx-auto grid max-w-[1200px] grid-cols-2 gap-px bg-line px-0 sm:grid-cols-4">
-        {facts.map(([value, label, detail], index) => (
-          // The white cells stay put (they draw the grid lines); only their text fades in.
-          <div key={label} style={{ '--reveal-delay': `${index * 60}ms` }} className="flex flex-col gap-1 bg-white px-5 py-7 sm:px-8">
-            <dt data-reveal className="order-2 text-sm text-muted">
-              <span className="font-semibold text-heading">{label}</span> {detail}
-            </dt>
-            <dd data-reveal className="landing-display order-1 text-[40px] leading-none font-semibold text-heading tabular-nums">{value}</dd>
-          </div>
-        ))}
-      </dl>
     </section>
   )
 }
@@ -313,7 +289,6 @@ export default function LandingPage() {
       <Header />
       <main id="main" tabIndex={-1}>
         <Hero />
-        <Facts />
         <TourSection />
       </main>
       <Footer />
