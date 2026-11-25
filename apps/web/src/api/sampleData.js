@@ -3,6 +3,7 @@
 // OpenAPI file for each route is agreed.
 
 export const SAMPLE_EMAIL = 'fahad@example.com'
+export const SAMPLE_USER_ID = 'u-fahad'
 
 export function createSampleData() {
   return {

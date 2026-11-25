@@ -93,6 +93,8 @@ npm run dev
 
 The app opens at http://localhost:5173 with the Sprint 1 screens: sign in, projects, board, task details, members and notifications.
 
+Signed-out visitors see the public landing page at http://localhost:5173/. The live demo at http://localhost:5173/demo opens the sample project with a guided tour (`/demo?tour=off` skips the tour). The demo always runs on sample data, even when real sign-in is set up, and nothing changed in it is saved.
+
 By default the screens run on sample data in `src/api/mockServer.js`. Sign in with `fahad@example.com` and any 6-digit code (`000000` shows the wrong-code message and `111111` the expired one). Any other email creates a new account. The sample user owns one project, can edit only assigned tasks in a second and can only view a third. Changes last until the page reloads.
 
 ### Real sign-in (US-01, US-02)

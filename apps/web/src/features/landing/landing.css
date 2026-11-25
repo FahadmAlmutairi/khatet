@@ -1,0 +1,286 @@
+/* Public landing page (signed-out visitors). Uses the shared tokens from styles/index.css.
+   Motion follows the app's rules: transform and opacity only, played once, and nothing moves
+   for people who ask for reduced motion. */
+
+.landing {
+  --landing-ink: var(--color-heading);
+  --landing-line: #dfe6dd;
+  --landing-paper-line: rgb(64 83 63 / 0.07);
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing {
+    scroll-behavior: auto;
+  }
+}
+
+/* Section anchors land below the sticky header. */
+.landing [id] {
+  scroll-margin-top: 88px;
+}
+
+/* "Planner paper": faint ruled lines behind the hero, fading out towards the edges. No image bytes. */
+.landing-paper {
+  background-image:
+    linear-gradient(to right, var(--landing-paper-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--landing-paper-line) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 30%, transparent 75%);
+}
+
+/* Display type: Inter, tighter and heavier than the app's page titles. */
+.landing-display {
+  font-feature-settings: 'ss01', 'cv11';
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.landing-balance {
+  text-wrap: balance;
+}
+
+.landing-pretty {
+  text-wrap: pretty;
+}
+
+/* The header gains a border and a light blur once the page scrolls. */
+.landing-header {
+  transition:
+    background-color 200ms ease-out,
+    border-color 200ms ease-out;
+}
+
+.landing-header[data-scrolled='true'] {
+  background-color: rgb(255 255 255 / 0.86);
+  border-color: var(--landing-line);
+  backdrop-filter: saturate(1.4) blur(10px);
+}
+
+/* The خ mark draws itself once: the stroke first, then the terracotta dot lands. */
+.landing-mark-stroke {
+  stroke-dasharray: 120;
+  stroke-dashoffset: 0;
+}
+
+.landing-mark-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.landing-motion .landing-mark-stroke {
+  animation: landing-draw 900ms var(--ease-apple) 150ms backwards;
+}
+
+.landing-motion .landing-mark-dot {
+  animation: landing-dot 420ms var(--ease-apple) 900ms backwards;
+}
+
+@keyframes landing-draw {
+  from {
+    stroke-dashoffset: 120;
+  }
+}
+
+@keyframes landing-dot {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.6);
+  }
+}
+
+/* Sections fade and rise 12px into place the first time they scroll into view. */
+.landing-motion [data-reveal]:not([data-shown]) {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.landing-motion [data-reveal] {
+  transition:
+    opacity 600ms var(--ease-apple),
+    transform 600ms var(--ease-apple);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+/* ---------- Hero preview ---------- */
+
+.hero-stage {
+  transform-origin: top left;
+}
+
+.hero-cursor {
+  transition-property: transform, opacity;
+  transition-timing-function: var(--ease-apple), ease-out;
+}
+
+.hero-cursor-press {
+  transition: transform 160ms var(--ease-apple);
+}
+
+.hero-card {
+  transition:
+    box-shadow 240ms ease-out,
+    border-color 240ms ease-out;
+}
+
+.hero-card[data-lifted='true'] {
+  box-shadow: 0 14px 28px rgb(20 31 23 / 0.16);
+  border-color: #c9d3c6;
+  z-index: 5;
+}
+
+/* Things that appear in the story fade and rise in. */
+.hero-pop {
+  animation: hero-pop 420ms var(--ease-apple) backwards;
+}
+
+@keyframes hero-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+
+/* A changed count ticks: the new number rises in. */
+.hero-tick {
+  display: inline-block;
+  animation: hero-tick 360ms var(--ease-apple);
+}
+
+@keyframes hero-tick {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* The chat panel slides in from the right edge of the window. */
+.hero-panel {
+  transition:
+    transform 520ms var(--ease-apple),
+    opacity 300ms ease-out;
+}
+
+.hero-panel[data-open='false'] {
+  transform: translateX(104%);
+  opacity: 0;
+}
+
+/* The fill on the active story step grows across it while the step plays. */
+.hero-step-fill {
+  transform-origin: left center;
+  transform: scaleX(0);
+}
+
+.hero-step-fill[data-state='done'] {
+  transform: scaleX(1);
+}
+
+.hero-step-fill[data-state='active'] {
+  animation: hero-step-fill linear forwards;
+}
+
+.hero-step-fill[data-state='active'][data-paused='true'] {
+  animation-play-state: paused;
+}
+
+@keyframes hero-step-fill {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.hero-fade {
+  transition: opacity 320ms ease-out;
+}
+
+/* ---------- Chat to plan ---------- */
+
+.chat-bubble {
+  transition:
+    opacity 500ms var(--ease-apple),
+    transform 600ms var(--ease-apple);
+  transition-delay: var(--delay, 0ms);
+}
+
+.chat-plan[data-sorted='true'] .chat-bubble {
+  opacity: 0.35;
+  transform: translateX(-6px) scale(0.98);
+}
+
+.plan-card {
+  transition:
+    opacity 500ms var(--ease-apple),
+    transform 600ms var(--ease-apple);
+  transition-delay: var(--delay, 0ms);
+}
+
+/* Before sorting, the board shows faint outlines where the tasks will land. */
+.chat-plan[data-sorted='false'] .plan-card {
+  opacity: 0.22;
+  transform: translateX(-14px);
+  filter: grayscale(1);
+}
+
+/* ---------- Feature story ---------- */
+
+.story-visual {
+  transition:
+    opacity 420ms var(--ease-apple),
+    transform 520ms var(--ease-apple);
+}
+
+.story-visual[data-active='false'] {
+  opacity: 0;
+  transform: translateY(10px) scale(0.985);
+  pointer-events: none;
+}
+
+.story-step {
+  transition: opacity 300ms ease-out;
+}
+
+/* ---------- How it works: the line that joins the steps ---------- */
+
+/* The line grows from the first step to the last (scaleX only). It overrides the usual rise. */
+.steps-line {
+  transform-origin: left center;
+}
+
+.landing-motion .steps-line[data-reveal]:not([data-shown]) {
+  opacity: 1;
+  transform: scaleX(0);
+}
+
+.landing-motion .steps-line[data-reveal] {
+  transition: transform 1400ms var(--ease-apple) 200ms;
+}
+
+/* ---------- AI report ---------- */
+
+.report-line {
+  animation: hero-pop 460ms var(--ease-apple) backwards;
+  animation-delay: var(--delay, 0ms);
+}
+
+.report-shimmer {
+  background: linear-gradient(90deg, rgb(255 255 255 / 0.06) 0%, rgb(255 255 255 / 0.16) 50%, rgb(255 255 255 / 0.06) 100%);
+  background-size: 200% 100%;
+  animation: report-shimmer 1200ms linear infinite;
+}
+
+@keyframes report-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-cursor,
+  .hero-panel,
+  .story-visual,
+  .chat-bubble,
+  .plan-card {
+    transition: none !important;
+  }
+}

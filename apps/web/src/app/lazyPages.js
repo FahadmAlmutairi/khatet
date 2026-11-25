@@ -7,3 +7,8 @@ export const MembersPage = lazy(() => import('../features/members/MembersPage.js
 export const ReportPage = lazy(() => import('../features/report/ReportPage.jsx'))
 export const ActivityPage = lazy(() => import('../features/activity/ActivityPage.jsx'))
 export const ProjectSettingsPage = lazy(() => import('../features/projects/ProjectSettingsPage.jsx'))
+
+// The public landing page loads only for visitors who are not signed in. main.jsx starts the
+// download early when the page opens at /, so it arrives while the session is being checked.
+export const loadLandingPage = () => import('../features/landing/LandingPage.jsx')
+export const LandingPage = lazy(loadLandingPage)
