@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { useDocumentTitle } from '../../app/pageMeta.js'
+import { HOME_TITLE } from '../../app/pageMeta.js'
+import { hasStaticLanding, removeStaticLanding } from '../../app/staticLanding.js'
 import Logo from '../../components/Logo.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import HeroPreview from './HeroPreview.jsx'
@@ -110,7 +111,7 @@ function Hero() {
           style={{ '--reveal-delay': '120ms' }}
           className="landing-pretty mt-5 max-w-[620px] text-[17px] leading-relaxed text-muted sm:text-xl"
         >
-          Tasks, board, chat and progress in one shared place.
+          Project management for teams: tasks, board, chat and progress in one shared place.
         </p>
         <div data-reveal style={{ '--reveal-delay': '180ms' }} className="mt-8 flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center">
           <Link to="/sign-in" className={primaryCta}>
@@ -260,13 +261,20 @@ function Footer() {
 }
 
 export default function LandingPage() {
-  useDocumentTitle('Team projects, planned together')
+  useEffect(() => {
+    document.title = HOME_TITLE
+  }, [])
   const reduce = useReducedMotion()
+  // When the page opened on the prerendered copy (app/staticLanding.js), this takes its place
+  // before the next paint and keeps everything where it is, without playing the entrance again.
+  const [tookOver] = useState(hasStaticLanding)
+  useLayoutEffect(removeStaticLanding, [])
+  const motion = !reduce && !tookOver
   const rootRef = useRef(null)
-  useReveal(rootRef, !reduce)
+  useReveal(rootRef, motion)
 
   return (
-    <div ref={rootRef} id="top" className={`landing relative min-h-dvh bg-surface ${reduce ? '' : 'landing-motion'}`}>
+    <div ref={rootRef} id="top" className={`landing relative min-h-dvh bg-surface ${motion ? 'landing-motion' : ''}`}>
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:rounded-md focus:bg-white focus:px-4 focus:py-2"

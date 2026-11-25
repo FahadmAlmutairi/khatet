@@ -4,6 +4,7 @@ import App from './app/App.jsx'
 import { useRealAuth } from './api/config.js'
 import { warmUpApi } from './api/realAuth.js'
 import { loadLandingPage } from './app/lazyPages.js'
+import { hasSavedSession, removeStaticLanding } from './app/staticLanding.js'
 import '@fontsource-variable/inter'
 import './styles/index.css'
 
@@ -11,6 +12,9 @@ import './styles/index.css'
 if (useRealAuth) warmUpApi()
 // Visitors usually arrive at /, where the landing page is shown to anyone not signed in.
 if (window.location.pathname === '/') loadLandingPage()
+// index.html carries a prerendered copy of the landing page (app/staticLanding.js). It is only
+// for signed-out visitors at /; everyone else goes straight to the app.
+if (window.location.pathname !== '/' || hasSavedSession()) removeStaticLanding()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
