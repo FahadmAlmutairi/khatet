@@ -5,7 +5,7 @@ import { useMarkAllNotificationsRead, useMarkNotificationRead, useRespondToInvit
 import { Spinner } from '../../components/ui/Button.jsx'
 import Dialog from '../../components/ui/Dialog.jsx'
 import { useToast } from '../../components/ui/toastContext.js'
-import { ArrowLeftIcon, MembersIcon, TaskCheckIcon } from '../../components/icons.jsx'
+import { ArrowLeftIcon, MembersIcon, ReportIcon, TaskCheckIcon } from '../../components/icons.jsx'
 import { notificationTime } from '../../lib/domain.js'
 
 // Figma: desktop "Notifications / Panel / Populated" (1035:1912) drops down under the bell;
@@ -70,15 +70,19 @@ function UnreadDot({ className }) {
   return <span aria-hidden="true" className={`shrink-0 rounded-full bg-attention ${className}`} />
 }
 
-function NotificationItem({ notification, onOpenTask }) {
+function NotificationItem({ notification, onOpenTask, onOpenReport }) {
   const isInvitation = notification.type === 'INVITATION'
-  const opensTask = !isInvitation && notification.taskTitle
-  const title = isInvitation ? 'Project invitation' : 'Task assigned'
+  // US-32: an automatic AI report is ready for the owner.
+  const isReport = notification.type === 'REPORT_READY'
+  const opensTask = !isInvitation && !isReport && notification.taskTitle
+  const title = isInvitation ? 'Project invitation' : isReport ? 'AI report ready' : 'Task assigned'
   const body = isInvitation
     ? `${notification.actorUsername} invited you to join “${notification.projectName}”.`
-    : notification.taskTitle
-      ? `${notification.actorUsername} assigned you to “${notification.taskTitle}” in ${notification.projectName}.`
-      : `${notification.actorUsername} assigned you a task in ${notification.projectName} that has since been deleted.`
+    : isReport
+      ? `A new automatic report for “${notification.projectName}” is ready to read.`
+      : notification.taskTitle
+        ? `${notification.actorUsername} assigned you to “${notification.taskTitle}” in ${notification.projectName}.`
+        : `${notification.actorUsername} assigned you a task in ${notification.projectName} that has since been deleted.`
   const time = notificationTime(notification.createdAt)
 
   const copy = (
@@ -111,11 +115,15 @@ function NotificationItem({ notification, onOpenTask }) {
     >
       {notification.read ? <span aria-hidden="true" className="size-2 shrink-0 lg:hidden" /> : <UnreadDot className="mt-1 size-2 lg:hidden" />}
       <span aria-hidden="true" className={`hidden size-9 shrink-0 items-center justify-center rounded-control bg-nav-active lg:flex ${isInvitation ? 'text-nav' : 'text-action'}`}>
-        {isInvitation ? <MembersIcon /> : <TaskCheckIcon />}
+        {isInvitation ? <MembersIcon /> : isReport ? <ReportIcon /> : <TaskCheckIcon />}
       </span>
       <div className={`flex min-w-0 flex-1 flex-col ${isInvitation ? 'gap-[5px] lg:gap-1.5' : 'gap-[5px] lg:gap-1'}`}>
-        {opensTask ? (
-          <button type="button" onClick={() => onOpenTask(notification)} className="flex w-full flex-col gap-[5px] text-left lg:gap-1">
+        {opensTask || isReport ? (
+          <button
+            type="button"
+            onClick={() => (isReport ? onOpenReport(notification) : onOpenTask(notification))}
+            className="flex w-full flex-col gap-[5px] text-left lg:gap-1"
+          >
             {copy}
           </button>
         ) : (
@@ -170,6 +178,12 @@ export default function NotificationsPanel({ open, onClose, query }) {
     if (!notification.read) markRead.mutate(notification.id)
     onClose()
     navigate(`/projects/${notification.projectId}/board?task=${notification.taskId}`)
+  }
+
+  function openReport(notification) {
+    if (!notification.read) markRead.mutate(notification.id)
+    onClose()
+    navigate(`/projects/${notification.projectId}/report`)
   }
 
   const items = query.data?.items ?? []
@@ -287,7 +301,7 @@ export default function NotificationsPanel({ open, onClose, query }) {
               </h3>
               <ul className="list-enter flex flex-col gap-3 lg:gap-0">
                 {group.items.map((notification) => (
-                  <NotificationItem key={notification.id} notification={notification} onOpenTask={openTask} />
+                  <NotificationItem key={notification.id} notification={notification} onOpenTask={openTask} onOpenReport={openReport} />
                 ))}
               </ul>
             </section>

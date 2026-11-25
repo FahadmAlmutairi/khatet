@@ -1,6 +1,14 @@
 import { formatDueDate, formatShortDate, priorityLabel, statusLabel, taskAccessLabel } from '../../lib/domain.js'
 
-const FIELD_LABELS = { title: 'title', priority: 'priority', dueDate: 'due date', blockedReason: 'blocked reason' }
+const FIELD_LABELS = {
+  title: 'title',
+  priority: 'priority',
+  dueDate: 'due date',
+  blockedReason: 'blocked reason',
+  phase: 'phase',
+  startDate: 'start date',
+  endDate: 'end date',
+}
 
 function list(names) {
   if (names.length <= 1) return names.join('')
@@ -9,7 +17,8 @@ function list(names) {
 
 function fieldValue(field, value) {
   if (field === 'priority') return priorityLabel(value)
-  if (field === 'dueDate') return value ? formatDueDate(value) : 'no date'
+  if (field === 'dueDate' || field === 'startDate' || field === 'endDate') return value ? formatDueDate(value) : 'no date'
+  if (field === 'phase') return value ? `“${value}”` : 'no phase'
   return value ? `“${value}”` : 'nothing'
 }
 
@@ -46,7 +55,7 @@ export function describeActivity(event) {
       return { before: 'changed the project settings', after: '', more: changeLines(details.changes) }
     case 'TASK_CREATED':
       return {
-        before: 'created',
+        before: details.imported ? 'imported' : 'created',
         after: details.assignees?.length ? `and assigned ${list(details.assignees)}` : '',
         more: [],
       }
@@ -56,6 +65,17 @@ export function describeActivity(event) {
       return { before: 'moved', after: `from ${statusLabel(details.from)} to ${statusLabel(details.to)}`, more: [] }
     case 'TASK_DELETED':
       return { before: 'deleted', after: details.status ? `from ${statusLabel(details.status)}` : '', more: [] }
+    // US-20: phases belong to the project, so the sentence names the phase instead of a task.
+    case 'PHASE_CREATED':
+      return {
+        before: `added the phase “${details.name}”`,
+        after: '',
+        more: details.startDate && details.endDate ? [`${formatDueDate(details.startDate)} to ${formatDueDate(details.endDate)}`] : [],
+      }
+    case 'PHASE_UPDATED':
+      return { before: `edited the phase “${details.name}”`, after: '', more: changeLines(details.changes) }
+    case 'PHASE_DELETED':
+      return { before: `deleted the phase “${details.name}”`, after: '', more: ['Its tasks stay on the board without a phase.'] }
     case 'MEMBER_INVITED':
       return { before: `invited ${details.username}`, after: '', more: [] }
     case 'INVITATION_CANCELLED':
@@ -85,7 +105,7 @@ export function describeTaskActivity(event) {
   switch (event.type) {
     case 'TASK_CREATED':
       return {
-        text: details.assignees?.length ? `created the task and assigned ${list(details.assignees)}` : 'created the task',
+        text: `${details.imported ? 'imported' : 'created'} the task${details.assignees?.length ? ` and assigned ${list(details.assignees)}` : ''}`,
         more: [],
       }
     case 'TASK_MOVED':

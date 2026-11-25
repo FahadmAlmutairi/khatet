@@ -8,7 +8,7 @@ Draft frontend/backend agreement, version `0.2`. The API is a Node.js + Express 
 
 - Base path: `/api` in the examples below.
 - Transport: HTTPS in deployed environments.
-- Format: JSON for resource and operation responses; `multipart/form-data` for file upload where required.
+- Format: JSON for resource and operation responses. CSV import (US-33) sends the file's text inside JSON, so no route takes `multipart/form-data` yet.
 - API documentation: REST with OpenAPI. Each route's request and response shape is in the OpenAPI file before the frontend uses it. Request bodies are validated with Zod.
 - IDs, timestamps, roles, permissions, and status values are authoritative server data.
 - Request bodies must be validated at the API boundary. Never trust project IDs, member IDs, roles, or status values supplied by the browser.
@@ -54,7 +54,7 @@ GET    /api/projects/:projectId/activity?actorId=&taskId=&kind=&before=&limit=  
 GET    /api/projects/:projectId/phases
 POST   /api/projects/:projectId/phases              (owner)
 PATCH  /api/phases/:phaseId                         (owner)
-GET    /api/projects/:projectId/timeline
+DELETE /api/phases/:phaseId                         (owner, 204)
 GET    /api/projects/:projectId/messages?after=:cursor
 POST   /api/projects/:projectId/messages
 GET    /api/notifications
@@ -62,7 +62,9 @@ PATCH  /api/notifications/:notificationId           (mark read)
 GET    /api/projects/:projectId/reports
 POST   /api/projects/:projectId/reports             (owner: generate AI report)
 GET    /api/projects/:projectId/reports/:reportId
+GET    /api/projects/:projectId/report-schedule     (any member, Could have)
 PATCH  /api/projects/:projectId/report-schedule     (owner, Could have)
+POST   /api/internal/scheduled-reports              (scheduled job only, X-Cron-Secret)
 POST   /api/projects/:projectId/imports/preview     (owner, Could have)
 POST   /api/projects/:projectId/imports/confirm     (owner, Could have)
 ```
@@ -182,6 +184,31 @@ The UI must not treat animation completion as save success.
 
 The API must not mutate project data during upload, mapping, or review.
 
+**Sprint 4 shape (US-33, written 25 Nov 2026).** As with AI reports, the first version answers in one request instead of the operation and status lifecycle above: at most 500 rows are created in one transaction, which takes a few seconds. The browser reads the file and sends its text inside JSON (no `multipart/form-data`, no stored upload), so there is no import state between the steps, and confirm reads the file and checks every row again instead of trusting an earlier preview. Built in `apps/api/src/imports/`.
+
+Both routes: owner only (403 `FORBIDDEN` "Only the project owner can import tasks." for a member, 404 for others, 410 `PROJECT_ARCHIVED`). They take a JSON body up to 4 MB; every other route keeps the 100 KB default.
+
+- **The file.** `csv` is the file's text: at most 1,000,000 characters, a header line that names the columns, then 1 to 500 rows (lines with no text are left out; a blank header becomes "Column 2" and so on), at most 50 columns. Cells may be quoted (RFC 4180), lines may end in `\n` or `\r\n`, a byte order mark is dropped, and a header line with more semicolons than commas is read with `;` as the separator (Excel in some regions). A problem with the file as a whole gets 422 `VALIDATION_FAILED` with one field error on `csv`, for example "The file has a header line but no rows." or "The file has a quote (\") that is never closed."
+- **The mapping.** `mapping` has one entry per column, in column order: a field name or `null` to ignore the column. Fields: `title`, `description`, `status`, `priority`, `dueDate`, `assignees`. Title must be chosen; no field twice. Otherwise 422 on `mapping` ("Choose the column that holds the task title.", "Only one column can fill Status.", "Choose a field or \"Ignore\" for every column."). Phase is not a field yet: it joins the list once the US-20 phases routes are on `main`.
+- **A row.** `title` 1 to 200 characters; `description` at most 5000. `status` accepts the board's names in any case and spacing (Backlog, To Do, In Progress or Doing, Ready for Review or Review, Done or Complete) or the enum values; empty means `TODO`. `priority` Low, Medium or High, empty means none. `dueDate` `YYYY-MM-DD` or `YYYY/MM/DD`, a real calendar day. `assignees` usernames separated by `,`, `;` or `|`, with or without `@`, in any case, each a current member; empty means the owner, as a task needs one assignee. Each problem is `{ field, message }` in words, for example `{ "field": "assignees", "message": "ghost is not a member of this project." }`.
+
+`POST /api/projects/:projectId/imports/preview` with `{ csv }` saves nothing and answers 200 with the matching step:
+
+```json
+{
+  "columns": ["Task", "Stage", "Due", "Assigned to"],
+  "suggestedMapping": ["title", "status", "dueDate", "assignees"],
+  "rowCount": 42,
+  "sample": [["Write the report", "In progress", "2026-12-01", "sara"]]
+}
+```
+
+`suggestedMapping` matches header names (for example "Task name" or "Summary" to title, "Due" or "Deadline" to due date, "Assigned to" or "Owner" to assignees), each field at most once, `null` when nothing matches. `sample` is the first 3 rows, trimmed.
+
+The same route with `{ csv, mapping }` also saves nothing and adds the preview step to that answer: `mapping` (as sent), `rows`, `validCount` and `skippedCount`. Each row is `{ line, values: { title, description, status, priority, dueDate, assignees }, errors }`, where `line` is the line in the file (the header is line 1), `assignees` are the matched usernames (or the owner's), and a row with an empty `errors` list is ready to import.
+
+`POST /api/projects/:projectId/imports/confirm` with `{ csv, mapping }` checks every row again and, in one transaction, creates only the rows without problems, in file order at the end of their status column, each created by the owner. Each new task adds a `TASK_CREATED` log entry with `details: { status, assignees, imported: true }`, and each assignee other than the owner gets a `TASK_ASSIGNED` notification. Answers 201 `{ createdCount, skippedCount, taskIds }`. When no row is ready it creates nothing and answers 422 on `csv` ("No row is ready to import. Fix the problems in the file and upload it again."). Cancel is the web app closing the dialog; nothing was saved, so there is nothing to undo. The web app refreshes the board's tasks after a confirm.
+
 ## Chat contract
 
 `GET /api/projects/:projectId/messages` returns the latest 100 messages, oldest first. With `?after=<messageId>` it returns only the messages sent after that one (at most 100), and a cursor that is not a message in this project gets 422 `VALIDATION_FAILED` on the field `after`. Each message has `id`, `projectId`, `authorId`, `authorUsername`, `text` and `createdAt`. `POST` takes `{ "text": "..." }`, trims it and answers 201 with the message; empty text or more than 2000 characters gets 422 `VALIDATION_FAILED` on the field `text`. Both routes check only project membership, so every member can read and send at every access level, and non-members get 404 (NFR-11).
@@ -194,7 +221,7 @@ The API must not mutate project data during upload, mapping, or review.
 
 The professor asked at the Sprint 2 demo for a project history that survives deleted tasks and departed members, so a reviewer can see what each person did. Every change to tasks, members, invitations and project settings adds an ActivityEvent (docs/data-model.md) in the same transaction.
 
-`GET /api/projects/:projectId/activity`, any member (404 for others, NFR-11), newest first. Query: `actorId` (one person, including former members), `taskId` (one task, including deleted ones), `kind` (`task` for task changes, `member` for members and invitations, `project` for project settings and archiving), `before` (the `nextCursor` of the previous page) and `limit` (1 to 100, default 50); a value of the wrong form gets 422 `VALIDATION_FAILED` on that field. Answers `{ events, nextCursor, actors }`: each event is `{ id, projectId, type, actorId, actorUsername, taskId, taskTitle, details, createdAt }`, `nextCursor` is null on the last page, and `actors` is `[{ id, username }]` for everyone in the log, for the person filter. The web app shows it on the Project log page in the project's sidebar. `GET /api/tasks/:taskId/activity` (US-19) can read the same table with `taskId`.
+`GET /api/projects/:projectId/activity`, any member (404 for others, NFR-11), newest first. Query: `actorId` (one person, including former members), `taskId` (one task, including deleted ones), `kind` (`task` for task changes, `member` for members and invitations, `project` for project settings, archiving and phases), `before` (the `nextCursor` of the previous page) and `limit` (1 to 100, default 50); a value of the wrong form gets 422 `VALIDATION_FAILED` on that field. Answers `{ events, nextCursor, actors }`: each event is `{ id, projectId, type, actorId, actorUsername, taskId, taskTitle, details, createdAt }`, `nextCursor` is null on the last page, and `actors` is `[{ id, username }]` for everyone in the log, for the person filter. The web app shows it on the Project log page in the project's sidebar. `GET /api/tasks/:taskId/activity` (US-19) can read the same table with `taskId`.
 
 ## Archived projects
 
@@ -210,6 +237,21 @@ Projects are archived instead of deleted, so the project log (who did what) is n
 
 The web app shows Archive project on the owner's Project settings page, with a confirmation. Each member finds the archived project under Settings > Archived projects, which opens a read-only page with the summary and the full project log, a Delete permanently action, and for the owner a Restore project action (both with a confirmation). Opening an archived project's old address shows that it is archived, with a link to its log.
 
+## Phases and timeline
+
+US-20 (phases) and US-29 (timeline), Sprint 4. Written on 23 Nov 2026 with the web app's sample server (`apps/web/src/api/mockServer.js`), which already follows it. The web app calls these routes once `apiReady.phases` is on in `apps/web/src/api/config.js`.
+
+A phase is `{ id, projectId, name, startDate, endDate, createdAt, updatedAt }`. `startDate` and `endDate` are calendar days (`YYYY-MM-DD`, no time zone), like a task's `dueDate`; both days are part of the phase.
+
+- `GET /api/projects/:projectId/phases`, any member (404 for others, NFR-11; 410 `PROJECT_ARCHIVED` for an archived project): 200 with `{ phases }`, ordered by `startDate`, then `name`. An empty list when the project has none.
+- `POST /api/projects/:projectId/phases`, owner only (403 `FORBIDDEN` for members), body `{ name, startDate, endDate }`: 201 with the phase. The name is trimmed. 422 `VALIDATION_FAILED` with one `fieldErrors` entry per problem: `name` when it is empty or longer than 80 characters, `startDate` or `endDate` when missing or not a `YYYY-MM-DD` day, and `endDate` when it is before `startDate`.
+- `PATCH /api/phases/:phaseId`, owner only: any of `name`, `startDate` and `endDate`; the same rules apply to the phase as it will be after the change. 200 with the phase. 404 when the phase does not exist or the user is not a member of its project.
+- `DELETE /api/phases/:phaseId`, owner only: 204. The phase's tasks keep everything except the link (`phaseId` becomes `null`, `ON DELETE SET NULL`).
+- Tasks: every task response includes `phaseId` (`null` when it has none). `POST /api/projects/:projectId/tasks` and `PATCH /api/tasks/:taskId` accept `phaseId`; `null` clears it, and a phase that is not in the same project gets 422 `VALIDATION_FAILED` on `phaseId`. Changing the phase follows the same task-access rules as the other task fields.
+- Project log: `PHASE_CREATED` with `details: { name, startDate, endDate }`, `PHASE_UPDATED` with `details: { name, changes: [{ field, from, to }] }` (fields `name`, `startDate`, `endDate`), and `PHASE_DELETED` with `details: { name }`. These events have no `taskId` and count as `kind=project`. A task's phase change appears inside `TASK_UPDATED` as `{ field: "phase", from, to }`, where `from` and `to` are phase names (or `null` for no phase), so the log still reads correctly after a phase is renamed or deleted.
+
+**Timeline.** There is no timeline route: the Timeline page and the Overview's Timeline card are drawn from `GET /phases` and the task list the board already loads (`GET /api/projects/:projectId/tasks`). Tasks without a `dueDate` are left out of the timeline and only counted. Until `apiReady.phases` is on, the page shows the dated tasks without phases.
+
 ## AI report contract
 
 Only the Project Owner can generate a report; every participant can list and read reports with their generation date. `POST /reports` returns a report ID with status `RUNNING`. Within 30 seconds the report becomes `READY` with a summary, warnings, and suggestions, or `FAILED` with a typed error that the UI shows with a retry button. Generating a report never changes tasks, assignments, dates, or permissions, and there is no endpoint to apply a suggestion. Provider credentials stay server-side.
@@ -221,6 +263,16 @@ Only the Project Owner can generate a report; every participant can list and rea
 - `POST /api/projects/:projectId/reports`, owner only (403 `FORBIDDEN` for members): 201 with the new report. A second run within 10 minutes gets 429 `REPORT_TOO_SOON` with `nextAllowedAt` (ISO date and time) next to `code` and `message` in the error. AI failures use the codes from `reportClient.js` (`AI_TIMEOUT`, `AI_BUSY`, `AI_QUOTA`, `AI_NOT_CONFIGURED`, `AI_EMPTY_REPORT`, `AI_FAILED`) with a message that is safe to show.
 - A report is `{ id, projectId, content, model, promptVersion, createdAt, createdBy: { id, username } }`. `content` is the AI text with the three `## ` headings from `reportPrompt.js`.
 
+
+**Automatic reports (US-32, Sprint 4).** Written on 23 Nov 2026 with the web app's sample server, which already follows it. The web app calls these routes once `apiReady.reportSchedule` is on.
+
+- A report gains `trigger`: `MANUAL` (made with `POST /reports`) or `AUTOMATIC` (made by the schedule). An automatic report has `createdBy: null`. Automatic reports are in the same `GET /reports` list as manual ones, and `GET /reports/latest` answers whichever is newest.
+- `GET /api/projects/:projectId/report-schedule`, any member (404 for others): 200 with `{ frequency, nextRunAt }`. `frequency` is `DISABLED` (the default), `WEEKLY` or `MONTHLY`; `nextRunAt` is an ISO date and time, or `null` while `DISABLED`.
+- `PATCH /api/projects/:projectId/report-schedule`, owner only (403 `FORBIDDEN` for members), body `{ frequency }`: 200 with the same shape. Choosing `WEEKLY` sets `nextRunAt` to 7 days from now and `MONTHLY` to the same day next month; `DISABLED` sets it to `null`. Any other value gets 422 `VALIDATION_FAILED` on `frequency`. Archived projects get 410 `PROJECT_ARCHIVED`.
+- `POST /api/internal/scheduled-reports` is called by a scheduled GitHub Actions workflow every hour with the header `X-Cron-Secret` (the Render secret `CRON_SECRET`); without the right secret it answers 401 and does nothing. It writes one report for each project whose `nextRunAt` has passed (archived projects are skipped), with the same prompt, timeout and 10-minute guard as `POST /reports`, then moves `nextRunAt` on by 7 days or 1 month. A failed AI call saves nothing and leaves `nextRunAt` as it is, so the next hourly run tries again. It answers 200 with `{ generated, failed }` counts.
+- When an automatic report is saved, the owner gets a notification `{ type: "REPORT_READY", projectId, reportId, actorId: null }` in `GET /api/notifications`, with `projectName` like the other notification types. The web app shows "AI report ready" and opens the project's Reports page.
+- Generating a report on the schedule changes nothing else in the project, the same rule as for manual reports.
+
 ## Authentication and permissions
 
 The web app signs in with Supabase Auth (6-digit email code that expires after 10 minutes and works only once) and sends the Supabase access token as `Authorization: Bearer <token>`. The API verifies the token on every request and on the Socket.IO handshake. A new user must choose a unique username before using projects.
@@ -230,7 +282,7 @@ Task access for members:
 - `VIEW_ONLY`: read tasks.
 - `EDIT_ASSIGNED` (default): edit and move only the tasks assigned to them.
 - `EDIT_ALL`: create, edit, move, and delete any task.
-- Every member can read and send project chat messages. Only the owner manages members, invitations, task access, phases, and project settings.
+- Every member can read and send project chat messages and read phases and the report schedule. Only the owner manages members, invitations, task access, phases, the report schedule, and project settings.
 - Removing a member (`DELETE /api/projects/:projectId/members/:userId`) or leaving (`POST /api/projects/:projectId/leave`) answers 409 with code `ONLY_ASSIGNEE` and the affected tasks (one `fieldErrors` entry per task: `field: "tasks"`, `message` is the task title, `taskId` its ID) while that person is the only assignee of a task. The owner cannot leave their own project (403).
 - A signed-in user can open only the projects they belong to (NFR-11). Integration tests cover every endpoint with each access level.
 

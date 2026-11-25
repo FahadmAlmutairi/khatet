@@ -18,7 +18,7 @@ import { ChevronIcon, PlusIcon } from '../../components/icons.jsx'
 import StatusIcon from '../../components/StatusIcon.jsx'
 import InfoTip from '../../components/ui/InfoTip.jsx'
 import { ACTIVE_STATUSES, STATUSES } from '../../lib/domain.js'
-import { EASE, playCardMoves } from '../../lib/motion.js'
+import { cardRects, EASE, glideCards, playCardMoves, reducedMotion } from '../../lib/motion.js'
 import { fullPosition } from './boardPosition.js'
 import TaskCard, { TaskCardBody } from './TaskCard.jsx'
 
@@ -32,7 +32,7 @@ const ACCENTS = {
 const COLUMN_PREFIX = 'column:'
 const isColumnId = (id) => String(id).startsWith(COLUMN_PREFIX)
 
-function Lane({ status, tasks, usernames, onOpen, onMove, onReorder, onCreate }) {
+function Lane({ status, tasks, itemIds, usernames, onOpen, onMove, onReorder, onCreate }) {
   const { setNodeRef, isOver } = useDroppable({ id: `${COLUMN_PREFIX}${status.value}`, data: { type: 'column', status: status.value } })
   const headingId = `column-${status.value}`
 
@@ -59,7 +59,9 @@ function Lane({ status, tasks, usernames, onOpen, onMove, onReorder, onCreate })
           <span className="sr-only"> {tasks.length === 1 ? 'task' : 'tasks'}</span>
         </span>
       </h2>
-      <SortableContext items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
+      {/* The ids keep their identity between renders: dnd-kit turns off the make-room slide for a
+          render in which the list looks new, so a fresh array each time made cards jump aside. */}
+      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
         <ul className="flex flex-1 flex-col gap-3">
           {tasks.map((task, index) => (
             <TaskCard
@@ -96,7 +98,7 @@ function Lane({ status, tasks, usernames, onOpen, onMove, onReorder, onCreate })
 }
 
 // Backlog sits under the lanes, collapsed by default (Figma 324:778, "Backlog / Secondary").
-function BacklogPanel({ tasks, usernames, onOpen, onMove, onReorder, open, onToggle }) {
+function BacklogPanel({ tasks, itemIds, usernames, onOpen, onMove, onReorder, open, onToggle }) {
   const { setNodeRef, isOver } = useDroppable({ id: `${COLUMN_PREFIX}BACKLOG`, data: { type: 'column', status: 'BACKLOG' } })
 
   return (
@@ -128,7 +130,7 @@ function BacklogPanel({ tasks, usernames, onOpen, onMove, onReorder, open, onTog
       </div>
       <div id="backlog-tasks" hidden={!open}>
         {open && (
-          <SortableContext items={tasks.map((task) => task.id)} strategy={rectSortingStrategy}>
+          <SortableContext items={itemIds} strategy={rectSortingStrategy}>
             <ul className="motion-reveal mt-3 flex flex-wrap gap-3">
               {tasks.map((task, index) => (
                 <TaskCard
@@ -154,11 +156,12 @@ function BacklogPanel({ tasks, usernames, onOpen, onMove, onReorder, open, onTog
   )
 }
 
-// The picked-up card rises a little; on release it settles into its slot at full size.
+// The picked-up card rises a little; on release it settles into its slot at full size. The card in
+// the list stays hidden until then, so only one copy is seen landing.
 const dropAnimation = {
   duration: 260,
   easing: EASE,
-  sideEffects: defaultDropAnimationSideEffects({ className: { dragOverlay: 'card-dropping' } }),
+  sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: '0' } }, className: { dragOverlay: 'card-dropping' } }),
 }
 
 function idsByStatus(tasks) {
@@ -193,6 +196,14 @@ export default function BoardColumns({ tasks, allTasks = tasks, usernames, onOpe
   const [activeId, setActiveId] = useState(null)
   // While a card is dragged, this holds the live order so cards make room as it moves.
   const [dragIds, setDragIds] = useState(null)
+  // R-1: after a drop, the order it made stays on screen until the saved order arrives (the move is
+  // saved a moment later), so the cards never flick back to their old places and forward again.
+  const [landed, setLanded] = useState(null)
+  // Where each card was drawn just before the lanes changed, so the cards can glide from there.
+  const glideFrom = useRef(null)
+  // Just after the dragged card joins another lane, it counts as over itself until the lanes are
+  // measured again. Otherwise dnd-kit briefly shifts the new lane's cards using the old positions.
+  const justMoved = useRef(false)
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
@@ -207,7 +218,40 @@ export default function BoardColumns({ tasks, allTasks = tasks, usernames, onOpe
   }, [tasks])
   const savedIds = useMemo(() => idsByStatus(tasks), [tasks])
   const fullIds = useMemo(() => idsByStatus(allTasks), [allTasks])
-  const ids = dragIds ?? savedIds
+  const ids = dragIds ?? (landed?.base === savedIds ? landed.ids : savedIds)
+
+  // Runs after the lanes change during a drag or at the drop: the lane the card leaves closes its
+  // gap as smoothly as the lane it joins opens one. The dragged card itself is drawn by the overlay.
+  useLayoutEffect(() => {
+    const from = glideFrom.current
+    if (!from) return
+    glideFrom.current = null
+    glideCards(document, from.rects, { skip: from.skip, add: true })
+  }, [dragIds, landed])
+
+  // While a card is dragged the lanes may grow but never shrink. When the card left the tallest
+  // lane, every lane got shorter, the pointer ended up below them all and the card jumped back.
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current
+    if (!scroller) return
+    if (activeId) {
+      scroller.style.minHeight = `${Math.max(parseFloat(scroller.style.minHeight) || 0, scroller.offsetHeight)}px`
+      return
+    }
+    // After the drop, the lanes take their own height once the card has landed.
+    const timer = setTimeout(() => {
+      scroller.style.minHeight = ''
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [activeId, dragIds])
+
+  useEffect(() => {
+    if (!justMoved.current) return
+    const frame = requestAnimationFrame(() => {
+      justMoved.current = false
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [dragIds])
   const columnTasks = (status) => ids[status].map((id) => byId.get(id)).filter(Boolean)
   const activeTask = activeId ? byId.get(activeId) : null
 
@@ -218,6 +262,7 @@ export default function BoardColumns({ tasks, allTasks = tasks, usernames, onOpe
 
   // Prefer the card under the pointer; between cards, use the nearest card in that lane.
   function collisionDetection(args) {
+    if (justMoved.current && args.active) return [{ id: args.active.id }]
     // The backlog panel moves down when a lane grows mid-drag, and dnd-kit keeps its old
     // rectangle, so check the live position of the collapsed panel first.
     const pointer = args.pointerCoordinates
@@ -235,17 +280,38 @@ export default function BoardColumns({ tasks, allTasks = tasks, usernames, onOpe
     const laneIds = ids[containerOf(lane.id)] ?? []
     if (laneIds.length === 0) return [lane]
     const containers = args.droppableContainers.filter((container) => laneIds.includes(container.id))
+    // R-1: the card nearest the pointer, measured at the cards' resting places. Below the last card
+    // that is always the last card, so the slot no longer flips back and forth at the end of a lane.
+    if (pointer) {
+      let nearest = null
+      for (const container of containers) {
+        const rect = args.droppableRects.get(container.id)
+        if (!rect) continue
+        const dx = Math.max(rect.left - pointer.x, 0, pointer.x - rect.right)
+        const dy = Math.max(rect.top - pointer.y, 0, pointer.y - rect.bottom)
+        const value = Math.hypot(dx, dy)
+        if (!nearest || value < nearest.data.value) nearest = { id: container.id, data: { droppableContainer: container, value } }
+      }
+      if (nearest) return [nearest]
+    }
     const nearest = closestCenter({ ...args, droppableContainers: containers })
     return nearest.length ? nearest : [lane]
   }
 
   function onDragStart({ active }) {
     setActiveId(active.id)
-    setDragIds(savedIds)
+    setDragIds(ids)
+    setLanded(null)
   }
 
   function onDragOver({ active, over }) {
     if (!over) return
+    const from = containerOf(active.id)
+    const to = containerOf(over.id)
+    if (from && to && from !== to && (to !== 'BACKLOG' || backlogOpen)) {
+      glideFrom.current = { rects: cardRects(document), skip: active.id }
+      justMoved.current = true
+    }
     setDragIds((current) => {
       if (!current) return current
       const from = containerOf(active.id, current)
@@ -257,7 +323,9 @@ export default function BoardColumns({ tasks, allTasks = tasks, usernames, onOpe
       if (!isColumnId(over.id)) {
         const overIndex = target.indexOf(over.id)
         const translated = active.rect.current.translated
-        const below = translated && translated.top > over.rect.top + over.rect.height / 2
+        // Centre against centre, the same test the pointer makes, so the slot is not placed on one
+        // side of a card and then moved to the other by dnd-kit a frame later.
+        const below = translated && translated.top + translated.height / 2 > over.rect.top + over.rect.height / 2
         index = overIndex + (below ? 1 : 0)
       }
       return {
@@ -276,6 +344,8 @@ export default function BoardColumns({ tasks, allTasks = tasks, usernames, onOpe
   function onDragEnd({ active, over }) {
     const task = byId.get(active.id)
     const current = dragIds ?? savedIds
+    // The cards are measured where they are drawn now, before the drag's shifts are taken away.
+    const rects = cardRects(document)
     finish()
     if (!task || !over) return
 
@@ -296,6 +366,10 @@ export default function BoardColumns({ tasks, allTasks = tasks, usernames, onOpe
 
     const savedPosition = fullIds[task.status].indexOf(task.id) + 1
     if (status === task.status && position === savedPosition) return
+    const landedIds = Object.fromEntries(Object.entries(current).map(([key, list]) => [key, list.filter((id) => id !== task.id)]))
+    landedIds[status] = order
+    glideFrom.current = { rects, skip: task.id }
+    setLanded({ base: savedIds, ids: landedIds })
     onMove(task, status, position, { dragged: true })
   }
 
@@ -407,6 +481,7 @@ export default function BoardColumns({ tasks, allTasks = tasks, usernames, onOpe
             key={status.value}
             status={status}
             tasks={columnTasks(status.value)}
+            itemIds={ids[status.value]}
             usernames={usernames}
             onOpen={onOpen}
             onMove={onMove}
@@ -418,6 +493,7 @@ export default function BoardColumns({ tasks, allTasks = tasks, usernames, onOpe
       <div className="mt-6">
         <BacklogPanel
           tasks={columnTasks('BACKLOG')}
+          itemIds={ids.BACKLOG}
           usernames={usernames}
           onOpen={onOpen}
           onMove={onMove}
@@ -426,7 +502,7 @@ export default function BoardColumns({ tasks, allTasks = tasks, usernames, onOpe
           onToggle={() => setBacklogOpen((value) => !value)}
         />
       </div>
-      <DragOverlay dropAnimation={dropAnimation}>
+      <DragOverlay dropAnimation={reducedMotion() ? null : dropAnimation}>
         {activeTask && (
           <div className="card-pickup cursor-grabbing">
             <TaskCardBody task={activeTask} usernames={usernames} onOpen={() => {}} onMove={() => {}} isOverlay />

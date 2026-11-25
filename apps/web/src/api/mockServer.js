@@ -6,6 +6,7 @@ import { formatDueDate } from '../lib/domain.js'
 import { isDemoSession, shiftSampleDates } from './demoSession.js'
 import { ApiError } from './errors.js'
 import { createSampleData, SAMPLE_USER_ID } from './sampleData.js'
+import { checkMapping, parseCsv, readRow, readTable, suggestMapping } from './sampleImport.js'
 
 const SESSION_KEY = 'khatet.sampleSession'
 const STATUS_ORDER = ['BACKLOG', 'TODO', 'IN_PROGRESS', 'READY_FOR_REVIEW', 'DONE']
@@ -219,6 +220,14 @@ function validateTaskFields(input, projectId, { partial }) {
     const dueDate = input.dueDate || null
     if (dueDate && !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) errors.push({ field: 'dueDate', message: 'Enter a valid date.' })
     clean.dueDate = dueDate
+  }
+  // US-20: a task links to at most one phase of its own project; null clears the link.
+  if ('phaseId' in input) {
+    const phaseId = input.phaseId || null
+    if (phaseId && !db.phases.some((phase) => phase.id === phaseId && phase.projectId === projectId)) {
+      errors.push({ field: 'phaseId', message: 'Choose a phase of this project.' })
+    }
+    clean.phaseId = phaseId
   }
 
   if (errors.length) throw invalid(errors)
@@ -683,6 +692,7 @@ export function createTask(projectId, input) {
       description: '',
       priority: null,
       dueDate: null,
+      phaseId: null,
       ...fields,
       status: 'TODO',
       position: columnTasks(projectId, 'TODO').length + 1,
@@ -731,6 +741,9 @@ function describeChanges(before, after) {
     changes.push({ field: 'blockedReason', from: before.blockedReason, to: after.blockedReason })
   }
   if (before.description !== after.description) changes.push({ field: 'description' })
+  if ((before.phaseId ?? null) !== (after.phaseId ?? null)) {
+    changes.push({ field: 'phase', from: phaseName(before.phaseId), to: phaseName(after.phaseId) })
+  }
   const added = after.assigneeIds.filter((id) => !before.assigneeIds.includes(id))
   const removed = before.assigneeIds.filter((id) => !after.assigneeIds.includes(id))
   if (added.length || removed.length) {
@@ -879,7 +892,9 @@ function serializeReport(report) {
     model: report.model,
     promptVersion: report.promptVersion,
     createdAt: report.createdAt,
-    createdBy: { id: report.createdById, username: usernameOf(report.createdById) },
+    // US-32: automatic reports have no author.
+    trigger: report.trigger ?? 'MANUAL',
+    createdBy: report.createdById ? { id: report.createdById, username: usernameOf(report.createdById) } : null,
   }
 }
 
@@ -963,6 +978,152 @@ export function generateReport(projectId) {
   })
 }
 
+// ---------- Automatic AI reports (US-32) ----------
+
+const REPORT_FREQUENCIES = ['DISABLED', 'WEEKLY', 'MONTHLY']
+
+// The next run after `from`: 7 days later for Weekly, the same day next month for Monthly.
+export function nextReportRun(frequency, from = new Date()) {
+  if (frequency === 'WEEKLY') return new Date(from.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  if (frequency === 'MONTHLY') {
+    const next = new Date(from)
+    next.setMonth(next.getMonth() + 1)
+    return next.toISOString()
+  }
+  return null
+}
+
+function scheduleOf(projectId) {
+  return db.reportSchedules[projectId] ?? { frequency: 'DISABLED', nextRunAt: null }
+}
+
+// Any member reads the setting; only the owner changes it (docs/api-contract.md, Automatic reports).
+export function getReportSchedule(projectId) {
+  return respond('getReportSchedule', () => {
+    requireMembership(projectId)
+    return scheduleOf(projectId)
+  })
+}
+
+export function updateReportSchedule(projectId, frequency) {
+  return respond('updateReportSchedule', () => {
+    const membership = requireMembership(projectId)
+    if (membership.role !== 'OWNER') throw forbidden('Only the project owner can change automatic reports.')
+    if (!REPORT_FREQUENCIES.includes(frequency)) throw invalid([{ field: 'frequency', message: 'Choose Weekly, Monthly or Off.' }])
+    db.reportSchedules[projectId] = { frequency, nextRunAt: nextReportRun(frequency) }
+    return scheduleOf(projectId)
+  })
+}
+
+// Stands in for the hourly scheduled run on the server: writes an automatic report for a
+// project and tells its owner. Used by tests and by reviewers in the browser console.
+export function runAutomaticReport(projectId) {
+  const owner = db.members.find((item) => item.projectId === projectId && item.role === 'OWNER')
+  const report = {
+    id: newId('r'),
+    projectId,
+    createdById: null,
+    trigger: 'AUTOMATIC',
+    model: 'sample',
+    promptVersion: 2,
+    createdAt: now(),
+    content: ['## Progress summary', `${projectTasks(projectId).filter((task) => task.status === 'DONE').length} tasks are done.`, '', '## Warnings', 'No warnings.'].join('\n'),
+  }
+  db.reports.push(report)
+  const schedule = scheduleOf(projectId)
+  if (schedule.frequency !== 'DISABLED') db.reportSchedules[projectId] = { ...schedule, nextRunAt: nextReportRun(schedule.frequency) }
+  if (owner) {
+    db.notifications.push({ id: newId('n'), userId: owner.userId, type: 'REPORT_READY', projectId, reportId: report.id, actorId: null, read: false, createdAt: now() })
+  }
+  return serializeReport(report)
+}
+
+// ---------- Phases (US-20) ----------
+
+function phaseName(phaseId) {
+  return phaseId ? (db.phases.find((phase) => phase.id === phaseId)?.name ?? null) : null
+}
+
+function projectPhases(projectId) {
+  return db.phases
+    .filter((phase) => phase.projectId === projectId)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate) || a.name.localeCompare(b.name))
+}
+
+// Every member reads the phases, ordered by start date (docs/api-contract.md, Phases and timeline).
+export function getPhases(projectId) {
+  return respond('getPhases', () => {
+    requireMembership(projectId)
+    return { phases: projectPhases(projectId) }
+  })
+}
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+
+function validatePhase(input, current = {}) {
+  const errors = []
+  const merged = { ...current, ...input }
+  const name = (merged.name ?? '').trim()
+  if (!name) errors.push({ field: 'name', message: 'Enter a phase name.' })
+  else if (name.length > 80) errors.push({ field: 'name', message: 'Keep the name under 80 characters.' })
+  if (!DATE_PATTERN.test(merged.startDate ?? '')) errors.push({ field: 'startDate', message: 'Enter a start date.' })
+  if (!DATE_PATTERN.test(merged.endDate ?? '')) errors.push({ field: 'endDate', message: 'Enter an end date.' })
+  else if (DATE_PATTERN.test(merged.startDate ?? '') && merged.endDate < merged.startDate) {
+    errors.push({ field: 'endDate', message: 'The end date must be on or after the start date.' })
+  }
+  if (errors.length) throw invalid(errors)
+  return { name, startDate: merged.startDate, endDate: merged.endDate }
+}
+
+function requireOwner(projectId, message) {
+  const membership = requireMembership(projectId)
+  if (membership.role !== 'OWNER') throw forbidden(message)
+  return membership
+}
+
+export function createPhase(projectId, input) {
+  return respond('createPhase', () => {
+    requireOwner(projectId, 'Only the project owner can add phases.')
+    const fields = validatePhase(input)
+    const phase = { id: newId('ph'), projectId, ...fields, createdAt: now(), updatedAt: now() }
+    db.phases.push(phase)
+    logActivity(projectId, 'PHASE_CREATED', { details: { ...fields } })
+    return phase
+  })
+}
+
+function findPhase(phaseId) {
+  const phase = db.phases.find((item) => item.id === phaseId)
+  if (!phase) throw notFound('This phase no longer exists.')
+  return phase
+}
+
+export function updatePhase(phaseId, patch) {
+  return respond('updatePhase', () => {
+    const phase = findPhase(phaseId)
+    requireOwner(phase.projectId, 'Only the project owner can edit phases.')
+    const fields = validatePhase(patch, phase)
+    const changes = ['name', 'startDate', 'endDate']
+      .filter((field) => phase[field] !== fields[field])
+      .map((field) => ({ field, from: phase[field], to: fields[field] }))
+    Object.assign(phase, fields, { updatedAt: now() })
+    if (changes.length) logActivity(phase.projectId, 'PHASE_UPDATED', { details: { name: phase.name, changes } })
+    return phase
+  })
+}
+
+// Tasks keep everything except the link to the deleted phase.
+export function deletePhase(phaseId) {
+  return respond('deletePhase', () => {
+    const phase = findPhase(phaseId)
+    requireOwner(phase.projectId, 'Only the project owner can delete phases.')
+    db.phases = db.phases.filter((item) => item.id !== phaseId)
+    for (const task of db.tasks) if (task.phaseId === phaseId) task.phaseId = null
+    logActivity(phase.projectId, 'PHASE_DELETED', { details: { name: phase.name } })
+    return { id: phaseId }
+  })
+}
+
 // ---------- Project log ----------
 
 const ACTIVITY_PAGE = 50
@@ -971,7 +1132,7 @@ const ACTIVITY_PAGE = 50
 const ACTIVITY_KINDS = {
   task: (type) => type.startsWith('TASK_'),
   member: (type) => type.startsWith('MEMBER_') || type.startsWith('INVITATION_'),
-  project: (type) => type.startsWith('PROJECT_'),
+  project: (type) => type.startsWith('PROJECT_') || type.startsWith('PHASE_'),
 }
 
 export function getActivity(projectId, { actorId, taskId, kind, before, limit = ACTIVITY_PAGE } = {}) {
@@ -995,5 +1156,85 @@ export function getActivity(projectId, { actorId, taskId, kind, before, limit = 
       nextCursor: start + limit < matching.length ? events.at(-1).id : null,
       actors: [...actors].map(([id, username]) => ({ id, username })).sort((a, b) => a.username.localeCompare(b.username)),
     }
+  })
+}
+
+// ---------- CSV import (US-33) ----------
+// The same two routes as the API (docs/api-contract.md, Import contract), with the same rules
+// (sampleImport.js). Nothing is kept between the steps: confirm reads the file again.
+
+function loadImport(projectId, csv) {
+  const membership = requireMembership(projectId)
+  if (membership.role !== 'OWNER') throw forbidden('Only the project owner can import tasks.')
+  const table = readTable(parseCsv(typeof csv === 'string' ? csv : ''), csv)
+  if (table.errors.length) throw invalid(table.errors.map((message) => ({ field: 'csv', message })))
+  const members = new Map()
+  for (const item of db.members.filter((member) => member.projectId === projectId && !member.archiveRemovedAt)) {
+    const user = db.users.find((candidate) => candidate.id === item.userId)
+    if (user?.username) members.set(user.username.toLowerCase(), { id: user.id, username: user.username })
+  }
+  const owner = db.users.find((user) => user.id === membership.userId)
+  return { table, members, importer: { id: owner.id, username: owner.username } }
+}
+
+function checkedImportRows({ table, members, importer }, mapping) {
+  const problem = checkMapping(mapping, table.columns)
+  if (problem) throw invalid([{ field: 'mapping', message: problem }])
+  return table.rows.map((row) => readRow(row, mapping, { members, importer }))
+}
+
+export function previewImport(projectId, { csv, mapping } = {}) {
+  return respond('previewImport', () => {
+    const loaded = loadImport(projectId, csv)
+    const { table } = loaded
+    const answer = {
+      columns: table.columns,
+      suggestedMapping: suggestMapping(table.columns),
+      rowCount: table.rows.length,
+      sample: table.rows.slice(0, 3).map((row) => table.columns.map((_, index) => (row.cells[index] ?? '').trim())),
+    }
+    if (mapping === undefined) return answer
+    const rows = checkedImportRows(loaded, mapping)
+    const validCount = rows.filter((row) => row.errors.length === 0).length
+    return {
+      ...answer,
+      mapping,
+      rows: rows.map(({ line, values: { assigneeIds: _ids, ...values }, errors }) => ({ line, values, errors })),
+      validCount,
+      skippedCount: rows.length - validCount,
+    }
+  })
+}
+
+export function confirmImport(projectId, { csv, mapping } = {}) {
+  return respond('confirmImport', () => {
+    const rows = checkedImportRows(loadImport(projectId, csv), mapping)
+    const valid = rows.filter((row) => row.errors.length === 0)
+    if (valid.length === 0) {
+      throw invalid([{ field: 'csv', message: 'No row is ready to import. Fix the problems in the file and upload it again.' }])
+    }
+    const taskIds = valid.map(({ values }) => {
+      const task = {
+        id: newId('t'),
+        projectId,
+        title: values.title,
+        description: values.description,
+        status: values.status,
+        position: columnTasks(projectId, values.status).length + 1,
+        priority: values.priority,
+        dueDate: values.dueDate,
+        assigneeIds: values.assigneeIds,
+        isBlocked: false,
+        blockedReason: null,
+        createdById: currentUserId,
+        createdAt: now(),
+        updatedAt: now(),
+      }
+      db.tasks.push(task)
+      notifyAssignees(task, task.assigneeIds)
+      logActivity(projectId, 'TASK_CREATED', { task, details: { status: task.status, assignees: values.assignees, imported: true } })
+      return task.id
+    })
+    return { createdCount: taskIds.length, skippedCount: rows.length - taskIds.length, taskIds }
   })
 }

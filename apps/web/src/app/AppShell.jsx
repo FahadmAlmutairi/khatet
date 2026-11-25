@@ -8,7 +8,7 @@ import { isDemoSession } from '../api/demoSession.js'
 import { inertOthers } from '../lib/inertOthers.js'
 import { useMe, useProjects, useSignOut } from '../api/hooks.js'
 import Avatar from '../components/Avatar.jsx'
-import { BoardIcon, ChevronIcon, HistoryIcon, OverviewIcon, ReportIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SettingsIcon, SignOutIcon } from '../components/icons.jsx'
+import { BoardIcon, ChevronIcon, TimelineIcon, HistoryIcon, OverviewIcon, ReportIcon, CloseIcon, HomeIcon, MembersIcon, MenuIcon, PanelLeftIcon, PlusIcon, SettingsIcon, SignOutIcon } from '../components/icons.jsx'
 import Logo from '../components/Logo.jsx'
 import Button from '../components/ui/Button.jsx'
 import Dialog from '../components/ui/Dialog.jsx'
@@ -94,6 +94,12 @@ function SortableProject({ project, current, open, mobile, onNavigate, onToggle,
             <NavLink to={`/projects/${project.id}/board`} className={subNavClass(mobile)} onClick={onNavigate}>
               <BoardIcon />
               Board
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to={`/projects/${project.id}/timeline`} className={subNavClass(mobile)} onClick={onNavigate}>
+              <TimelineIcon />
+              Timeline
             </NavLink>
           </li>
           <li>
