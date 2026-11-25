@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { SparkleIcon, SummaryIcon, WarningIcon } from '../../components/icons.jsx'
 import { useReducedMotion } from './hooks.js'
 
-// A sample AI report the visitor can generate again. Under it, the project before and after the
+// A sample project report the visitor can generate again. Under it, the project before and after the
 // report: the same numbers, to show that the report only reads the project.
 
 const SNAPSHOT = [

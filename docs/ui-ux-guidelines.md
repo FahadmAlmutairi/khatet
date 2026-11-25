@@ -97,7 +97,7 @@ The owner generates a report; every participant can read it with the date it was
 
 ### Public landing page and live demo
 
-Signed-out visitors open the landing page at `/`; signed-in people go straight to their projects. The page shows the product itself instead of stock images: an animated board preview in the hero (move a task, flag a blocker, finish work, talk in chat, get an AI report), the group chat turned into tasks, the board, Overview, chat and project log, the AI report with proof that nothing changed, the three task access levels, accessibility, three steps to start, the guided tour and the team. Use real feature names and sample data only, with no invented statistics, testimonials or customer logos.
+Signed-out visitors open the landing page at `/`; signed-in people go straight to their projects. The page shows the product itself instead of stock images: an animated board preview in the hero (move a task, flag a blocker, finish work, talk in chat, get a report), the group chat turned into tasks, the board, Overview, chat and project log, the project report with proof that nothing changed, the three task access levels, accessibility, three steps to start, the guided tour and the team. Use real feature names and sample data only, with no invented statistics, testimonials or customer logos.
 
 The hero preview has a pause button and a button for each step (WCAG 2.2.2), pauses when it is off screen or the tab is hidden, and shows its final state without movement when reduced motion is on. Sections fade and rise 12 px once when they scroll into view; anything that takes focus shows at once. Every interactive example works with the keyboard and keeps text at full contrast in every state.
 

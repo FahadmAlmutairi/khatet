@@ -251,7 +251,7 @@
   transition: transform 1400ms var(--ease-apple) 200ms;
 }
 
-/* ---------- AI report ---------- */
+/* ---------- Report ---------- */
 
 .report-line {
   animation: hero-pop 460ms var(--ease-apple) backwards;

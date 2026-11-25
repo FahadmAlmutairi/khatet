@@ -8,7 +8,7 @@ import { useInView, useReducedMotion } from './hooks.js'
 
 // A live, self-playing preview of the board for the hero. It is built from the app's own status
 // icons, priority badges and colours, not a screenshot, and plays a short story: a task moves, a
-// blocker is flagged, work is finished, the team talks in chat and an AI report sums it up.
+// blocker is flagged, work is finished, the team talks in chat and a report sums it up.
 // Everything inside the stage is decorative (aria-hidden); the figure caption tells the same story.
 
 const TASKS = {
@@ -212,7 +212,7 @@ function ReportCard({ narrow }) {
         <span className="grid size-7 place-items-center rounded-lg bg-[#f8e6de] text-attention">
           <SparkleIcon />
         </span>
-        <p className="text-[13px] font-semibold text-heading">AI project report</p>
+        <p className="text-[13px] font-semibold text-heading">Project report</p>
         <span className="ml-auto text-[11px] text-muted">Just now</span>
       </div>
       <p className="mt-2.5 text-[12px] leading-[17px] text-body">3 of 7 tasks are done. The board prototype moved to Done today.</p>
@@ -476,7 +476,7 @@ export default function HeroPreview() {
 
       <figcaption id="hero-preview-caption" className="sr-only">
         A preview of a Khatet board. A task moves to Ready for Review, a blocked task is flagged, finished work
-        moves to Done, the team talks about it in project chat, and an AI report sums up progress without
+        moves to Done, the team talks about it in project chat, and a report sums up progress without
         changing anything.
       </figcaption>
 

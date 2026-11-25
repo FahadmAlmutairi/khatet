@@ -50,7 +50,7 @@ const TOUR_STEPS = [
   {
     path: 'report',
     target: '[data-tour="generate-report"]',
-    title: 'Ask for an AI report',
+    title: 'Ask for a project report',
     body: 'Generate a report for a progress summary, warnings and suggestions. It is advice only: it never changes tasks, dates, people or access.',
   },
   {

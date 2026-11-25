@@ -24,7 +24,7 @@ const secondaryCta =
 
 const NAV = [
   ['#features', 'Features'],
-  ['#ai-report', 'AI report'],
+  ['#report', 'Report'],
   ['#accessibility', 'Accessibility'],
   ['#tour', 'Tour'],
 ]
@@ -189,7 +189,7 @@ function Facts() {
     ['5', 'clear stages', 'from Backlog to Done'],
     ['3', 'access levels', 'for every teammate'],
     ['1', 'keyboard path', 'for every drag'],
-    ['0', 'changes', 'made by the AI report'],
+    ['0', 'changes', 'made by a report'],
   ]
   return (
     <section aria-label="Khatet in numbers" className="border-y border-line bg-white">
@@ -208,7 +208,7 @@ function Facts() {
   )
 }
 
-function AiSection() {
+function ReportSection() {
   const points = [
     'A summary of the progress since the last report',
     'Warnings about unrealistic deadlines, overloaded members and long-blocked work',
@@ -216,7 +216,7 @@ function AiSection() {
     'No Accept or Apply buttons: tasks, dates, people and access stay as they are',
   ]
   return (
-    <section id="ai-report" aria-labelledby="ai-title" className="relative isolate overflow-hidden bg-heading py-20 text-white sm:py-28">
+    <section id="report" aria-labelledby="report-title" className="relative isolate overflow-hidden bg-heading py-20 text-white sm:py-28">
       <DrawnMark
         className="pointer-events-none absolute -right-40 -bottom-40 -z-10 w-[640px] opacity-[0.08]"
         stroke="#AEB79D"
@@ -225,7 +225,7 @@ function AiSection() {
       />
       <div className="mx-auto grid max-w-[1200px] items-center gap-12 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-16">
         <div className="flex flex-col gap-8">
-          <SectionHeader id="ai-title" eyebrow="AI project report" title="Reads everything. Changes nothing." align="left" tone="dark">
+          <SectionHeader id="report-title" eyebrow="Project report" title="Reads everything. Changes nothing." align="left" tone="dark">
             The project owner asks for a report and gets a plain-language view of the project. It is advice for the team,
             and it never edits a single task.
           </SectionHeader>
@@ -356,7 +356,7 @@ function HowItWorks() {
   const steps = [
     ['Sign in with your email', 'Type your email, enter the 6-digit code we send, and choose a username. There is no password to forget.'],
     ['Create a project and invite your team', 'Name the project, invite classmates by username and give each person the right access.'],
-    ['Plan, move and report', 'Add tasks, move them across the board, talk in chat and ask for an AI report when you need a check-in.'],
+    ['Plan, move and report', 'Add tasks, move them across the board, talk in chat and ask for a report when you need a check-in.'],
   ]
   return (
     <section aria-labelledby="how-title" className="py-20 sm:py-28">
@@ -399,7 +399,7 @@ function TourSection() {
             See the real app in two minutes
           </h2>
           <p className="landing-pretty text-[17px] leading-relaxed text-muted">
-            Open a sample project and follow a short tour of the real screens: the overview, the board, chat, the AI report
+            Open a sample project and follow a short tour of the real screens: the overview, the board, chat, the report
             and members. You need no account, and nothing you change is saved.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -546,7 +546,7 @@ function Footer() {
           <ul className="grid grid-cols-2 gap-x-10 gap-y-1 text-sm sm:grid-cols-3">
             {[
               ['#features', 'Features'],
-              ['#ai-report', 'AI report'],
+              ['#report', 'Report'],
               ['#accessibility', 'Accessibility'],
             ].map(([href, label]) => (
               <li key={href}>
@@ -618,7 +618,7 @@ export default function LandingPage() {
             <FeatureStory />
           </div>
         </section>
-        <AiSection />
+        <ReportSection />
         <AccessSection />
         <AccessibilitySection />
         <HowItWorks />
