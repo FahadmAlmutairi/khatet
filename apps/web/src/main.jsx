@@ -15,6 +15,14 @@ if (window.location.pathname === '/') loadLandingPage()
 // index.html carries a prerendered copy of the landing page (app/staticLanding.js). It is only
 // for signed-out visitors at /; everyone else goes straight to the app.
 if (window.location.pathname !== '/' || hasSavedSession()) removeStaticLanding()
+// Only the landing page belongs in search results. Vercel's SPA fallback does not apply
+// per-path headers, so sign-in, demo and app pages ask search engines not to index them here.
+if (window.location.pathname !== '/') {
+  const robots = document.createElement('meta')
+  robots.name = 'robots'
+  robots.content = 'noindex'
+  document.head.append(robots)
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
