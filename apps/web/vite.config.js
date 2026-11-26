@@ -4,6 +4,8 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  // scripts/prerender.mjs reads the manifest to link the landing page's files, then deletes it.
+  build: { manifest: true },
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.js',

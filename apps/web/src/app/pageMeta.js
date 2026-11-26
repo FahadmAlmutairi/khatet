@@ -7,3 +7,6 @@ export function useDocumentTitle(...parts) {
     document.title = title
   }, [title])
 }
+
+// The landing page's title, also set in index.html for search results and link previews.
+export const HOME_TITLE = 'Khatet: project management for small teams'
